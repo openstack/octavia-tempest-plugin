@@ -1,0 +1,11 @@
+- hosts: all
+  name: Octavia DSVM jobs pre-run playbook
+  tasks:
+    - shell:
+        cmd: |
+          set -e
+          set -x
+          if $(egrep --quiet '(vmx|svm)' /proc/cpuinfo) && [[ ! $(hostname) =~ "ovh" ]]; then
+              export DEVSTACK_GATE_LIBVIRT_TYPE=kvm
+          fi
+

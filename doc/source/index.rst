@@ -14,11 +14,16 @@ Contents:
    readme
    installation
    contributing
+   configref
 
 Indices and tables
 ==================
 
+.. toctree::
+   :hidden:
+
+   _build/modules/modules
+
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

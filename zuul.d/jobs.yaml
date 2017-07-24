@@ -1,23 +1,27 @@
 - job:
-    name: octavia-v2-dsvm-scenario
+    name: octavia-dsvm-base
     parent: devstack-tempest
     timeout: 7800
     required-projects:
-      - openstack/barbican
-      - openstack/diskimage-builder
       - openstack/octavia
       - openstack/octavia-tempest-plugin
-      - openstack/python-barbicanclient
       - openstack/python-octaviaclient
+    pre-run: playbooks/Octavia-DSVM/pre.yaml
     irrelevant-files:
       - ^.*\.rst$
+      - ^api-ref/.*$
       - ^doc/.*$
+      - ^etc/.*$
       - ^releasenotes/.*$
     vars:
       devstack_localrc:
         TEMPEST_PLUGINS: "'{{ ansible_user_dir }}/src/git.openstack.org/openstack/octavia-tempest-plugin'"
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            DEFAULT:
+              debug: True
       devstack_services:
-        barbican: true
         c-bak: false
         ceilometer-acentral: false
         ceilometer-acompute: false
@@ -41,19 +45,82 @@
         s-object: false
         s-proxy: false
         tempest: true
+      devstack_plugins:
+        octavia: https://github.com/openstack/octavia.git
+
+- job:
+    name: octavia-dsvm-live-base
+    parent: octavia-dsvm-base
+    required-projects:
+      - openstack/barbican
+      - openstack/diskimage-builder
+      - openstack/python-barbicanclient
+    vars:
+      devstack_services:
+        barbican: true
         neutron-qos: true
       devstack_plugins:
         barbican: https://github.com/openstack/barbican.git
-        octavia: https://github.com/openstack/octavia.git
         neutron: https://github.com/openstack/neutron.git
+
+- job:
+    name: octavia-dsvm-noop-base
+    parent: octavia-dsvm-base
+    vars:
+      devstack_localrc:
+        DISABLE_AMP_IMAGE_BUILD: True
+      devstack_local_conf:
+        test-config:
+          "$TEMPEST_CONFIG":
+            load_balancer:
+              test_with_noop: True
+        post-config:
+          $OCTAVIA_CONF:
+            controller_worker:
+              amphora_driver: amphora_noop_driver
+              compute_driver: compute_noop_driver
+              network_driver: network_noop_driver
+            certificates:
+              cert_manager: local_cert_manager
+      devstack_services:
+        barbican: false
+
+- job:
+    name: octavia-v2-dsvm-noop-api
+    parent: octavia-dsvm-noop-base
+    vars:
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            api_settings:
+              api_v1_enabled: False
       tempest_concurrency: 2
-      tempest_test_regex: ^octavia_tempest_plugin
+      tempest_test_regex: ^octavia_tempest_plugin.tests.api.v2
+      tox_envlist: all
+
+- job:
+    name: octavia-v2-dsvm-noop-py35-api
+    parent: octavia-v2-dsvm-noop-api
+    vars:
+      devstack_localrc:
+        USE_PYTHON3: true
+
+- job:
+    name: octavia-v2-dsvm-scenario
+    parent: octavia-dsvm-base
+    vars:
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            api_settings:
+              api_v1_enabled: False
+      tempest_concurrency: 2
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
       tox_envlist: all
 
 - job:
     name: octavia-v2-dsvm-py35-scenario
     parent: octavia-v2-dsvm-scenario
-    timeout: 7800
     vars:
       devstack_localrc:
         USE_PYTHON3: true

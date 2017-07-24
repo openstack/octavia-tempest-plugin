@@ -1,0 +1,834 @@
+# Copyright 2017 GoDaddy
+# Copyright 2017 Catalyst IT Ltd
+# Copyright 2018 Rackspace US Inc.  All rights reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+import testtools
+from uuid import UUID
+
+from dateutil import parser
+
+from tempest import config
+from tempest.lib.common.utils import data_utils
+from tempest.lib.common.utils import test_utils
+from tempest.lib import decorators
+from tempest.lib import exceptions
+
+from octavia_tempest_plugin.common import constants as const
+from octavia_tempest_plugin.tests import test_base
+from octavia_tempest_plugin.tests import waiters
+
+CONF = config.CONF
+
+
+class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
+    """Test the load balancer object API."""
+
+    # Note: This test also covers basic load balancer show API
+    @decorators.idempotent_id('61c6343c-a5d2-4b9f-8c7d-34ea83f0596b')
+    def test_load_balancer_ipv4_create(self):
+        self._test_load_balancer_create(4)
+
+    # Note: This test also covers basic load balancer show API
+    @decorators.idempotent_id('fc9996de-4f55-4fc4-b8ef-a4b9170c7078')
+    @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
+                          'IPv6 testing is disabled')
+    def test_load_balancer_ipv6_create(self):
+        self._test_load_balancer_create(6)
+
+    def _test_load_balancer_create(self, ip_version):
+        """Tests load balancer create and basic show APIs.
+
+        * Tests that users without the load balancer member role cannot
+        *   create load balancers.
+        * Create a fully populated load balancer.
+        * Show load balancer details.
+        * Validate the show reflects the requested values.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-create-"
+                                       "ipv{}".format(ip_version))
+        lb_description = data_utils.arbitrary_string(size=255)
+
+        lb_kwargs = {const.ADMIN_STATE_UP: True,
+                     const.DESCRIPTION: lb_description,
+                     const.PROVIDER: CONF.load_balancer.provider,
+                     # TODO(johnsom) Fix test to use a real flavor
+                     # flavor=lb_flavor,
+                     # TODO(johnsom) Add QoS
+                     # vip_qos_policy_id=lb_qos_policy_id)
+                     const.NAME: lb_name}
+
+        self._setup_lb_network_kwargs(lb_kwargs, ip_version)
+
+        # Test that a user without the load balancer role cannot
+        # create a load balancer
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.create_loadbalancer,
+                **lb_kwargs)
+
+        lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
+
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        self.assertTrue(lb[const.ADMIN_STATE_UP])
+        parser.parse(lb[const.CREATED_AT])
+        parser.parse(lb[const.UPDATED_AT])
+        self.assertEqual(lb_description, lb[const.DESCRIPTION])
+        UUID(lb[const.ID])
+        self.assertEqual(lb_name, lb[const.NAME])
+        # Operating status is a measured status, so no-op will not go online
+        if CONF.load_balancer.test_with_noop:
+            self.assertEqual(const.OFFLINE, lb[const.OPERATING_STATUS])
+        else:
+            self.assertEqual(const.ONLINE, lb[const.OPERATING_STATUS])
+        self.assertEqual(self.os_roles_lb_member.credentials.project_id,
+                         lb[const.PROJECT_ID])
+        self.assertEqual(CONF.load_balancer.provider, lb[const.PROVIDER])
+        self.assertEqual(self.lb_member_vip_net[const.ID],
+                         lb[const.VIP_NETWORK_ID])
+        self.assertIsNotNone(lb[const.VIP_PORT_ID])
+        if lb_kwargs[const.VIP_SUBNET_ID]:
+            self.assertEqual(lb_kwargs[const.VIP_ADDRESS],
+                             lb[const.VIP_ADDRESS])
+            self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
+                             lb[const.VIP_SUBNET_ID])
+
+        # Attempt to clean up so that one full test run doesn't start 10+
+        # amps before the cleanup phase fires
+        try:
+            self.mem_lb_client.delete_loadbalancer(lb[const.ID])
+
+            waiters.wait_for_deleted_status_or_not_found(
+                self.mem_lb_client.show_loadbalancer, lb[const.ID],
+                const.PROVISIONING_STATUS,
+                CONF.load_balancer.lb_build_interval,
+                CONF.load_balancer.lb_build_timeout)
+        except Exception:
+            pass
+
+    @decorators.idempotent_id('643ef031-c800-45f2-b229-3c8f8b37c829')
+    def test_load_balancer_delete(self):
+        """Tests load balancer create and delete APIs.
+
+        * Creates a load balancer.
+        * Validates that other accounts cannot delete the load balancer
+        * Deletes the load balancer.
+        * Validates the load balancer is in the DELETED state.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-delete")
+        lb = self.mem_lb_client.create_loadbalancer(
+            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        # Test that a user without the load balancer role cannot
+        # delete this load balancer
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.delete_loadbalancer,
+                lb[const.ID])
+
+        # Test that a different user, with the load balancer member role
+        # cannot delete this load balancer
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.loadbalancer_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.delete_loadbalancer,
+                              lb[const.ID])
+
+        self.mem_lb_client.delete_loadbalancer(lb[const.ID])
+
+        waiters.wait_for_deleted_status_or_not_found(
+            self.mem_lb_client.show_loadbalancer, lb[const.ID],
+            const.PROVISIONING_STATUS,
+            CONF.load_balancer.lb_build_interval,
+            CONF.load_balancer.lb_build_timeout)
+
+    @decorators.idempotent_id('643ef031-c800-45f2-b229-3c8f8b37c829')
+    def test_load_balancer_delete_cascade(self):
+        """Tests load balancer create and cascade delete APIs.
+
+        * Creates a load balancer.
+        * Validates that other accounts cannot delete the load balancer
+        * Deletes the load balancer with the cascade parameter.
+        * Validates the load balancer is in the DELETED state.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-cascade_delete")
+        lb = self.mem_lb_client.create_loadbalancer(
+            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        # TODO(johnsom) Add other objects when we have clients for them
+
+        # Test that a user without the load balancer role cannot
+        # delete this load balancer
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.delete_loadbalancer,
+                lb[const.ID], cascade=True)
+
+        # Test that a different user, with the load balancer member role
+        # cannot delete this load balancer
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.loadbalancer_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.delete_loadbalancer,
+                              lb[const.ID], cascade=True)
+
+        self.mem_lb_client.delete_loadbalancer(lb[const.ID], cascade=True)
+
+        waiters.wait_for_deleted_status_or_not_found(
+            self.mem_lb_client.show_loadbalancer, lb[const.ID],
+            const.PROVISIONING_STATUS,
+            CONF.load_balancer.lb_build_interval,
+            CONF.load_balancer.lb_build_timeout)
+
+    # Helper functions for test load balancer list
+    def _filter_lbs_by_id(self, lbs, ids):
+        return [lb for lb in lbs if lb['id'] not in ids]
+
+    def _filter_lbs_by_index(self, lbs, indexes):
+        return [lb for i, lb in enumerate(lbs) if i not in indexes]
+
+    @decorators.idempotent_id('6546ef3c-c0e2-46af-b892-f795f4d01119')
+    def test_load_balancer_list(self):
+        """Tests load balancer list API and field filtering.
+
+        * Create three load balancers.
+        * Validates that other accounts cannot list the load balancers.
+        * List the load balancers using the default sort order.
+        * List the load balancers using descending sort order.
+        * List the load balancers using ascending sort order.
+        * List the load balancers returning one field at a time.
+        * List the load balancers returning two fields.
+        * List the load balancers filtering to one of the three.
+        * List the load balancers filtered, one field, and sorted.
+        """
+        # Get a list of pre-existing LBs to filter from test data
+        pretest_lbs = self.mem_lb_client.list_loadbalancers()
+        # Store their IDs for easy access
+        pretest_lb_ids = [lb['id'] for lb in pretest_lbs]
+
+        lb_name = data_utils.rand_name("lb_member_lb2-list")
+        lb_description = 'B'
+
+        lb = self.mem_lb_client.create_loadbalancer(
+            admin_state_up=True,
+            description=lb_description,
+            # TODO(johnsom) Fix test to use a real flavor
+            # flavor=lb_flavor,
+            provider=CONF.load_balancer.provider,
+            name=lb_name,
+            # TODO(johnsom) Add QoS
+            # vip_qos_policy_id=lb_qos_policy_id)
+            vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb1 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                      lb[const.ID],
+                                      const.PROVISIONING_STATUS,
+                                      const.ACTIVE,
+                                      CONF.load_balancer.lb_build_interval,
+                                      CONF.load_balancer.lb_build_timeout)
+
+        lb_name = data_utils.rand_name("lb_member_lb1-list")
+        lb_description = 'A'
+
+        lb = self.mem_lb_client.create_loadbalancer(
+            admin_state_up=True,
+            description=lb_description,
+            name=lb_name,
+            vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb2 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                      lb[const.ID],
+                                      const.PROVISIONING_STATUS,
+                                      const.ACTIVE,
+                                      CONF.load_balancer.lb_build_interval,
+                                      CONF.load_balancer.lb_build_timeout)
+
+        lb_name = data_utils.rand_name("lb_member_lb3-list")
+        lb_description = 'C'
+
+        lb = self.mem_lb_client.create_loadbalancer(
+            admin_state_up=False,
+            description=lb_description,
+            name=lb_name,
+            vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb3 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                      lb[const.ID],
+                                      const.PROVISIONING_STATUS,
+                                      const.ACTIVE,
+                                      CONF.load_balancer.lb_build_interval,
+                                      CONF.load_balancer.lb_build_timeout)
+
+        # Test that a different user cannot list load balancers
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.loadbalancer_client
+            primary = member2_client.list_loadbalancers()
+            self.assertEqual(0, len(primary))
+
+        # Test that a user without the lb member role cannot list load
+        # balancers
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.list_loadbalancers)
+
+        # Check the default sort order, created_at
+        lbs = self.mem_lb_client.list_loadbalancers()
+        lbs = self._filter_lbs_by_id(lbs, pretest_lb_ids)
+        self.assertEqual(lb1[const.DESCRIPTION], lbs[0][const.DESCRIPTION])
+        self.assertEqual(lb2[const.DESCRIPTION], lbs[1][const.DESCRIPTION])
+        self.assertEqual(lb3[const.DESCRIPTION], lbs[2][const.DESCRIPTION])
+
+        # Test sort descending by description
+        lbs = self.mem_lb_client.list_loadbalancers(
+            query_params='{sort}={descr}:{desc}'.format(
+                sort=const.SORT, descr=const.DESCRIPTION, desc=const.DESC))
+        lbs = self._filter_lbs_by_id(lbs, pretest_lb_ids)
+        self.assertEqual(lb1[const.DESCRIPTION], lbs[1][const.DESCRIPTION])
+        self.assertEqual(lb2[const.DESCRIPTION], lbs[2][const.DESCRIPTION])
+        self.assertEqual(lb3[const.DESCRIPTION], lbs[0][const.DESCRIPTION])
+
+        # Test sort ascending by description
+        lbs = self.mem_lb_client.list_loadbalancers(
+            query_params='{sort}={descr}:{asc}'.format(sort=const.SORT,
+                                                       descr=const.DESCRIPTION,
+                                                       asc=const.ASC))
+        lbs = self._filter_lbs_by_id(lbs, pretest_lb_ids)
+        self.assertEqual(lb1[const.DESCRIPTION], lbs[1][const.DESCRIPTION])
+        self.assertEqual(lb2[const.DESCRIPTION], lbs[0][const.DESCRIPTION])
+        self.assertEqual(lb3[const.DESCRIPTION], lbs[2][const.DESCRIPTION])
+
+        # Determine indexes of pretest LBs in default sort
+        pretest_lb_indexes = []
+        lbs = self.mem_lb_client.list_loadbalancers()
+        for i, lb in enumerate(lbs):
+            if lb['id'] in pretest_lb_ids:
+                pretest_lb_indexes.append(i)
+
+        # Test fields
+        for field in const.SHOW_LOAD_BALANCER_RESPONSE_FIELDS:
+            lbs = self.mem_lb_client.list_loadbalancers(
+                query_params='{fields}={field}'.format(fields=const.FIELDS,
+                                                       field=field))
+            lbs = self._filter_lbs_by_index(lbs, pretest_lb_indexes)
+            self.assertEqual(1, len(lbs[0]))
+            self.assertEqual(lb1[field], lbs[0][field])
+            self.assertEqual(lb2[field], lbs[1][field])
+            self.assertEqual(lb3[field], lbs[2][field])
+
+        # Test multiple fields at the same time
+        lbs = self.mem_lb_client.list_loadbalancers(
+            query_params='{fields}={admin}&{fields}={created}'.format(
+                fields=const.FIELDS, admin=const.ADMIN_STATE_UP,
+                created=const.CREATED_AT))
+        lbs = self._filter_lbs_by_index(lbs, pretest_lb_indexes)
+        self.assertEqual(2, len(lbs[0]))
+        self.assertTrue(lbs[0][const.ADMIN_STATE_UP])
+        parser.parse(lbs[0][const.CREATED_AT])
+        self.assertTrue(lbs[1][const.ADMIN_STATE_UP])
+        parser.parse(lbs[1][const.CREATED_AT])
+        self.assertFalse(lbs[2][const.ADMIN_STATE_UP])
+        parser.parse(lbs[2][const.CREATED_AT])
+
+        # Test filtering
+        lbs = self.mem_lb_client.list_loadbalancers(
+            query_params='{desc}={lb_desc}'.format(
+                desc=const.DESCRIPTION, lb_desc=lb2[const.DESCRIPTION]))
+        self.assertEqual(1, len(lbs))
+        self.assertEqual(lb2[const.DESCRIPTION], lbs[0][const.DESCRIPTION])
+
+        # Test combined params
+        lbs = self.mem_lb_client.list_loadbalancers(
+            query_params='{admin}={true}&{fields}={descr}&{fields}={id}&'
+                         '{sort}={descr}:{desc}'.format(
+                             admin=const.ADMIN_STATE_UP,
+                             true=const.ADMIN_STATE_UP_TRUE,
+                             fields=const.FIELDS, descr=const.DESCRIPTION,
+                             id=const.ID, sort=const.SORT, desc=const.DESC))
+        lbs = self._filter_lbs_by_id(lbs, pretest_lb_ids)
+        # Should get two load balancers
+        self.assertEqual(2, len(lbs))
+        # Load balancers should have two fields
+        self.assertEqual(2, len(lbs[0]))
+        # Should be in descending order
+        self.assertEqual(lb2[const.DESCRIPTION], lbs[1][const.DESCRIPTION])
+        self.assertEqual(lb1[const.DESCRIPTION], lbs[0][const.DESCRIPTION])
+
+        # Attempt to clean up so that one full test run doesn't start 10+
+        # amps before the cleanup phase fires
+        created_lb_ids = lb1[const.ID], lb2[const.ID], lb3[const.ID]
+        for lb_id in created_lb_ids:
+            try:
+                self.mem_lb_client.delete_loadbalancer(lb_id)
+            except Exception:
+                pass
+
+        for lb_id in created_lb_ids:
+            try:
+                waiters.wait_for_deleted_status_or_not_found(
+                    self.mem_lb_client.show_loadbalancer, lb_id,
+                    const.PROVISIONING_STATUS,
+                    CONF.load_balancer.lb_build_interval,
+                    CONF.load_balancer.lb_build_timeout)
+            except Exception:
+                pass
+
+    @decorators.idempotent_id('826ae612-8717-4c64-a8a7-cb9570a85870')
+    def test_load_balancer_show(self):
+        """Tests load balancer show API.
+
+        * Create a fully populated load balancer.
+        * Show load balancer details.
+        * Validate the show reflects the requested values.
+        * Validates that other accounts cannot see the load balancer.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-show")
+        lb_description = data_utils.arbitrary_string(size=255)
+
+        lb_kwargs = {const.ADMIN_STATE_UP: False,
+                     const.DESCRIPTION: lb_description,
+                     # TODO(johnsom) Fix test to use a real flavor
+                     # flavor=lb_flavor,
+                     # TODO(johnsom) Add QoS
+                     # vip_qos_policy_id=lb_qos_policy_id)
+                     const.PROVIDER: CONF.load_balancer.provider,
+                     const.NAME: lb_name}
+
+        self._setup_lb_network_kwargs(lb_kwargs, 4)
+
+        lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
+
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        self.assertFalse(lb[const.ADMIN_STATE_UP])
+        parser.parse(lb[const.CREATED_AT])
+        parser.parse(lb[const.UPDATED_AT])
+        self.assertEqual(lb_description, lb[const.DESCRIPTION])
+        UUID(lb[const.ID])
+        self.assertEqual(lb_name, lb[const.NAME])
+        self.assertEqual(const.OFFLINE, lb[const.OPERATING_STATUS])
+        self.assertEqual(self.os_roles_lb_member.credentials.project_id,
+                         lb[const.PROJECT_ID])
+        self.assertEqual(CONF.load_balancer.provider, lb[const.PROVIDER])
+        self.assertEqual(self.lb_member_vip_net[const.ID],
+                         lb[const.VIP_NETWORK_ID])
+        self.assertIsNotNone(lb[const.VIP_PORT_ID])
+        if lb_kwargs[const.VIP_SUBNET_ID]:
+            self.assertEqual(lb_kwargs[const.VIP_ADDRESS],
+                             lb[const.VIP_ADDRESS])
+            self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
+                             lb[const.VIP_SUBNET_ID])
+
+        # Test that a user with lb_admin role can see the load balanacer
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            lb_client = self.os_roles_lb_admin.loadbalancer_client
+            lb_adm = lb_client.show_loadbalancer(lb[const.ID])
+            self.assertEqual(lb_name, lb_adm[const.NAME])
+
+        # Test that a user with cloud admin role can see the load balanacer
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            adm = self.os_admin.loadbalancer_client.show_loadbalancer(
+                lb[const.ID])
+            self.assertEqual(lb_name, adm[const.NAME])
+
+        # Test that a different user, with load balancer member role, cannot
+        # see this load balancer
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.loadbalancer_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.show_loadbalancer,
+                              lb[const.ID])
+
+        # Test that a user, without the load balancer member role, cannot
+        # show load balancers
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.show_loadbalancer,
+                lb[const.ID])
+
+        # Attempt to clean up so that one full test run doesn't start 10+
+        # amps before the cleanup phase fires
+        try:
+            self.mem_lb_client.delete_loadbalancer(lb[const.ID])
+
+            waiters.wait_for_deleted_status_or_not_found(
+                self.mem_lb_client.show_loadbalancer, lb[const.ID],
+                const.PROVISIONING_STATUS,
+                CONF.load_balancer.lb_build_interval,
+                CONF.load_balancer.lb_build_timeout)
+        except Exception:
+            pass
+
+    @decorators.idempotent_id('b75a4d15-49d2-4149-a745-635eed1aacc3')
+    def test_load_balancer_update(self):
+        """Tests load balancer show API and field filtering.
+
+        * Create a fully populated load balancer.
+        * Show load balancer details.
+        * Validate the show reflects the initial values.
+        * Validates that other accounts cannot update the load balancer.
+        * Update the load balancer details.
+        * Show load balancer details.
+        * Validate the show reflects the initial values.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-update")
+        lb_description = data_utils.arbitrary_string(size=255)
+
+        lb_kwargs = {const.ADMIN_STATE_UP: False,
+                     const.DESCRIPTION: lb_description,
+                     const.PROVIDER: CONF.load_balancer.provider,
+                     # TODO(johnsom) Fix test to use a real flavor
+                     # flavor=lb_flavor,
+                     # TODO(johnsom) Add QoS
+                     # vip_qos_policy_id=lb_qos_policy_id)
+                     const.NAME: lb_name}
+
+        self._setup_lb_network_kwargs(lb_kwargs, 4)
+
+        lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
+
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        self.assertFalse(lb[const.ADMIN_STATE_UP])
+        parser.parse(lb[const.CREATED_AT])
+        parser.parse(lb[const.UPDATED_AT])
+        self.assertEqual(lb_description, lb[const.DESCRIPTION])
+        UUID(lb[const.ID])
+        self.assertEqual(lb_name, lb[const.NAME])
+        self.assertEqual(const.OFFLINE, lb[const.OPERATING_STATUS])
+        self.assertEqual(self.os_roles_lb_member.credentials.project_id,
+                         lb[const.PROJECT_ID])
+        self.assertEqual(CONF.load_balancer.provider, lb[const.PROVIDER])
+        self.assertEqual(self.lb_member_vip_net[const.ID],
+                         lb[const.VIP_NETWORK_ID])
+        self.assertIsNotNone(lb[const.VIP_PORT_ID])
+        if lb_kwargs[const.VIP_SUBNET_ID]:
+            self.assertEqual(lb_kwargs[const.VIP_ADDRESS],
+                             lb[const.VIP_ADDRESS])
+            self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
+                             lb[const.VIP_SUBNET_ID])
+
+        new_name = data_utils.rand_name("lb_member_lb1-update")
+        new_description = data_utils.arbitrary_string(size=255,
+                                                      base_text='new')
+
+        # Test that a user, without the load balancer member role, cannot
+        # use this command
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.update_loadbalancer,
+                lb[const.ID], admin_state_up=True)
+
+        # Assert we didn't go into PENDING_*
+        lb_check = self.mem_lb_client.show_loadbalancer(lb[const.ID])
+        self.assertEqual(const.ACTIVE, lb_check[const.PROVISIONING_STATUS])
+        self.assertFalse(lb_check[const.ADMIN_STATE_UP])
+
+        # Test that a user, without the load balancer member role, cannot
+        # update this load balancer
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.loadbalancer_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.update_loadbalancer,
+                              lb[const.ID], admin_state_up=True)
+
+        # Assert we didn't go into PENDING_*
+        lb_check = self.mem_lb_client.show_loadbalancer(lb[const.ID])
+        self.assertEqual(const.ACTIVE, lb_check[const.PROVISIONING_STATUS])
+        self.assertFalse(lb_check[const.ADMIN_STATE_UP])
+
+        lb = self.mem_lb_client.update_loadbalancer(
+            lb[const.ID],
+            admin_state_up=True,
+            description=new_description,
+            # TODO(johnsom) Add QoS
+            # vip_qos_policy_id=lb_qos_policy_id)
+            name=new_name)
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        self.assertTrue(lb[const.ADMIN_STATE_UP])
+        self.assertEqual(new_description, lb[const.DESCRIPTION])
+        self.assertEqual(new_name, lb[const.NAME])
+        # TODO(johnsom) Add QoS
+
+        # Attempt to clean up so that one full test run doesn't start 10+
+        # amps before the cleanup phase fires
+        try:
+            self.mem_lb_client.delete_loadbalancer(lb[const.ID])
+
+            waiters.wait_for_deleted_status_or_not_found(
+                self.mem_lb_client.show_loadbalancer, lb[const.ID],
+                const.PROVISIONING_STATUS,
+                CONF.load_balancer.lb_build_interval,
+                CONF.load_balancer.lb_build_timeout)
+        except Exception:
+            pass
+
+    @decorators.idempotent_id('105afcba-4dd6-46d6-8fa4-bd7330aa1259')
+    def test_load_balancer_show_stats(self):
+        """Tests load balancer show statistics API.
+
+        * Create a load balancer.
+        * Validates that other accounts cannot see the stats for the
+        *   load balancer.
+        * Show load balancer statistics.
+        * Validate the show reflects the expected values.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-show_stats")
+        lb = self.mem_lb_client.create_loadbalancer(
+            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        # Test that a user, without the load balancer member role, cannot
+        # use this command
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.get_loadbalancer_stats,
+                lb[const.ID])
+
+        # Test that a different user, with the load balancer role, cannot see
+        # the load balancer stats
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.loadbalancer_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.get_loadbalancer_stats,
+                              lb[const.ID])
+
+        stats = self.mem_lb_client.get_loadbalancer_stats(lb[const.ID])
+
+        self.assertEqual(5, len(stats))
+        self.assertEqual(0, stats[const.ACTIVE_CONNECTIONS])
+        self.assertEqual(0, stats[const.BYTES_IN])
+        self.assertEqual(0, stats[const.BYTES_OUT])
+        self.assertEqual(0, stats[const.REQUEST_ERRORS])
+        self.assertEqual(0, stats[const.TOTAL_CONNECTIONS])
+
+        # Attempt to clean up so that one full test run doesn't start 10+
+        # amps before the cleanup phase fires
+        try:
+            self.mem_lb_client.delete_loadbalancer(lb[const.ID])
+
+            waiters.wait_for_deleted_status_or_not_found(
+                self.mem_lb_client.show_loadbalancer, lb[const.ID],
+                const.PROVISIONING_STATUS,
+                CONF.load_balancer.lb_build_interval,
+                CONF.load_balancer.lb_build_timeout)
+        except Exception:
+            pass
+
+    @decorators.idempotent_id('60acc1b0-fa46-41f8-b526-c81ae2f42c30')
+    def test_load_balancer_show_status(self):
+        """Tests load balancer show status tree API.
+
+        * Create a load balancer.
+        * Validates that other accounts cannot see the status for the
+        *   load balancer.
+        * Show load balancer status tree.
+        * Validate the show reflects the expected values.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-status")
+        lb = self.mem_lb_client.create_loadbalancer(
+            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        # Test that a user, without the load balancer member role, cannot
+        # use this method
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.loadbalancer_client.get_loadbalancer_status,
+                lb[const.ID])
+
+        # Test that a different user, with load balancer role, cannot see
+        # the load balancer status
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.loadbalancer_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.get_loadbalancer_status,
+                              lb[const.ID])
+
+        status = self.mem_lb_client.get_loadbalancer_status(lb[const.ID])
+
+        self.assertEqual(1, len(status))
+        lb_status = status[const.LOADBALANCER]
+        self.assertEqual(5, len(lb_status))
+        self.assertEqual(lb[const.ID], lb_status[const.ID])
+        self.assertEqual([], lb_status[const.LISTENERS])
+        self.assertEqual(lb_name, lb_status[const.NAME])
+        # Operating status is a measured status, so no-op will not go online
+        if CONF.load_balancer.test_with_noop:
+            self.assertEqual(const.OFFLINE, lb_status[const.OPERATING_STATUS])
+        else:
+            self.assertEqual(const.ONLINE, lb_status[const.OPERATING_STATUS])
+        self.assertEqual(const.ACTIVE, lb_status[const.PROVISIONING_STATUS])
+
+        # Attempt to clean up so that one full test run doesn't start 10+
+        # amps before the cleanup phase fires
+        try:
+            self.mem_lb_client.delete_loadbalancer(lb[const.ID])
+
+            waiters.wait_for_deleted_status_or_not_found(
+                self.mem_lb_client.show_loadbalancer, lb[const.ID],
+                const.PROVISIONING_STATUS,
+                CONF.load_balancer.lb_build_interval,
+                CONF.load_balancer.lb_build_timeout)
+        except Exception:
+            pass
+
+    @decorators.idempotent_id('fc2e07a6-9776-4559-90c9-141170d4c397')
+    def test_load_balancer_failover(self):
+        """Tests load balancer failover API.
+
+        * Create a load balancer.
+        * Validates that other accounts cannot failover the load balancer
+        * Wait for the load balancer to go ACTIVE.
+        * Failover the load balancer.
+        * Wait for the load balancer to go ACTIVE.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb1-failover")
+        lb = self.mem_lb_client.create_loadbalancer(
+            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+        self.addClassResourceCleanup(
+            test_utils.call_and_ignore_notfound_exc,
+            self.mem_lb_client.delete_loadbalancer,
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+
+        # Test RBAC not authorized for non-admin role
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            self.assertRaises(exceptions.Forbidden,
+                              self.mem_lb_client.failover_loadbalancer,
+                              lb[const.ID])
+
+        # Assert we didn't go into PENDING_*
+        lb = self.mem_lb_client.show_loadbalancer(lb[const.ID])
+        self.assertEqual(const.ACTIVE, lb[const.PROVISIONING_STATUS])
+
+        self.os_roles_lb_admin.loadbalancer_client.failover_loadbalancer(
+            lb[const.ID])
+
+        lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                     lb[const.ID], const.PROVISIONING_STATUS,
+                                     const.ACTIVE,
+                                     CONF.load_balancer.lb_build_interval,
+                                     CONF.load_balancer.lb_build_timeout)
+        # TODO(johnsom) Assert the amphora ID has changed when amp client
+        #               is available.
+
+        # Attempt to clean up so that one full test run doesn't start 10+
+        # amps before the cleanup phase fires
+        try:
+            self.mem_lb_client.delete_loadbalancer(lb[const.ID])
+
+            waiters.wait_for_deleted_status_or_not_found(
+                self.mem_lb_client.show_loadbalancer, lb[const.ID],
+                const.PROVISIONING_STATUS,
+                CONF.load_balancer.lb_build_interval,
+                CONF.load_balancer.lb_build_timeout)
+        except Exception:
+            pass
