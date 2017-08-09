@@ -19,7 +19,6 @@ from dateutil import parser
 
 from tempest import config
 from tempest.lib.common.utils import data_utils
-from tempest.lib.common.utils import test_utils
 from tempest.lib import decorators
 
 from octavia_tempest_plugin.common import constants as const
@@ -61,8 +60,7 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
 
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -113,8 +111,8 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
         # Load balancer delete
         self.mem_lb_client.delete_loadbalancer(lb[const.ID], cascade=True)
 
-        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
-                                lb[const.ID], const.PROVISIONING_STATUS,
-                                const.DELETED,
-                                CONF.load_balancer.lb_build_interval,
-                                CONF.load_balancer.lb_build_timeout)
+        waiters.wait_for_deleted_status_or_not_found(
+            self.mem_lb_client.show_loadbalancer, lb[const.ID],
+            const.PROVISIONING_STATUS,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)

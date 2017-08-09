@@ -15,13 +15,13 @@
 #    under the License.
 
 import testtools
+import time
 from uuid import UUID
 
 from dateutil import parser
 
 from tempest import config
 from tempest.lib.common.utils import data_utils
-from tempest.lib.common.utils import test_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions
 
@@ -82,8 +82,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
 
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -141,8 +140,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(
             name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -188,8 +186,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(
             name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -264,8 +261,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             # vip_qos_policy_id=lb_qos_policy_id)
             vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb1 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -274,6 +270,10 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                       const.ACTIVE,
                                       CONF.load_balancer.lb_build_interval,
                                       CONF.load_balancer.lb_build_timeout)
+        # Time resolution for created_at is only to the second, and we need to
+        # ensure that each object has a distinct creation time. Delaying one
+        # second is both a simple and a reliable way to accomplish this.
+        time.sleep(1)
 
         lb_name = data_utils.rand_name("lb_member_lb1-list")
         lb_description = 'A'
@@ -284,8 +284,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             name=lb_name,
             vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb2 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -294,6 +293,10 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                       const.ACTIVE,
                                       CONF.load_balancer.lb_build_interval,
                                       CONF.load_balancer.lb_build_timeout)
+        # Time resolution for created_at is only to the second, and we need to
+        # ensure that each object has a distinct creation time. Delaying one
+        # second is both a simple and a reliable way to accomplish this.
+        time.sleep(1)
 
         lb_name = data_utils.rand_name("lb_member_lb3-list")
         lb_description = 'C'
@@ -304,8 +307,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             name=lb_name,
             vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb3 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -455,8 +457,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
 
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -554,8 +555,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
 
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -659,8 +659,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(
             name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -721,8 +720,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(
             name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -789,8 +787,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(
             name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
-            test_utils.call_and_ignore_notfound_exc,
-            self.mem_lb_client.delete_loadbalancer,
+            self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,

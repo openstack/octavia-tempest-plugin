@@ -13,8 +13,6 @@
 #   under the License.
 #
 
-import json
-
 from tempest import config
 
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
@@ -23,39 +21,53 @@ CONF = config.CONF
 Unset = base_client.Unset
 
 
-class LoadbalancerClient(base_client.BaseLBaaSClient):
+class ListenerClient(base_client.BaseLBaaSClient):
 
-    root_tag = 'loadbalancer'
-    list_root_tag = 'loadbalancers'
+    root_tag = 'listener'
+    list_root_tag = 'listeners'
 
-    def __init__(self, auth_provider, service, region, **kwargs):
-        super(LoadbalancerClient, self).__init__(auth_provider, service,
-                                                 region, **kwargs)
-        self.timeout = CONF.load_balancer.lb_build_timeout
-        self.build_interval = CONF.load_balancer.lb_build_interval
+    def create_listener(self, protocol, protocol_port, loadbalancer_id,
+                        name=Unset, description=Unset, admin_state_up=Unset,
+                        connection_limit=Unset, timeout_client_data=Unset,
+                        timeout_member_connect=Unset,
+                        timeout_member_data=Unset, timeout_tcp_inspect=Unset,
+                        insert_headers=Unset, default_pool_id=Unset,
+                        default_tls_container_ref=Unset,
+                        sni_container_refs=Unset, return_object_only=True):
+        """Create a listener.
 
-    def create_loadbalancer(self, name=Unset, description=Unset,
-                            admin_state_up=Unset, flavor_id=Unset,
-                            listeners=Unset, project_id=Unset, provider=Unset,
-                            vip_address=Unset, vip_network_id=Unset,
-                            vip_port_id=Unset, vip_qos_policy_id=Unset,
-                            vip_subnet_id=Unset, return_object_only=True):
-        """Create a loadbalancer.
-
+        :param protocol: The protocol for the resource.
+        :param protocol_port: The protocol port number for the resource.
+        :param loadbalancer_id: The ID of the load balancer.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
-        :param flavor: The load balancer flavor ID.
-        :param listeners: A list of listner dictionaries.
-        :param project_id: The ID of the project owning this resource.
-        :param provider: Provider name for the load balancer.
-        :param vip_address: The IP address of the Virtual IP (VIP).
-        :param vip_network_id: The ID of the network for the Virtual IP (VIP).
-        :param vip_port_id: The ID of the Virtual IP (VIP) port.
-        :param vip_qos_policy_id: The ID of the QoS Policy which will apply to
-                                  the Virtual IP (VIP).
-        :param vip_subnet_id: The ID of the subnet for the Virtual IP (VIP).
+        :param connection_limit: The maximum number of connections permitted
+                                 for this listener. Default value is -1 which
+                                 represents infinite connections.
+        :param timeout_client_data: Frontend client inactivity timeout in
+                                    milliseconds.
+        :param timeout_member_connect: Backend member connection timeout in
+                                       milliseconds.
+        :param timeout_member_data: Backend member inactivity timeout in
+                                    milliseconds.
+        :param timeout_tcp_inspect: Time, in milliseconds, to wait for
+                                    additional TCP packets for content
+                                    inspection.
+        :param insert_headers: A dictionary of optional headers to insert into
+                               the request before it is sent to the backend
+                               member.
+        :param default_pool_id: The ID of the pool used by the listener if no
+                                L7 policies match.
+        :param default_tls_container_ref: The URI of the key manager service
+                                          secret containing a PKCS12 format
+                                          certificate/key bundle for
+                                          TERMINATED_TLS listeners.
+        :param sni_container_refs: A list of URIs to the key manager service
+                                   secrets containing PKCS12 format
+                                   certificate/key bundles for TERMINATED_TLS
+                                   listeners.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -84,17 +96,17 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                         of the handled checks
         :raises UnprocessableEntity: If a 422 response code is received and
                                      couldn't be parsed
-        :returns: A loadbalancer object.
+        :returns: A listener object.
         """
         kwargs = {arg: value for arg, value in locals().items()
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
-    def show_loadbalancer(self, lb_id, query_params=None,
-                          return_object_only=True):
-        """Get loadbalancer details.
+    def show_listener(self, listener_id, query_params=None,
+                      return_object_only=True):
+        """Get listener details.
 
-        :param lb_id: The loadbalancer ID to query.
+        :param listener_id: The listener ID to query.
         :param query_params: The optional query parameters to append to the
                              request. Ex. fields=id&fields=name
         :param return_object_only: If True, the response returns the object
@@ -125,14 +137,14 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                         of the handled checks
         :raises UnprocessableEntity: If a 422 response code is received and
                                      couldn't be parsed
-        :returns: A loadbalancer object.
+        :returns: A listener object.
         """
-        return self._show_object(obj_id=lb_id,
+        return self._show_object(obj_id=listener_id,
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
-    def list_loadbalancers(self, query_params=None, return_object_only=True):
-        """Get a list of loadbalancer objects.
+    def list_listeners(self, query_params=None, return_object_only=True):
+        """Get a list of listener objects.
 
         :param query_params: The optional query parameters to append to the
                              request. Ex. fields=id&fields=name
@@ -164,23 +176,51 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                         of the handled checks
         :raises UnprocessableEntity: If a 422 response code is received and
                                      couldn't be parsed
-        :returns: A list of loadbalancer objects.
+        :returns: A list of listener objects.
         """
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
-    def update_loadbalancer(self, lb_id, name=Unset, description=Unset,
-                            admin_state_up=Unset, vip_qos_policy_id=Unset,
-                            return_object_only=True):
-        """Update a loadbalancer.
+    def update_listener(self, listener_id, name=Unset, description=Unset,
+                        admin_state_up=Unset, connection_limit=Unset,
+                        timeout_client_data=Unset,
+                        timeout_member_connect=Unset,
+                        timeout_member_data=Unset, timeout_tcp_inspect=Unset,
+                        insert_headers=Unset, default_pool_id=Unset,
+                        default_tls_container_ref=Unset,
+                        sni_container_refs=Unset, return_object_only=True):
+        """Update a listener.
 
-        :param lb_id: The loadbalancer ID to update.
+        :param listener_id: The listener ID to update.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
-        :param vip_qos_policy_id: The ID of the QoS Policy which will apply to
-                                  the Virtual IP (VIP).
+        :param connection_limit: The maximum number of connections permitted
+                                 for this listener. Default value is -1 which
+                                 represents infinite connections.
+        :param timeout_client_data: Frontend client inactivity timeout in
+                                    milliseconds.
+        :param timeout_member_connect: Backend member connection timeout in
+                                       milliseconds.
+        :param timeout_member_data: Backend member inactivity timeout in
+                                    milliseconds.
+        :param timeout_tcp_inspect: Time, in milliseconds, to wait for
+                                    additional TCP packets for content
+                                    inspection.
+        :param insert_headers: A dictionary of optional headers to insert into
+                               the request before it is sent to the backend
+                               member.
+        :param default_pool_id: The ID of the pool used by the listener if no
+                                L7 policies match.
+        :param default_tls_container_ref: The URI of the key manager service
+                                          secret containing a PKCS12 format
+                                          certificate/key bundle for
+                                          TERMINATED_TLS listeners.
+        :param sni_container_refs: A list of URIs to the key manager service
+                                   secrets containing PKCS12 format
+                                   certificate/key bundles for TERMINATED_TLS
+                                   listeners.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -209,20 +249,18 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                         of the handled checks
         :raises UnprocessableEntity: If a 422 response code is received and
                                      couldn't be parsed
-        :returns: A loadbalancer object.
+        :returns: A listener object.
         """
         kwargs = {arg: value for arg, value in locals().items()
                   if arg != 'self' and value is not Unset}
-        kwargs['obj_id'] = kwargs.pop('lb_id')
+        kwargs['obj_id'] = kwargs.pop('listener_id')
         return self._update_object(**kwargs)
 
-    def delete_loadbalancer(self, lb_id, cascade=False, ignore_errors=False):
+    def delete_listener(self, listener_id, ignore_errors=False):
         """Delete an object.
 
-        :param lb_id: The loadbalancer ID to delete.
+        :param listener_id: The listener ID to delete.
         :param ignore_errors: True if errors should be ignored.
-        :param cascade: If true will delete all child objects of an
-                        object, if that object supports it.
         :raises AssertionError: if the expected_code isn't a valid http success
                                 response code
         :raises BadRequest: If a 400 response code is received
@@ -251,142 +289,5 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         :returns: None if ignore_errors is True, the response status code
                   if not.
         """
-        return self._delete_obj(obj_id=lb_id,
-                                ignore_errors=ignore_errors,
-                                cascade=cascade)
-
-    def failover_loadbalancer(self, lb_id):
-        """Failover a load balancer.
-
-        :param lb_id: The load balancer ID to query.
-        :raises AssertionError: if the expected_code isn't a valid http success
-                                response code
-        :raises BadRequest: If a 400 response code is received
-        :raises Conflict: If a 409 response code is received
-        :raises Forbidden: If a 403 response code is received
-        :raises Gone: If a 410 response code is received
-        :raises InvalidContentType: If a 415 response code is received
-        :raises InvalidHTTPResponseBody: The response body wasn't valid JSON
-        :raises InvalidHttpSuccessCode: if the read code isn't an expected
-                                        http success code
-        :raises NotFound: If a 404 response code is received
-        :raises NotImplemented: If a 501 response code is received
-        :raises OverLimit: If a 413 response code is received and over_limit is
-                           not in the response body
-        :raises RateLimitExceeded: If a 413 response code is received and
-                                   over_limit is in the response body
-        :raises ServerFault: If a 500 response code is received
-        :raises Unauthorized: If a 401 response code is received
-        :raises UnexpectedContentType: If the content-type of the response
-                                       isn't an expect type
-        :raises UnexpectedResponseCode: If a response code above 400 is
-                                        received and it doesn't fall into any
-                                        of the handled checks
-        :raises UnprocessableEntity: If a 422 response code is received and
-                                     couldn't be parsed
-        :returns: None
-        """
-        uri = '{0}/{1}/failover'.format(self.uri, lb_id)
-        response, body = self.put(uri, '')
-        self.expected_success(202, response.status)
-        return
-
-    def get_loadbalancer_stats(self, lb_id, query_params=None,
-                               return_object_only=True):
-        """Get load balancer statistics.
-
-        :param lb_id: The load balancer ID to query.
-        :param query_params: The optional query parameters to append to the
-                             request. Ex. fields=id&fields=name
-        :param return_object_only: If True, the response returns the object
-                                   inside the root tag. False returns the full
-                                   response from the API.
-        :raises AssertionError: if the expected_code isn't a valid http success
-                                response code
-        :raises BadRequest: If a 400 response code is received
-        :raises Conflict: If a 409 response code is received
-        :raises Forbidden: If a 403 response code is received
-        :raises Gone: If a 410 response code is received
-        :raises InvalidContentType: If a 415 response code is received
-        :raises InvalidHTTPResponseBody: The response body wasn't valid JSON
-        :raises InvalidHttpSuccessCode: if the read code isn't an expected
-                                        http success code
-        :raises NotFound: If a 404 response code is received
-        :raises NotImplemented: If a 501 response code is received
-        :raises OverLimit: If a 413 response code is received and over_limit is
-                           not in the response body
-        :raises RateLimitExceeded: If a 413 response code is received and
-                                   over_limit is in the response body
-        :raises ServerFault: If a 500 response code is received
-        :raises Unauthorized: If a 401 response code is received
-        :raises UnexpectedContentType: If the content-type of the response
-                                       isn't an expect type
-        :raises UnexpectedResponseCode: If a response code above 400 is
-                                        received and it doesn't fall into any
-                                        of the handled checks
-        :raises UnprocessableEntity: If a 422 response code is received and
-                                     couldn't be parsed
-        :returns: A load balancer statistics object.
-        """
-        if query_params:
-            request_uri = '{0}/{1}/stats?{2}'.format(self.uri, lb_id,
-                                                     query_params)
-        else:
-            request_uri = '{0}/{1}/stats'.format(self.uri, lb_id)
-
-        response, body = self.get(request_uri)
-        self.expected_success(200, response.status)
-        if return_object_only:
-            return json.loads(body.decode('utf-8'))['stats']
-        else:
-            return json.loads(body.decode('utf-8'))
-
-    def get_loadbalancer_status(self, lb_id, query_params=None,
-                                return_object_only=True):
-        """Get a load balancer status tree.
-
-        :param lb_id: The load balancer ID to query.
-        :param query_params: The optional query parameters to append to the
-                             request. Ex. fields=id&fields=name
-        :param return_object_only: If True, the response returns the object
-                                   inside the root tag. False returns the full
-                                   response from the API.
-        :raises AssertionError: if the expected_code isn't a valid http success
-                                response code
-        :raises BadRequest: If a 400 response code is received
-        :raises Conflict: If a 409 response code is received
-        :raises Forbidden: If a 403 response code is received
-        :raises Gone: If a 410 response code is received
-        :raises InvalidContentType: If a 415 response code is received
-        :raises InvalidHTTPResponseBody: The response body wasn't valid JSON
-        :raises InvalidHttpSuccessCode: if the read code isn't an expected
-                                        http success code
-        :raises NotFound: If a 404 response code is received
-        :raises NotImplemented: If a 501 response code is received
-        :raises OverLimit: If a 413 response code is received and over_limit is
-                           not in the response body
-        :raises RateLimitExceeded: If a 413 response code is received and
-                                   over_limit is in the response body
-        :raises ServerFault: If a 500 response code is received
-        :raises Unauthorized: If a 401 response code is received
-        :raises UnexpectedContentType: If the content-type of the response
-                                       isn't an expect type
-        :raises UnexpectedResponseCode: If a response code above 400 is
-                                        received and it doesn't fall into any
-                                        of the handled checks
-        :raises UnprocessableEntity: If a 422 response code is received and
-                                     couldn't be parsed
-        :returns: A load balancer statuses object.
-        """
-        if query_params:
-            request_uri = '{0}/{1}/status?{2}'.format(self.uri, lb_id,
-                                                      query_params)
-        else:
-            request_uri = '{0}/{1}/status'.format(self.uri, lb_id)
-
-        response, body = self.get(request_uri)
-        self.expected_success(200, response.status)
-        if return_object_only:
-            return json.loads(body.decode('utf-8'))['statuses']
-        else:
-            return json.loads(body.decode('utf-8'))
+        return self._delete_obj(obj_id=listener_id,
+                                ignore_errors=ignore_errors)

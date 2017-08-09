@@ -106,7 +106,7 @@ def wait_for_not_found(delete_func, show_func, *args, **kwargs):
     :returns: None
     """
     try:
-        return delete_func(*args, **kwargs)
+        delete_func(*args, **kwargs)
     except exceptions.NotFound:
         return
     start = int(time.time())

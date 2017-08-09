@@ -26,7 +26,6 @@ from oslo_utils import uuidutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib.common.utils.linux import remote_client
-from tempest.lib.common.utils import test_utils
 from tempest.lib import exceptions
 from tempest import test
 
@@ -104,6 +103,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         cls.lb_mem_servers_client = cls.os_roles_lb_member.servers_client
         cls.lb_mem_subnet_client = cls.os_roles_lb_member.subnets_client
         cls.mem_lb_client = cls.os_roles_lb_member.loadbalancer_client
+        cls.mem_listener_client = cls.os_roles_lb_member.listener_client
 
     @classmethod
     def resource_setup(cls):
@@ -548,7 +548,6 @@ class LoadBalancerBaseTest(test.BaseTestCase):
             subnet_id=cls.lb_member_1_subnet['id'])
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
-            test_utils.call_and_ignore_notfound_exc,
             cls.lb_mem_routers_client.remove_router_interface,
             cls.lb_mem_routers_client.remove_router_interface,
             cls.lb_member_router['id'], subnet_id=cls.lb_member_1_subnet['id'])
