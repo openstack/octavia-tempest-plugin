@@ -1,0 +1,13 @@
+# Note: Some official OpenStack wide jobs are still defined in the
+#       project-config repository
+- project:
+    name: openstack/octavia-tempest-plugin
+    check:
+      jobs:
+        - octavia-v2-dsvm-scenario
+        - octavia-v2-dsvm-py35-scenario
+    gate:
+      queue: octavia
+      jobs:
+        - octavia-v2-dsvm-scenario
+        - octavia-v2-dsvm-py35-scenario
