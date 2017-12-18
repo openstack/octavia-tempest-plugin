@@ -18,15 +18,28 @@
         TEMPEST_PLUGINS: "'{{ ansible_user_dir }}/src/git.openstack.org/openstack/octavia-tempest-plugin'"
       devstack_services:
         barbican: true
+        c-bak: false
+        ceilometer-acentral: false
+        ceilometer-acompute: false
+        ceilometer-alarm-evaluator: false
+        ceilometer-alarm-notifier: false
+        ceilometer-anotification: false
+        ceilometer-api: false
+        ceilometer-collector: false
         c-sch: false
         c-api: false
         c-vol: false
+        cinder: false
         octavia: true
         o-api: true
         o-cw: true
         o-hm: true
         o-hk: true
         swift: false
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
         tempest: true
       devstack_plugins:
         barbican: https://github.com/openstack/barbican.git
