@@ -41,9 +41,11 @@
         s-object: false
         s-proxy: false
         tempest: true
+        neutron-qos: true
       devstack_plugins:
         barbican: https://github.com/openstack/barbican.git
         octavia: https://github.com/openstack/octavia.git
+        neutron: https://github.com/openstack/neutron.git
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin
       tox_venvlist: all

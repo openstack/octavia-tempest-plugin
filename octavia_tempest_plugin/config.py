@@ -83,4 +83,8 @@ OctaviaGroup = [
     cfg.StrOpt('member_role',
                default='load-balancer_member',
                help="Role to add to users created for octavia tests."),
+    cfg.StrOpt('vip_qos_policy_id',
+               default=None,
+               help='Existing QoS Policy ID in neutron to use for'
+                    'loadbalancer.')
 ]
