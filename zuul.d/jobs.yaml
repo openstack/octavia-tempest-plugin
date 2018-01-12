@@ -49,6 +49,7 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin
       tox_venvlist: all
+      tox_envlist: all
 
 - job:
     name: octavia-v2-dsvm-py35-scenario
