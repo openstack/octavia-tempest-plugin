@@ -208,9 +208,13 @@ def create_server(clients, name=None, flavor=None, image_id=None,
             if wait_until is None:
                 wait_until = 'ACTIVE'
 
-    body = clients.servers_client.create_server(name=name, imageRef=image_id,
-                                                flavorRef=flavor,
-                                                **kwargs)
+    body = clients.servers_client.create_server(
+        name=name,
+        imageRef=image_id,
+        flavorRef=flavor,
+        config_drive=True,
+        **kwargs
+    )
     server = rest_client.ResponseBody(body.response, body['server'])
 
     def _setup_validation_fip():

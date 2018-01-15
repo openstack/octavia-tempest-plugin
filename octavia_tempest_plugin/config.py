@@ -57,10 +57,6 @@ OctaviaGroup = [
                default=900,
                help='Timeout in seconds to wait for a '
                     'loadbalancer to build.'),
-    cfg.BoolOpt('premade_server',
-                default=False,
-                help='Allows us to use an already provisioned server to test '
-                     'loadbalancing.'),
     cfg.StrOpt('premade_server_ip',
                default=None,
                help='IP of the premade server.'),

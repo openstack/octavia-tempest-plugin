@@ -67,7 +67,6 @@ class BaseLoadbalancerTest(test.BaseTestCase):
         cls.interfaces_client = cls.os_roles_lbmember.interfaces_client
         cls.sg_rule_client = cls.os_roles_lbmember.security_group_rules_client
         cls.floatingip_client = cls.os_roles_lbmember.floating_ips_client
-        cls.floatingip_adm_client = cls.os_admin.floating_ips_client
         cls.routers_adm_client = cls.os_admin.routers_client
 
         if CONF.identity.auth_version == 'v3':
@@ -451,17 +450,17 @@ class BaseLoadbalancerTest(test.BaseTestCase):
         self.assertEqual(1, len(set(response_counts.values())))
 
     def _delete_floatingip(self, floating_ip):
-        self.floatingip_adm_client.update_floatingip(
+        self.floatingip_client.update_floatingip(
             floating_ip,
             port_id=None
         )
         test_utils.call_and_ignore_notfound_exc(
-            self.floatingip_adm_client.delete_floatingip, floating_ip
+            self.floatingip_client.delete_floatingip, floating_ip
         )
 
     def _associate_floatingip(self):
         # Associate floatingip with loadbalancer vip
-        floatingip = self.floatingip_adm_client.create_floatingip(
+        floatingip = self.floatingip_client.create_floatingip(
             floating_network_id=CONF.network.public_network_id
         )['floatingip']
         floatip_vip = floatingip['floating_ip_address']
@@ -469,7 +468,7 @@ class BaseLoadbalancerTest(test.BaseTestCase):
 
         LOG.debug('Floating ip %s created.', floatip_vip)
 
-        self.floatingip_adm_client.update_floatingip(
+        self.floatingip_client.update_floatingip(
             floatingip['id'],
             port_id=self.vip_port
         )
