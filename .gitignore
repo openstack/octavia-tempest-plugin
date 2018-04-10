@@ -44,6 +44,7 @@ output/*/index.html
 
 # Sphinx
 doc/build
+doc/source/_build
 
 # pbr generates these
 AUTHORS
@@ -56,3 +57,6 @@ ChangeLog
 
 # Files created by releasenotes build
 releasenotes/build
+
+# Oslo config generator
+etc/octavia.tempest.conf.sample

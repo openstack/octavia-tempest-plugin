@@ -15,20 +15,27 @@
 import os
 import sys
 
+import openstackdocstheme
+from sphinx import apidoc
+
 sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 # -- General configuration ----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
-    #'sphinx.ext.intersphinx',
-    'oslosphinx'
+    'sphinx.ext.viewcode',
+    'openstackdocstheme',
+    'oslo_config.sphinxext'
 ]
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
 # execute "export SPHINX_DEBUG=1" in your terminal to disable
+templates_path = ['_templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -45,10 +52,13 @@ add_function_parentheses = True
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
-add_module_names = True
+add_module_names = False
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+# A list of ignored prefixes for module index sorting.
+modindex_common_prefix = ['octavia_tempest_plugin.']
 
 # -- Options for HTML output --------------------------------------------------
 
@@ -58,8 +68,18 @@ pygments_style = 'sphinx'
 # html_theme = '_theme'
 # html_static_path = ['static']
 
+html_theme = 'openstackdocs'
+
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
+
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
+
+# If false, no module index is generated.
+html_domain_indices = True
+
+# If false, no index is generated.
+html_use_index = True
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
@@ -73,3 +93,27 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
+
+repository_name = 'openstack/octavia-tempest-plugin'
+bug_project = '910'
+bug_tag = 'docs'
+
+# TODO(mordred) We should extract this into a sphinx plugin
+def run_apidoc(_):
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    out_dir = os.path.join(cur_dir, '_build', 'modules')
+    module = os.path.join(cur_dir, '..', '..', 'octavia_tempest_plugin')
+    # Keep the order of arguments same as the sphinx-apidoc help, otherwise it
+    # would cause unexpected errors:
+    # sphinx-apidoc [options] -o <output_path> <module_path>
+    # [exclude_pattern, ...]
+    apidoc.main([
+        '--force',
+        '-o',
+        out_dir,
+        module,
+    ])
+
+
+def setup(app):
+    app.connect('builder-inited', run_apidoc)
