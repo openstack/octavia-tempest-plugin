@@ -60,3 +60,6 @@ releasenotes/build
 
 # Oslo config generator
 etc/octavia.tempest.conf.sample
+
+# PyCharm IDE
+.idea

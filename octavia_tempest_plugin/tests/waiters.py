@@ -49,7 +49,14 @@ def wait_for_status(show_client, id, status_key, status,
     LOG.info('Waiting for {name} status to update to {status}'.format(
         name=show_client.__name__, status=status))
     while True:
-        response = show_client(id)
+        if status == const.DELETED:
+            try:
+                response = show_client(id)
+            except exceptions.NotFound:
+                return
+        else:
+            response = show_client(id)
+
         if root_tag:
             object_details = response[root_tag]
         else:
