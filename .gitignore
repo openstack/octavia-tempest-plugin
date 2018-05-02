@@ -63,3 +63,7 @@ etc/octavia.tempest.conf.sample
 
 # PyCharm IDE
 .idea
+
+# Others
+.stestr
+tempest.log

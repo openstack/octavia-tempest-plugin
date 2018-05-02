@@ -221,7 +221,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.lb_build_interval,
             CONF.load_balancer.lb_build_timeout)
 
-    # Helper functions for test load balancer list
+    # Helper functions for test loadbalancer list
     def _filter_lbs_by_id(self, lbs, ids):
         return [lb for lb in lbs if lb['id'] not in ids]
 
@@ -260,7 +260,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             # TODO(johnsom) Add QoS
             # vip_qos_policy_id=lb_qos_policy_id)
             vip_network_id=self.lb_member_vip_net[const.ID])
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
@@ -283,7 +283,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             description=lb_description,
             name=lb_name,
             vip_network_id=self.lb_member_vip_net[const.ID])
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
@@ -306,7 +306,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             description=lb_description,
             name=lb_name,
             vip_network_id=self.lb_member_vip_net[const.ID])
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 
@@ -412,25 +412,6 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(lb2[const.DESCRIPTION], lbs[1][const.DESCRIPTION])
         self.assertEqual(lb1[const.DESCRIPTION], lbs[0][const.DESCRIPTION])
 
-        # Attempt to clean up so that one full test run doesn't start 10+
-        # amps before the cleanup phase fires
-        created_lb_ids = lb1[const.ID], lb2[const.ID], lb3[const.ID]
-        for lb_id in created_lb_ids:
-            try:
-                self.mem_lb_client.delete_loadbalancer(lb_id)
-            except Exception:
-                pass
-
-        for lb_id in created_lb_ids:
-            try:
-                waiters.wait_for_deleted_status_or_not_found(
-                    self.mem_lb_client.show_loadbalancer, lb_id,
-                    const.PROVISIONING_STATUS,
-                    CONF.load_balancer.lb_build_interval,
-                    CONF.load_balancer.lb_build_timeout)
-            except Exception:
-                pass
-
     @decorators.idempotent_id('826ae612-8717-4c64-a8a7-cb9570a85870')
     def test_load_balancer_show(self):
         """Tests load balancer show API.
@@ -528,7 +509,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
     @decorators.idempotent_id('b75a4d15-49d2-4149-a745-635eed1aacc3')
     def test_load_balancer_update(self):
-        """Tests load balancer show API and field filtering.
+        """Tests load balancer update and show APIs.
 
         * Create a fully populated load balancer.
         * Show load balancer details.
@@ -536,7 +517,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         * Validates that other accounts cannot update the load balancer.
         * Update the load balancer details.
         * Show load balancer details.
-        * Validate the show reflects the initial values.
+        * Validate the show reflects the updated values.
         """
         lb_name = data_utils.rand_name("lb_member_lb1-update")
         lb_description = data_utils.arbitrary_string(size=255)

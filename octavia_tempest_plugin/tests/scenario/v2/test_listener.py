@@ -35,8 +35,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         super(ListenerScenarioTest, cls).resource_setup()
 
         lb_name = data_utils.rand_name("lb_member_lb1_listener")
-        lb_kwargs = {const.ADMIN_STATE_UP: False,
-                     const.PROVIDER: CONF.load_balancer.provider,
+        lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
 
         ip_version = 6 if CONF.load_balancer.test_with_ipv6 else 4
@@ -107,6 +106,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         parser.parse(listener[const.CREATED_AT])
         parser.parse(listener[const.UPDATED_AT])
         UUID(listener[const.ID])
+        # Operating status will be OFFLINE while admin_state_up = False
         self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         self.assertEqual(const.HTTP, listener[const.PROTOCOL])
         self.assertEqual(80, listener[const.PROTOCOL_PORT])
@@ -152,10 +152,22 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            listener = waiters.wait_for_status(
+                self.mem_listener_client.show_listener,
+                listener[const.ID], const.OPERATING_STATUS,
+                const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
 
         self.assertEqual(new_name, listener[const.NAME])
         self.assertEqual(new_description, listener[const.DESCRIPTION])
         self.assertTrue(listener[const.ADMIN_STATE_UP])
+        # Operating status is a measured status, so no-op will not go online
+        if CONF.load_balancer.test_with_noop:
+            self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
+        else:
+            self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
         self.assertEqual(const.HTTP, listener[const.PROTOCOL])
         self.assertEqual(80, listener[const.PROTOCOL_PORT])
         self.assertEqual(400, listener[const.CONNECTION_LIMIT])
@@ -170,6 +182,12 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
 
         # Listener delete
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer,
+            self.lb_id, const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
         self.mem_listener_client.delete_listener(listener[const.ID])
 
         waiters.wait_for_deleted_status_or_not_found(

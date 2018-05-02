@@ -38,8 +38,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         super(ListenerAPITest, cls).resource_setup()
 
         lb_name = data_utils.rand_name("lb_member_lb1_listener")
-        lb_kwargs = {const.ADMIN_STATE_UP: False,
-                     const.PROVIDER: CONF.load_balancer.provider,
+        lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
 
         ip_version = 6 if CONF.load_balancer.test_with_ipv6 else 4
@@ -61,8 +60,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
     def test_listener_create(self):
         """Tests listener create and basic show APIs.
 
-        * Tests that users without the listener member role cannot
-        *   create listeners.
+        * Tests that users without the loadbalancer member role cannot
+          create listeners.
         * Create a fully populated listener.
         * Show listener details.
         * Validate the show reflects the requested values.
@@ -106,12 +105,24 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         listener = waiters.wait_for_status(
             self.mem_listener_client.show_listener,
             listener[const.ID], const.PROVISIONING_STATUS,
             const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            listener = waiters.wait_for_status(
+                self.mem_listener_client.show_listener,
+                listener[const.ID], const.OPERATING_STATUS,
+                const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
 
         self.assertEqual(listener_name, listener[const.NAME])
         self.assertEqual(listener_description, listener[const.DESCRIPTION])
@@ -157,7 +168,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             name=lb_name,
             vip_network_id=self.lb_member_vip_net[const.ID])
         lb_id = lb[const.ID]
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb_id)
 
@@ -180,7 +191,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         }
         listener1 = self.mem_listener_client.create_listener(
             **listener1_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_listener_client.cleanup_listener,
             listener1[const.ID],
             lb_client=self.mem_lb_client, lb_id=lb_id)
@@ -212,7 +223,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         }
         listener2 = self.mem_listener_client.create_listener(
             **listener2_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_listener_client.cleanup_listener,
             listener2[const.ID],
             lb_client=self.mem_lb_client, lb_id=lb_id)
@@ -244,7 +255,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         }
         listener3 = self.mem_listener_client.create_listener(
             **listener3_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_listener_client.cleanup_listener,
             listener3[const.ID],
             lb_client=self.mem_lb_client, lb_id=lb_id)
@@ -259,6 +270,19 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+
+        if not CONF.load_balancer.test_with_noop:
+            # Wait for the enabled listeners to come ONLINE
+            listener1 = waiters.wait_for_status(
+                self.mem_listener_client.show_listener, listener1[const.ID],
+                const.OPERATING_STATUS, const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
+            listener2 = waiters.wait_for_status(
+                self.mem_listener_client.show_listener, listener2[const.ID],
+                const.OPERATING_STATUS, const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
 
         # Test that a different user cannot list listeners
         if not CONF.load_balancer.RBAC_test_type == const.NONE:
@@ -322,12 +346,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(listener3[field], listeners[2][field])
 
         # Test multiple fields at the same time
-            listeners = self.mem_listener_client.list_listeners(
-                query_params='loadbalancer_id={lb_id}&{fields}={admin}&'
-                             '{fields}={created}'.format(
-                                 lb_id=lb_id, fields=const.FIELDS,
-                                 admin=const.ADMIN_STATE_UP,
-                                 created=const.CREATED_AT))
+        listeners = self.mem_listener_client.list_listeners(
+            query_params='loadbalancer_id={lb_id}&{fields}={admin}&'
+                         '{fields}={created}'.format(
+                             lb_id=lb_id, fields=const.FIELDS,
+                             admin=const.ADMIN_STATE_UP,
+                             created=const.CREATED_AT))
         self.assertEqual(2, len(listeners[0]))
         self.assertTrue(listeners[0][const.ADMIN_STATE_UP])
         parser.parse(listeners[0][const.CREATED_AT])
@@ -363,17 +387,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                          listeners[1][const.DESCRIPTION])
         self.assertEqual(listener1[const.DESCRIPTION],
                          listeners[0][const.DESCRIPTION])
-
-        # Attempt to clean up ahead of time
-        try:
-            self.mem_lb_client.delete_loadbalancer(lb_id, cascade=True)
-            waiters.wait_for_deleted_status_or_not_found(
-                self.mem_lb_client.show_loadbalancer, lb_id,
-                const.PROVISIONING_STATUS,
-                CONF.load_balancer.check_interval,
-                CONF.load_balancer.check_timeout)
-        except Exception:
-            pass
 
     @decorators.idempotent_id('6e299eae-6907-4dfc-89c2-e57709d25d3d')
     def test_listener_show(self):
@@ -415,12 +428,24 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         listener = waiters.wait_for_status(
             self.mem_listener_client.show_listener,
             listener[const.ID], const.PROVISIONING_STATUS,
             const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            listener = waiters.wait_for_status(
+                self.mem_listener_client.show_listener,
+                listener[const.ID], const.OPERATING_STATUS,
+                const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
 
         self.assertEqual(listener_name, listener[const.NAME])
         self.assertEqual(listener_description, listener[const.DESCRIPTION])
@@ -476,7 +501,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
     @decorators.idempotent_id('aaae0298-5778-4c7e-a27a-01549a71b319')
     def test_listener_update(self):
-        """Tests listener show API and field filtering.
+        """Tests listener update and show APIs.
 
         * Create a fully populated listener.
         * Show listener details.
@@ -484,7 +509,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         * Validates that other accounts cannot update the listener.
         * Update the listener details.
         * Show listener details.
-        * Validate the show reflects the initial values.
+        * Validate the show reflects the updated values.
         """
         listener_name = data_utils.rand_name("lb_member_listener1-update")
         listener_description = data_utils.arbitrary_string(size=255)
@@ -517,6 +542,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         listener = waiters.wait_for_status(
             self.mem_listener_client.show_listener,
             listener[const.ID], const.PROVISIONING_STATUS,
@@ -530,11 +560,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         parser.parse(listener[const.CREATED_AT])
         parser.parse(listener[const.UPDATED_AT])
         UUID(listener[const.ID])
-        # Operating status is a measured status, so no-op will not go online
-        if CONF.load_balancer.test_with_noop:
-            self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
-        else:
-            self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
+        # Operating status will be OFFLINE while admin_state_up = False
+        self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         self.assertEqual(const.HTTP, listener[const.PROTOCOL])
         self.assertEqual(82, listener[const.PROTOCOL_PORT])
         self.assertEqual(200, listener[const.CONNECTION_LIMIT])
@@ -547,10 +574,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
         self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
         self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
-
-        new_name = data_utils.rand_name("lb_member_listener1-update")
-        new_description = data_utils.arbitrary_string(size=255,
-                                                      base_text='new')
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -582,6 +605,9 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                          listener_check[const.PROVISIONING_STATUS])
         self.assertFalse(listener_check[const.ADMIN_STATE_UP])
 
+        new_name = data_utils.rand_name("lb_member_listener1-UPDATED")
+        new_description = data_utils.arbitrary_string(size=255,
+                                                      base_text='new')
         listener_update_kwargs = {
             const.NAME: new_name,
             const.DESCRIPTION: new_description,
@@ -603,16 +629,33 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         listener = self.mem_listener_client.update_listener(
             listener[const.ID], **listener_update_kwargs)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         listener = waiters.wait_for_status(
             self.mem_listener_client.show_listener,
             listener[const.ID], const.PROVISIONING_STATUS,
             const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            listener = waiters.wait_for_status(
+                self.mem_listener_client.show_listener,
+                listener[const.ID], const.OPERATING_STATUS,
+                const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
 
         self.assertEqual(new_name, listener[const.NAME])
         self.assertEqual(new_description, listener[const.DESCRIPTION])
         self.assertTrue(listener[const.ADMIN_STATE_UP])
+        # Operating status is a measured status, so no-op will not go online
+        if CONF.load_balancer.test_with_noop:
+            self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
+        else:
+            self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
         self.assertEqual(400, listener[const.CONNECTION_LIMIT])
         insert_headers = listener[const.INSERT_HEADERS]
         self.assertFalse(
