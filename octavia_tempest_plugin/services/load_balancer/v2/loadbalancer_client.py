@@ -46,10 +46,10 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         :param description: A human-readable description for the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
-        :param flavor: The load balancer flavor ID.
+        :param flavor: The loadbalancer flavor ID.
         :param listeners: A list of listner dictionaries.
         :param project_id: The ID of the project owning this resource.
-        :param provider: Provider name for the load balancer.
+        :param provider: Provider name for the loadbalancer.
         :param vip_address: The IP address of the Virtual IP (VIP).
         :param vip_network_id: The ID of the network for the Virtual IP (VIP).
         :param vip_port_id: The ID of the Virtual IP (VIP) port.
@@ -217,7 +217,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         return self._update_object(**kwargs)
 
     def delete_loadbalancer(self, lb_id, cascade=False, ignore_errors=False):
-        """Delete an object.
+        """Delete a loadbalancer.
 
         :param lb_id: The loadbalancer ID to delete.
         :param ignore_errors: True if errors should be ignored.
@@ -256,9 +256,9 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                 cascade=cascade)
 
     def failover_loadbalancer(self, lb_id):
-        """Failover a load balancer.
+        """Failover a loadbalancer.
 
-        :param lb_id: The load balancer ID to query.
+        :param lb_id: The loadbalancer ID to query.
         :raises AssertionError: if the expected_code isn't a valid http success
                                 response code
         :raises BadRequest: If a 400 response code is received
@@ -293,9 +293,9 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
 
     def get_loadbalancer_stats(self, lb_id, query_params=None,
                                return_object_only=True):
-        """Get load balancer statistics.
+        """Get loadbalancer statistics.
 
-        :param lb_id: The load balancer ID to query.
+        :param lb_id: The loadbalancer ID to query.
         :param query_params: The optional query parameters to append to the
                              request. Ex. fields=id&fields=name
         :param return_object_only: If True, the response returns the object
@@ -326,7 +326,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                         of the handled checks
         :raises UnprocessableEntity: If a 422 response code is received and
                                      couldn't be parsed
-        :returns: A load balancer statistics object.
+        :returns: A loadbalancer statistics object.
         """
         if query_params:
             request_uri = '{0}/{1}/stats?{2}'.format(self.uri, lb_id,
@@ -343,9 +343,9 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
 
     def get_loadbalancer_status(self, lb_id, query_params=None,
                                 return_object_only=True):
-        """Get a load balancer status tree.
+        """Get a loadbalancer status tree.
 
-        :param lb_id: The load balancer ID to query.
+        :param lb_id: The loadbalancer ID to query.
         :param query_params: The optional query parameters to append to the
                              request. Ex. fields=id&fields=name
         :param return_object_only: If True, the response returns the object
@@ -376,7 +376,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                         of the handled checks
         :raises UnprocessableEntity: If a 422 response code is received and
                                      couldn't be parsed
-        :returns: A load balancer statuses object.
+        :returns: A loadbalancer statuses object.
         """
         if query_params:
             request_uri = '{0}/{1}/status?{2}'.format(self.uri, lb_id,

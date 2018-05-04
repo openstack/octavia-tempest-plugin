@@ -105,6 +105,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         cls.mem_lb_client = cls.os_roles_lb_member.loadbalancer_client
         cls.mem_listener_client = cls.os_roles_lb_member.listener_client
         cls.mem_pool_client = cls.os_roles_lb_member.pool_client
+        cls.mem_member_client = cls.os_roles_lb_member.member_client
 
     @classmethod
     def resource_setup(cls):

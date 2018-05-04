@@ -205,7 +205,7 @@ class PoolClient(base_client.BaseLBaaSClient):
         return self._update_object(**kwargs)
 
     def delete_pool(self, pool_id, ignore_errors=False):
-        """Delete an object.
+        """Delete a pool.
 
         :param pool_id: The pool ID to delete.
         :param ignore_errors: True if errors should be ignored.

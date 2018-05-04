@@ -51,7 +51,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         """Tests load balancer create and basic show APIs.
 
         * Tests that users without the load balancer member role cannot
-        *   create load balancers.
+          create load balancers.
         * Create a fully populated load balancer.
         * Show load balancer details.
         * Validate the show reflects the requested values.

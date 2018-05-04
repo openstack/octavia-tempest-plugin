@@ -27,7 +27,8 @@ LOG = logging.getLogger(__name__)
 
 
 def wait_for_status(show_client, id, status_key, status,
-                    check_interval, check_timeout, root_tag=None):
+                    check_interval, check_timeout, root_tag=None,
+                    **kwargs):
     """Waits for an object to reach a specific status.
 
     :param show_client: The tempest service client show method.
@@ -51,11 +52,11 @@ def wait_for_status(show_client, id, status_key, status,
     while True:
         if status == const.DELETED:
             try:
-                response = show_client(id)
+                response = show_client(id, **kwargs)
             except exceptions.NotFound:
                 return
         else:
-            response = show_client(id)
+            response = show_client(id, **kwargs)
 
         if root_tag:
             object_details = response[root_tag]
@@ -127,7 +128,7 @@ def wait_for_not_found(delete_func, show_func, *args, **kwargs):
 
 def wait_for_deleted_status_or_not_found(
         show_client, id, status_key, check_interval, check_timeout,
-        root_tag=None):
+        root_tag=None, **kwargs):
     """Waits for an object to reach a DELETED status or be not found (404).
 
     :param show_client: The tempest service client show method.
@@ -149,7 +150,7 @@ def wait_for_deleted_status_or_not_found(
              'found(404)'.format(name=show_client.__name__))
     while True:
         try:
-            response = show_client(id)
+            response = show_client(id, **kwargs)
         except exceptions.NotFound:
             return
 

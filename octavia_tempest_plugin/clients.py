@@ -20,6 +20,8 @@ from octavia_tempest_plugin.services.load_balancer.v2 import (
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     loadbalancer_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
+    member_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
     pool_client)
 
 CONF = config.CONF
@@ -36,4 +38,6 @@ class ManagerV2(clients.Manager):
         self.listener_client = listener_client.ListenerClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
         self.pool_client = pool_client.PoolClient(
+            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+        self.member_client = member_client.MemberClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)

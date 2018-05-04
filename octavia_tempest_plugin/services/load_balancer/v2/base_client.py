@@ -52,9 +52,12 @@ class BaseLBaaSClient(rest_client.RestClient):
         self.uri = self.base_uri.format(object=self.list_root_tag)
         # Create a method for each object's cleanup
         # This method should be used (rather than delete) for tempest cleanups.
-        setattr(self, 'cleanup_{}'.format(self.root_tag), self._cleanup_obj)
+        cleanup_func_name = 'cleanup_{}'.format(self.root_tag)
+        if not hasattr(self, cleanup_func_name):
+            setattr(self, cleanup_func_name, self._cleanup_obj)
 
-    def _create_object(self, return_object_only=True, **kwargs):
+    def _create_object(self, parent_id=None, return_object_only=True,
+                       **kwargs):
         """Create an object.
 
         :param return_object_only: If True, the response returns the object
@@ -90,14 +93,21 @@ class BaseLBaaSClient(rest_client.RestClient):
         :returns: An appropriate object.
         """
         obj_dict = {self.root_tag: kwargs}
-        response, body = self.post(self.uri, json.dumps(obj_dict))
+
+        if parent_id:
+            request_uri = self.uri.format(parent=parent_id)
+        else:
+            request_uri = self.uri
+
+        response, body = self.post(request_uri, json.dumps(obj_dict))
         self.expected_success(201, response.status)
         if return_object_only:
             return json.loads(body.decode('utf-8'))[self.root_tag]
         else:
             return json.loads(body.decode('utf-8'))
 
-    def _show_object(self, obj_id, query_params=None, return_object_only=True):
+    def _show_object(self, obj_id, parent_id=None, query_params=None,
+                     return_object_only=True):
         """Get object details.
 
         :param obj_id: The object ID to query.
@@ -133,10 +143,15 @@ class BaseLBaaSClient(rest_client.RestClient):
                                      couldn't be parsed
         :returns: An appropriate object.
         """
-        if query_params:
-            request_uri = '{0}/{1}?{2}'.format(self.uri, obj_id, query_params)
+        if parent_id:
+            uri = self.uri.format(parent=parent_id)
         else:
-            request_uri = '{0}/{1}'.format(self.uri, obj_id)
+            uri = self.uri
+
+        if query_params:
+            request_uri = '{0}/{1}?{2}'.format(uri, obj_id, query_params)
+        else:
+            request_uri = '{0}/{1}'.format(uri, obj_id)
 
         response, body = self.get(request_uri)
         self.expected_success(200, response.status)
@@ -145,7 +160,8 @@ class BaseLBaaSClient(rest_client.RestClient):
         else:
             return json.loads(body.decode('utf-8'))
 
-    def _list_objects(self, query_params=None, return_object_only=True):
+    def _list_objects(self, parent_id=None, query_params=None,
+                      return_object_only=True):
         """Get a list of the appropriate objects.
 
         :param query_params: The optional query parameters to append to the
@@ -180,10 +196,15 @@ class BaseLBaaSClient(rest_client.RestClient):
                                      couldn't be parsed
         :returns: A list of appropriate objects.
         """
-        if query_params:
-            request_uri = '{0}?{1}'.format(self.uri, query_params)
+        if parent_id:
+            uri = self.uri.format(parent=parent_id)
         else:
-            request_uri = self.uri
+            uri = self.uri
+
+        if query_params:
+            request_uri = '{0}?{1}'.format(uri, query_params)
+        else:
+            request_uri = uri
         response, body = self.get(request_uri)
         self.expected_success(200, response.status)
         if return_object_only:
@@ -191,10 +212,12 @@ class BaseLBaaSClient(rest_client.RestClient):
         else:
             return json.loads(body.decode('utf-8'))
 
-    def _update_object(self, obj_id, return_object_only=True, **kwargs):
+    def _update_object(self, obj_id, parent_id=None, return_object_only=True,
+                       **kwargs):
         """Update an object.
 
         :param obj_id: The object ID to update.
+        :param parent_id: The parent object ID, if applicable.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -228,15 +251,22 @@ class BaseLBaaSClient(rest_client.RestClient):
         :returns: An appropriate object.
         """
         obj_dict = {self.root_tag: kwargs}
-        uri = '{0}/{1}'.format(self.uri, obj_id)
-        response, body = self.put(uri, json.dumps(obj_dict))
+
+        if parent_id:
+            uri = self.uri.format(parent=parent_id)
+        else:
+            uri = self.uri
+
+        request_uri = '{0}/{1}'.format(uri, obj_id)
+        response, body = self.put(request_uri, json.dumps(obj_dict))
         self.expected_success(200, response.status)
         if return_object_only:
             return json.loads(body.decode('utf-8'))[self.root_tag]
         else:
             return json.loads(body.decode('utf-8'))
 
-    def _delete_obj(self, obj_id, ignore_errors=False, cascade=False):
+    def _delete_obj(self, obj_id, parent_id=None, ignore_errors=False,
+                    cascade=False):
         """Delete an object.
 
         :param obj_id: The object ID to delete.
@@ -271,22 +301,27 @@ class BaseLBaaSClient(rest_client.RestClient):
         :returns: None if ignore_errors is True, the response status code
                   if not.
         """
-        if cascade:
-            uri = '{0}/{1}?cascade=true'.format(self.uri, obj_id)
+        if parent_id:
+            uri = self.uri.format(parent=parent_id)
         else:
-            uri = '{0}/{1}'.format(self.uri, obj_id)
+            uri = self.uri
+
+        if cascade:
+            request_uri = '{0}/{1}?cascade=true'.format(uri, obj_id)
+        else:
+            request_uri = '{0}/{1}'.format(uri, obj_id)
         if ignore_errors:
             try:
-                response, body = self.delete(uri)
+                response, body = self.delete(request_uri)
             except Exception:
                 return
         else:
-            response, body = self.delete(uri)
+            response, body = self.delete(request_uri)
 
         self.expected_success(204, response.status)
         return response.status
 
-    def _cleanup_obj(self, obj_id, lb_client=None, lb_id=None):
+    def _cleanup_obj(self, obj_id, lb_client=None, lb_id=None, parent_id=None):
         """Clean up an object (for use in tempest addClassResourceCleanup).
 
         We always need to wait for the parent LB to be in a mutable state
@@ -296,9 +331,13 @@ class BaseLBaaSClient(rest_client.RestClient):
         tempest will delete the first one and then immediately try to delete
         the second one, which will fail because the LB will be immutable.
 
+        We also need to wait to return until the parent LB is back in a mutable
+        state so future tests don't break right at the start.
+
         This function:
         * Waits until the parent LB is ACTIVE
         * Deletes the object
+        * Waits until the parent LB is ACTIVE
 
         :param obj_id: The object ID to clean up.
         :param lb_client: (Optional) The loadbalancer client, if this isn't the
@@ -307,6 +346,11 @@ class BaseLBaaSClient(rest_client.RestClient):
                       obj_id is for a sub-object and not a loadbalancer.
         :return:
         """
+        if parent_id:
+            uri = self.uri.format(parent=parent_id)
+        else:
+            uri = self.uri
+
         if lb_client and lb_id:
             wait_id = lb_id
             wait_client = lb_client
@@ -343,10 +387,20 @@ class BaseLBaaSClient(rest_client.RestClient):
             LOG.error("Cleanup encountered an unknown exception while waiting "
                       "for %s %s: %s", wait_client.root_tag, wait_id, e)
 
-        uri = '{0}/{1}'.format(self.uri, obj_id)
+        uri = '{0}/{1}'.format(uri, obj_id)
         LOG.info("Cleaning up %s %s...", self.root_tag, obj_id)
         return_status = test_utils.call_and_ignore_notfound_exc(
             self.delete, uri)
+
+        if lb_id and lb_client:
+            LOG.info("Waiting for %s %s to be ACTIVE...",
+                     wait_client.root_tag, wait_id)
+            waiters.wait_for_status(wait_func, wait_id,
+                                    const.PROVISIONING_STATUS,
+                                    const.ACTIVE,
+                                    self.build_interval,
+                                    self.timeout)
+
         LOG.info("Cleanup complete for %s %s...", self.root_tag, obj_id)
         return return_status
 
