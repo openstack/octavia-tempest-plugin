@@ -15,11 +15,13 @@
 import ipaddress
 import pkg_resources
 import random
+import requests
 import shlex
 import six
 import string
 import subprocess
 import tempfile
+import time
 
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -189,175 +191,6 @@ class LoadBalancerBaseTest(test.BaseTestCase):
             LOG.debug('Octavia Setup: lb_member_2_ipv6_subnet = {}'.format(
                 cls.lb_member_2_ipv6_subnet[const.ID]))
 
-        # If validation is disabled in this cloud, we won't be able to
-        # start the webservers, so don't even boot them.
-        if not CONF.validation.run_validation:
-            return
-
-        # Create a keypair for the webservers
-        keypair_name = data_utils.rand_name('lb_member_keypair')
-        result = cls.lb_mem_keypairs_client.create_keypair(
-            name=keypair_name)
-        cls.lb_member_keypair = result['keypair']
-        LOG.info('lb_member_keypair: {}'.format(cls.lb_member_keypair))
-        cls.addClassResourceCleanup(
-            waiters.wait_for_not_found,
-            cls.lb_mem_keypairs_client.delete_keypair,
-            cls.lb_mem_keypairs_client.show_keypair,
-            keypair_name)
-
-        if (CONF.load_balancer.enable_security_groups and
-                CONF.network_feature_enabled.port_security):
-            # Set up the security group for the webservers
-            SG_name = data_utils.rand_name('lb_member_SG')
-            cls.lb_member_sec_group = (
-                cls.lb_mem_SG_client.create_security_group(
-                    name=SG_name)['security_group'])
-            cls.addClassResourceCleanup(
-                waiters.wait_for_not_found,
-                cls.lb_mem_SG_client.delete_security_group,
-                cls.lb_mem_SG_client.show_security_group,
-                cls.lb_member_sec_group['id'])
-
-            # Create a security group rule to allow 80-81 (test webservers)
-            SGr = cls.lb_mem_SGr_client.create_security_group_rule(
-                direction='ingress',
-                security_group_id=cls.lb_member_sec_group['id'],
-                protocol='tcp',
-                ethertype='IPv4',
-                port_range_min=80,
-                port_range_max=81)['security_group_rule']
-            cls.addClassResourceCleanup(
-                waiters.wait_for_not_found,
-                cls.lb_mem_SGr_client.delete_security_group_rule,
-                cls.lb_mem_SGr_client.show_security_group_rule,
-                SGr['id'])
-            # Create a security group rule to allow 22 (ssh)
-            SGr = cls.lb_mem_SGr_client.create_security_group_rule(
-                direction='ingress',
-                security_group_id=cls.lb_member_sec_group['id'],
-                protocol='tcp',
-                ethertype='IPv4',
-                port_range_min=22,
-                port_range_max=22)['security_group_rule']
-            cls.addClassResourceCleanup(
-                waiters.wait_for_not_found,
-                cls.lb_mem_SGr_client.delete_security_group_rule,
-                cls.lb_mem_SGr_client.show_security_group_rule,
-                SGr['id'])
-            if CONF.load_balancer.test_with_ipv6:
-                # Create a security group rule to allow 80-81 (test webservers)
-                SGr = cls.lb_mem_SGr_client.create_security_group_rule(
-                    direction='ingress',
-                    security_group_id=cls.lb_member_sec_group['id'],
-                    protocol='tcp',
-                    ethertype='IPv6',
-                    port_range_min=80,
-                    port_range_max=81)['security_group_rule']
-                cls.addClassResourceCleanup(
-                    waiters.wait_for_not_found,
-                    cls.lb_mem_SGr_client.delete_security_group_rule,
-                    cls.lb_mem_SGr_client.show_security_group_rule,
-                    SGr['id'])
-                # Create a security group rule to allow 22 (ssh)
-                SGr = cls.lb_mem_SGr_client.create_security_group_rule(
-                    direction='ingress',
-                    security_group_id=cls.lb_member_sec_group['id'],
-                    protocol='tcp',
-                    ethertype='IPv6',
-                    port_range_min=22,
-                    port_range_max=22)['security_group_rule']
-                cls.addClassResourceCleanup(
-                    waiters.wait_for_not_found,
-                    cls.lb_mem_SGr_client.delete_security_group_rule,
-                    cls.lb_mem_SGr_client.show_security_group_rule,
-                    SGr['id'])
-
-            LOG.info('lb_member_sec_group: {}'.format(cls.lb_member_sec_group))
-
-        # Create webserver 1 instance
-        server_details = cls._create_webserver('lb_member_webserver1',
-                                               cls.lb_member_1_net)
-
-        cls.lb_member_webserver1 = server_details['server']
-        cls.webserver1_ip = server_details.get('ipv4_address')
-        cls.webserver1_ipv6 = server_details.get('ipv6_address')
-        cls.webserver1_public_ip = server_details['public_ipv4_address']
-
-        LOG.debug('Octavia Setup: lb_member_webserver1 = {}'.format(
-            cls.lb_member_webserver1[const.ID]))
-        LOG.debug('Octavia Setup: webserver1_ip = {}'.format(
-            cls.webserver1_ip))
-        LOG.debug('Octavia Setup: webserver1_ipv6 = {}'.format(
-            cls.webserver1_ipv6))
-        LOG.debug('Octavia Setup: webserver1_public_ip = {}'.format(
-            cls.webserver1_public_ip))
-
-        cls._install_start_webserver(cls.webserver1_public_ip,
-                                     cls.lb_member_keypair['private_key'], 1)
-
-        # Validate webserver 1
-        cls._validate_webserver(cls.webserver1_public_ip, 1)
-
-        # Create webserver 2 instance
-        server_details = cls._create_webserver('lb_member_webserver2',
-                                               cls.lb_member_2_net)
-
-        cls.lb_member_webserver2 = server_details['server']
-        cls.webserver2_ip = server_details.get('ipv4_address')
-        cls.webserver2_ipv6 = server_details.get('ipv6_address')
-        cls.webserver2_public_ip = server_details['public_ipv4_address']
-
-        LOG.debug('Octavia Setup: lb_member_webserver2 = {}'.format(
-            cls.lb_member_webserver2[const.ID]))
-        LOG.debug('Octavia Setup: webserver2_ip = {}'.format(
-            cls.webserver2_ip))
-        LOG.debug('Octavia Setup: webserver2_ipv6 = {}'.format(
-            cls.webserver2_ipv6))
-        LOG.debug('Octavia Setup: webserver2_public_ip = {}'.format(
-            cls.webserver2_public_ip))
-
-        cls._install_start_webserver(cls.webserver2_public_ip,
-                                     cls.lb_member_keypair['private_key'], 5)
-
-        # Validate webserver 2
-        cls._validate_webserver(cls.webserver2_public_ip, 5)
-
-    @classmethod
-    def _install_start_webserver(cls, ip_address, ssh_key, start_id):
-        local_file = pkg_resources.resource_filename(
-            'octavia_tempest_plugin.contrib.httpd', 'httpd.bin')
-        dest_file = '/dev/shm/httpd.bin'
-
-        linux_client = remote_client.RemoteClient(
-            ip_address, CONF.validation.image_ssh_user, pkey=ssh_key)
-        linux_client.validate_authentication()
-
-        with tempfile.NamedTemporaryFile() as key:
-            key.write(ssh_key.encode('utf-8'))
-            key.flush()
-            cmd = ("scp -v -o UserKnownHostsFile=/dev/null "
-                   "-o StrictHostKeyChecking=no "
-                   "-o ConnectTimeout={0} -o ConnectionAttempts={1} "
-                   "-i {2} {3} {4}@{5}:{6}").format(
-                CONF.load_balancer.scp_connection_timeout,
-                CONF.load_balancer.scp_connection_attempts,
-                key.name, local_file, CONF.validation.image_ssh_user,
-                ip_address, dest_file)
-            args = shlex.split(cmd)
-            subprocess_args = {'stdout': subprocess.PIPE,
-                               'stderr': subprocess.STDOUT,
-                               'cwd': None}
-            proc = subprocess.Popen(args, **subprocess_args)
-            stdout, stderr = proc.communicate()
-            if proc.returncode != 0:
-                raise exceptions.CommandFailed(proc.returncode, cmd,
-                                               stdout, stderr)
-        linux_client.exec_command('sudo screen -d -m {0} -port 80 '
-                                  '-id {1}'.format(dest_file, start_id))
-        linux_client.exec_command('sudo screen -d -m {0} -port 81 '
-                                  '-id {1}'.format(dest_file, start_id + 1))
-
     @classmethod
     def _create_networks(cls):
         """Creates networks, subnets, and routers used in tests.
@@ -519,6 +352,173 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 cls.lb_mem_subnet_client.show_subnet,
                 cls.lb_member_2_ipv6_subnet['id'])
 
+    @classmethod
+    def _setup_lb_network_kwargs(cls, lb_kwargs, ip_version):
+        if cls.lb_member_vip_subnet:
+            ip_index = data_utils.rand_int_id(start=10, end=100)
+            if ip_version == 4:
+                network = ipaddress.IPv4Network(
+                    six.u(CONF.load_balancer.vip_subnet_cidr))
+                lb_vip_address = str(network[ip_index])
+                subnet_id = cls.lb_member_vip_subnet[const.ID]
+            else:
+                network = ipaddress.IPv6Network(
+                    six.u(CONF.load_balancer.vip_ipv6_subnet_cidr))
+                lb_vip_address = str(network[ip_index])
+                subnet_id = cls.lb_member_vip_ipv6_subnet[const.ID]
+            lb_kwargs[const.VIP_SUBNET_ID] = subnet_id
+            lb_kwargs[const.VIP_ADDRESS] = lb_vip_address
+            if CONF.load_balancer.test_with_noop:
+                lb_kwargs[const.VIP_NETWORK_ID] = (
+                    cls.lb_member_vip_net[const.ID])
+        else:
+            lb_kwargs[const.VIP_NETWORK_ID] = cls.lb_member_vip_net[const.ID]
+            lb_kwargs[const.VIP_SUBNET_ID] = None
+
+
+class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
+    @classmethod
+    def resource_setup(cls):
+        super(LoadBalancerBaseTestWithCompute, cls).resource_setup()
+        # If validation is disabled in this cloud, we won't be able to
+        # start the webservers, so don't even boot them.
+        if not CONF.validation.run_validation:
+            return
+
+        # Create a keypair for the webservers
+        keypair_name = data_utils.rand_name('lb_member_keypair')
+        result = cls.lb_mem_keypairs_client.create_keypair(
+            name=keypair_name)
+        cls.lb_member_keypair = result['keypair']
+        LOG.info('lb_member_keypair: {}'.format(cls.lb_member_keypair))
+        cls.addClassResourceCleanup(
+            waiters.wait_for_not_found,
+            cls.lb_mem_keypairs_client.delete_keypair,
+            cls.lb_mem_keypairs_client.show_keypair,
+            keypair_name)
+
+        if (CONF.load_balancer.enable_security_groups and
+                CONF.network_feature_enabled.port_security):
+            # Set up the security group for the webservers
+            SG_name = data_utils.rand_name('lb_member_SG')
+            cls.lb_member_sec_group = (
+                cls.lb_mem_SG_client.create_security_group(
+                    name=SG_name)['security_group'])
+            cls.addClassResourceCleanup(
+                waiters.wait_for_not_found,
+                cls.lb_mem_SG_client.delete_security_group,
+                cls.lb_mem_SG_client.show_security_group,
+                cls.lb_member_sec_group['id'])
+
+            # Create a security group rule to allow 80-81 (test webservers)
+            SGr = cls.lb_mem_SGr_client.create_security_group_rule(
+                direction='ingress',
+                security_group_id=cls.lb_member_sec_group['id'],
+                protocol='tcp',
+                ethertype='IPv4',
+                port_range_min=80,
+                port_range_max=81)['security_group_rule']
+            cls.addClassResourceCleanup(
+                waiters.wait_for_not_found,
+                cls.lb_mem_SGr_client.delete_security_group_rule,
+                cls.lb_mem_SGr_client.show_security_group_rule,
+                SGr['id'])
+            # Create a security group rule to allow 22 (ssh)
+            SGr = cls.lb_mem_SGr_client.create_security_group_rule(
+                direction='ingress',
+                security_group_id=cls.lb_member_sec_group['id'],
+                protocol='tcp',
+                ethertype='IPv4',
+                port_range_min=22,
+                port_range_max=22)['security_group_rule']
+            cls.addClassResourceCleanup(
+                waiters.wait_for_not_found,
+                cls.lb_mem_SGr_client.delete_security_group_rule,
+                cls.lb_mem_SGr_client.show_security_group_rule,
+                SGr['id'])
+            if CONF.load_balancer.test_with_ipv6:
+                # Create a security group rule to allow 80-81 (test webservers)
+                SGr = cls.lb_mem_SGr_client.create_security_group_rule(
+                    direction='ingress',
+                    security_group_id=cls.lb_member_sec_group['id'],
+                    protocol='tcp',
+                    ethertype='IPv6',
+                    port_range_min=80,
+                    port_range_max=81)['security_group_rule']
+                cls.addClassResourceCleanup(
+                    waiters.wait_for_not_found,
+                    cls.lb_mem_SGr_client.delete_security_group_rule,
+                    cls.lb_mem_SGr_client.show_security_group_rule,
+                    SGr['id'])
+                # Create a security group rule to allow 22 (ssh)
+                SGr = cls.lb_mem_SGr_client.create_security_group_rule(
+                    direction='ingress',
+                    security_group_id=cls.lb_member_sec_group['id'],
+                    protocol='tcp',
+                    ethertype='IPv6',
+                    port_range_min=22,
+                    port_range_max=22)['security_group_rule']
+                cls.addClassResourceCleanup(
+                    waiters.wait_for_not_found,
+                    cls.lb_mem_SGr_client.delete_security_group_rule,
+                    cls.lb_mem_SGr_client.show_security_group_rule,
+                    SGr['id'])
+
+            LOG.info('lb_member_sec_group: {}'.format(cls.lb_member_sec_group))
+
+        # Create webserver 1 instance
+        server_details = cls._create_webserver('lb_member_webserver1',
+                                               cls.lb_member_1_net)
+
+        cls.lb_member_webserver1 = server_details['server']
+        cls.webserver1_ip = server_details.get('ipv4_address')
+        cls.webserver1_ipv6 = server_details.get('ipv6_address')
+        cls.webserver1_public_ip = server_details['public_ipv4_address']
+
+        LOG.debug('Octavia Setup: lb_member_webserver1 = {}'.format(
+            cls.lb_member_webserver1[const.ID]))
+        LOG.debug('Octavia Setup: webserver1_ip = {}'.format(
+            cls.webserver1_ip))
+        LOG.debug('Octavia Setup: webserver1_ipv6 = {}'.format(
+            cls.webserver1_ipv6))
+        LOG.debug('Octavia Setup: webserver1_public_ip = {}'.format(
+            cls.webserver1_public_ip))
+
+        # Create webserver 2 instance
+        server_details = cls._create_webserver('lb_member_webserver2',
+                                               cls.lb_member_2_net)
+
+        cls.lb_member_webserver2 = server_details['server']
+        cls.webserver2_ip = server_details.get('ipv4_address')
+        cls.webserver2_ipv6 = server_details.get('ipv6_address')
+        cls.webserver2_public_ip = server_details['public_ipv4_address']
+
+        LOG.debug('Octavia Setup: lb_member_webserver2 = {}'.format(
+            cls.lb_member_webserver2[const.ID]))
+        LOG.debug('Octavia Setup: webserver2_ip = {}'.format(
+            cls.webserver2_ip))
+        LOG.debug('Octavia Setup: webserver2_ipv6 = {}'.format(
+            cls.webserver2_ipv6))
+        LOG.debug('Octavia Setup: webserver2_public_ip = {}'.format(
+            cls.webserver2_public_ip))
+
+        # Set up serving on webserver 1
+        cls._install_start_webserver(cls.webserver1_public_ip,
+                                     cls.lb_member_keypair['private_key'], 1)
+
+        # Validate webserver 1
+        cls._validate_webserver(cls.webserver1_public_ip, 1)
+
+        # Set up serving on webserver 2
+        cls._install_start_webserver(cls.webserver2_public_ip,
+                                     cls.lb_member_keypair['private_key'], 5)
+
+        # Validate webserver 2
+        cls._validate_webserver(cls.webserver2_public_ip, 5)
+
+    @classmethod
+    def _create_networks(cls):
+        super(LoadBalancerBaseTestWithCompute, cls)._create_networks()
         # Create a router for the subnets (required for the floating IP)
         router_name = data_utils.rand_name("lb_member_router")
         result = cls.lb_mem_routers_client.create_router(
@@ -654,31 +654,87 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         return webserver_details
 
     @classmethod
+    def _install_start_webserver(cls, ip_address, ssh_key, start_id):
+        local_file = pkg_resources.resource_filename(
+            'octavia_tempest_plugin.contrib.httpd', 'httpd.bin')
+        dest_file = '/dev/shm/httpd.bin'
+
+        linux_client = remote_client.RemoteClient(
+            ip_address, CONF.validation.image_ssh_user, pkey=ssh_key)
+        linux_client.validate_authentication()
+
+        with tempfile.NamedTemporaryFile() as key:
+            key.write(ssh_key.encode('utf-8'))
+            key.flush()
+            cmd = ("scp -v -o UserKnownHostsFile=/dev/null "
+                   "-o StrictHostKeyChecking=no "
+                   "-o ConnectTimeout={0} -o ConnectionAttempts={1} "
+                   "-i {2} {3} {4}@{5}:{6}").format(
+                CONF.load_balancer.scp_connection_timeout,
+                CONF.load_balancer.scp_connection_attempts,
+                key.name, local_file, CONF.validation.image_ssh_user,
+                ip_address, dest_file)
+            args = shlex.split(cmd)
+            subprocess_args = {'stdout': subprocess.PIPE,
+                               'stderr': subprocess.STDOUT,
+                               'cwd': None}
+            proc = subprocess.Popen(args, **subprocess_args)
+            stdout, stderr = proc.communicate()
+            if proc.returncode != 0:
+                raise exceptions.CommandFailed(proc.returncode, cmd,
+                                               stdout, stderr)
+        linux_client.exec_command('sudo screen -d -m {0} -port 80 '
+                                  '-id {1}'.format(dest_file, start_id))
+        linux_client.exec_command('sudo screen -d -m {0} -port 81 '
+                                  '-id {1}'.format(dest_file, start_id + 1))
+
+    @classmethod
     def _validate_webserver(cls, ip_address, start_id):
         URL = 'http://{0}'.format(ip_address)
         validators.validate_URL_response(URL, expected_body=str(start_id))
         URL = 'http://{0}:81'.format(ip_address)
         validators.validate_URL_response(URL, expected_body=str(start_id + 1))
 
-    @classmethod
-    def _setup_lb_network_kwargs(cls, lb_kwargs, ip_version):
-        if cls.lb_member_vip_subnet:
-            ip_index = data_utils.rand_int_id(start=10, end=100)
-            if ip_version == 4:
-                network = ipaddress.IPv4Network(
-                    six.u(CONF.load_balancer.vip_subnet_cidr))
-                lb_vip_address = str(network[ip_index])
-                subnet_id = cls.lb_member_vip_subnet[const.ID]
-            else:
-                network = ipaddress.IPv6Network(
-                    six.u(CONF.load_balancer.vip_ipv6_subnet_cidr))
-                lb_vip_address = str(network[ip_index])
-                subnet_id = cls.lb_member_vip_ipv6_subnet[const.ID]
-            lb_kwargs[const.VIP_SUBNET_ID] = subnet_id
-            lb_kwargs[const.VIP_ADDRESS] = lb_vip_address
-            if CONF.load_balancer.test_with_noop:
-                lb_kwargs[const.VIP_NETWORK_ID] = (
-                    cls.lb_member_vip_net[const.ID])
-        else:
-            lb_kwargs[const.VIP_NETWORK_ID] = cls.lb_member_vip_net[const.ID]
-            lb_kwargs[const.VIP_SUBNET_ID] = None
+    def _wait_for_lb_functional(self, vip_address):
+        session = requests.Session()
+        start = time.time()
+
+        while time.time() - start < CONF.load_balancer.build_timeout:
+            try:
+                session.get("http://{0}".format(vip_address), timeout=2)
+                time.sleep(1)
+                return
+            except Exception:
+                LOG.warning('Server is not passing initial traffic. Waiting.')
+                time.sleep(1)
+        LOG.error('Server did not begin passing traffic within the timeout '
+                  'period. Failing test.')
+        raise Exception()
+
+    def _check_members_balanced(self, vip_address):
+        session = requests.Session()
+        response_counts = {}
+
+        self._wait_for_lb_functional(vip_address)
+
+        # Send a number requests to lb vip
+        for i in range(20):
+            try:
+                r = session.get('http://{0}'.format(vip_address),
+                                timeout=2)
+
+                if r.content in response_counts:
+                    response_counts[r.content] += 1
+                else:
+                    response_counts[r.content] = 1
+
+            except Exception:
+                LOG.exception('Failed to send request to loadbalancer vip')
+                raise Exception('Failed to connect to lb')
+
+        LOG.debug('Loadbalancer response totals: %s', response_counts)
+        # Ensure the correct number of members
+        self.assertEqual(2, len(response_counts))
+
+        # Ensure both members got the same number of responses
+        self.assertEqual(1, len(set(response_counts.values())))

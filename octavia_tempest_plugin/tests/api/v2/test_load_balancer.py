@@ -248,7 +248,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         pretest_lb_ids = [lb['id'] for lb in pretest_lbs]
 
         lb_name = data_utils.rand_name("lb_member_lb2-list")
-        lb_description = 'B'
+        lb_description = data_utils.rand_name('B')
 
         lb = self.mem_lb_client.create_loadbalancer(
             admin_state_up=True,
@@ -276,7 +276,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         time.sleep(1)
 
         lb_name = data_utils.rand_name("lb_member_lb1-list")
-        lb_description = 'A'
+        lb_description = data_utils.rand_name('A')
 
         lb = self.mem_lb_client.create_loadbalancer(
             admin_state_up=True,
@@ -299,7 +299,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         time.sleep(1)
 
         lb_name = data_utils.rand_name("lb_member_lb3-list")
-        lb_description = 'C'
+        lb_description = data_utils.rand_name('C')
 
         lb = self.mem_lb_client.create_loadbalancer(
             admin_state_up=False,
