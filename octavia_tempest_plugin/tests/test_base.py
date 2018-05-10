@@ -108,6 +108,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         cls.mem_listener_client = cls.os_roles_lb_member.listener_client
         cls.mem_pool_client = cls.os_roles_lb_member.pool_client
         cls.mem_member_client = cls.os_roles_lb_member.member_client
+        cls.mem_healthmonitor_client = (
+            cls.os_roles_lb_member.healthmonitor_client)
 
     @classmethod
     def resource_setup(cls):
@@ -353,7 +355,9 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 cls.lb_member_2_ipv6_subnet['id'])
 
     @classmethod
-    def _setup_lb_network_kwargs(cls, lb_kwargs, ip_version):
+    def _setup_lb_network_kwargs(cls, lb_kwargs, ip_version=None):
+        if not ip_version:
+            ip_version = 6 if CONF.load_balancer.test_with_ipv6 else 4
         if cls.lb_member_vip_subnet:
             ip_index = data_utils.rand_int_id(start=10, end=100)
             if ip_version == 4:
@@ -711,7 +715,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                   'period. Failing test.')
         raise Exception()
 
-    def _check_members_balanced(self, vip_address):
+    def _check_members_balanced(self, vip_address, traffic_member_count=2):
         session = requests.Session()
         response_counts = {}
 
@@ -734,7 +738,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
 
         LOG.debug('Loadbalancer response totals: %s', response_counts)
         # Ensure the correct number of members
-        self.assertEqual(2, len(response_counts))
+        self.assertEqual(traffic_member_count, len(response_counts))
 
         # Ensure both members got the same number of responses
         self.assertEqual(1, len(set(response_counts.values())))

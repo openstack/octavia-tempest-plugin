@@ -16,6 +16,8 @@ from tempest import clients
 from tempest import config
 
 from octavia_tempest_plugin.services.load_balancer.v2 import (
+    healthmonitor_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
     listener_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     loadbalancer_client)
@@ -40,4 +42,6 @@ class ManagerV2(clients.Manager):
         self.pool_client = pool_client.PoolClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
         self.member_client = member_client.MemberClient(
+            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+        self.healthmonitor_client = healthmonitor_client.HealthMonitorClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)

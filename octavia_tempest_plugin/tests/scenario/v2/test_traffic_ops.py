@@ -115,7 +115,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('6751135d-e15a-4e22-89f4-bfcc3408d424')
-    def test_traffic(self):
+    def test_basic_traffic(self):
         """Tests sending traffic through a loadbalancer
 
         * Create a fully populated loadbalancer.
@@ -135,7 +135,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
 
         member1 = self.mem_member_client.create_member(
             **member1_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_member_client.cleanup_member,
             member1[const.ID], pool_id=self.pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
@@ -159,7 +159,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
 
         member2 = self.mem_member_client.create_member(
             **member2_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_member_client.cleanup_member,
             member2[const.ID], pool_id=self.pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
@@ -170,4 +170,216 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             CONF.load_balancer.check_timeout)
 
         # Send some traffic
+        self._check_members_balanced(self.lb_vip_address)
+
+    @decorators.idempotent_id('a16f8eb4-a77c-4b0e-8b1b-91c237039713')
+    def test_healthmonitor_traffic(self):
+        """Tests traffic is correctly routed based on healthmonitor status
+
+        * Create three members:
+          * One should be working, and ONLINE with a healthmonitor (passing)
+          * One should be working, and ERROR with a healthmonitor (failing)
+          * One should be disabled, and OFFLINE with a healthmonitor
+        * Verify members are in their correct respective operating statuses.
+        * Verify that traffic is balanced evenly between the working members.
+        * Create a fully populated healthmonitor.
+        * Verify members are in their correct respective operating statuses.
+        * Verify that traffic is balanced *unevenly*.
+        * Delete the healthmonitor.
+        * Verify members are in their correct respective operating statuses.
+        * Verify that traffic is balanced evenly between the working members.
+        """
+        member1_name = data_utils.rand_name("lb_member_member1-hm-traffic")
+        member1_kwargs = {
+            const.POOL_ID: self.pool_id,
+            const.NAME: member1_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_1_subnet:
+            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        member1 = self.mem_member_client.create_member(
+            **member1_kwargs)
+        member1_id = member1[const.ID]
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member1_id, pool_id=self.pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 2 for Webserver 2
+        member2_name = data_utils.rand_name("lb_member_member2-hm-traffic")
+        member2_kwargs = {
+            const.POOL_ID: self.pool_id,
+            const.NAME: member2_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver2_ip,
+            const.PROTOCOL_PORT: 80,
+            const.MONITOR_PORT: 9999,  # We want this to go offline with a HM
+        }
+        if self.lb_member_2_subnet:
+            member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
+
+        member2 = self.mem_member_client.create_member(
+            **member2_kwargs)
+        member2_id = member2[const.ID]
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member2_id, pool_id=self.pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 3 as a non-existent disabled node
+        member3_name = data_utils.rand_name("lb_member_member3-hm-traffic")
+        member3_kwargs = {
+            const.POOL_ID: self.pool_id,
+            const.NAME: member3_name,
+            const.ADMIN_STATE_UP: False,
+            const.ADDRESS: '192.0.2.1',
+            const.PROTOCOL_PORT: 80,
+        }
+
+        member3 = self.mem_member_client.create_member(
+            **member3_kwargs)
+        member3_id = member3[const.ID]
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member3_id, pool_id=self.pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Wait for members to adjust to the correct OPERATING_STATUS
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member1_id, const.OPERATING_STATUS,
+            const.NO_MONITOR,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member2_id, const.OPERATING_STATUS,
+            const.NO_MONITOR,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member3_id, const.OPERATING_STATUS,
+            const.OFFLINE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+
+        # Send some traffic and verify it is balanced
+        self._check_members_balanced(self.lb_vip_address,
+                                     traffic_member_count=2)
+
+        # Create the healthmonitor
+        hm_name = data_utils.rand_name("lb_member_hm1-hm-traffic")
+        hm_kwargs = {
+            const.POOL_ID: self.pool_id,
+            const.NAME: hm_name,
+            const.TYPE: const.HEALTH_MONITOR_HTTP,
+            const.DELAY: 2,
+            const.TIMEOUT: 2,
+            const.MAX_RETRIES: 2,
+            const.MAX_RETRIES_DOWN: 2,
+            const.HTTP_METHOD: const.GET,
+            const.URL_PATH: '/',
+            const.EXPECTED_CODES: '200',
+            const.ADMIN_STATE_UP: True,
+        }
+
+        hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
+        self.addCleanup(
+            self.mem_healthmonitor_client.cleanup_healthmonitor,
+            hm[const.ID], lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        hm = waiters.wait_for_status(
+            self.mem_healthmonitor_client.show_healthmonitor,
+            hm[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Wait for members to adjust to the correct OPERATING_STATUS
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member1_id, const.OPERATING_STATUS,
+            const.ONLINE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member2_id, const.OPERATING_STATUS,
+            const.ERROR,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member3_id, const.OPERATING_STATUS,
+            const.OFFLINE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+
+        # Send some traffic and verify it is *unbalanced*, as expected
+        self._check_members_balanced(self.lb_vip_address,
+                                     traffic_member_count=1)
+
+        # Delete the healthmonitor
+        self.mem_healthmonitor_client.delete_healthmonitor(hm[const.ID])
+
+        waiters.wait_for_deleted_status_or_not_found(
+            self.mem_healthmonitor_client.show_healthmonitor, hm[const.ID],
+            const.PROVISIONING_STATUS,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Wait for members to adjust to the correct OPERATING_STATUS
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member1_id, const.OPERATING_STATUS,
+            const.NO_MONITOR,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member2_id, const.OPERATING_STATUS,
+            const.NO_MONITOR,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+        waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member3_id, const.OPERATING_STATUS,
+            const.OFFLINE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
+
+        # Send some traffic and verify it is balanced again
         self._check_members_balanced(self.lb_vip_address)

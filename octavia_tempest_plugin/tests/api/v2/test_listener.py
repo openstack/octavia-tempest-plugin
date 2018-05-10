@@ -41,8 +41,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
 
-        ip_version = 6 if CONF.load_balancer.test_with_ipv6 else 4
-        cls._setup_lb_network_kwargs(lb_kwargs, ip_version)
+        cls._setup_lb_network_kwargs(lb_kwargs)
 
         lb = cls.mem_lb_client.create_loadbalancer(**lb_kwargs)
         cls.lb_id = lb[const.ID]
