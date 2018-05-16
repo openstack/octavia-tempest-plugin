@@ -16,7 +16,6 @@ import os
 import sys
 
 import openstackdocstheme
-from sphinx import apidoc
 
 sys.path.insert(0, os.path.abspath('../..'))
 sys.path.insert(0, os.path.abspath('.'))
@@ -29,7 +28,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'openstackdocstheme',
-    'oslo_config.sphinxext'
+    'oslo_config.sphinxext',
+    'sphinxcontrib.apidoc'
 ]
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
@@ -98,22 +98,6 @@ repository_name = 'openstack/octavia-tempest-plugin'
 bug_project = '910'
 bug_tag = 'docs'
 
-# TODO(mordred) We should extract this into a sphinx plugin
-def run_apidoc(_):
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    out_dir = os.path.join(cur_dir, '_build', 'modules')
-    module = os.path.join(cur_dir, '..', '..', 'octavia_tempest_plugin')
-    # Keep the order of arguments same as the sphinx-apidoc help, otherwise it
-    # would cause unexpected errors:
-    # sphinx-apidoc [options] -o <output_path> <module_path>
-    # [exclude_pattern, ...]
-    apidoc.main([
-        '--force',
-        '-o',
-        out_dir,
-        module,
-    ])
-
-
-def setup(app):
-    app.connect('builder-inited', run_apidoc)
+apidoc_output_dir = '_build/modules'
+apidoc_module_dir = '../../octavia_tempest_plugin'
+apidoc_excluded_paths = []
