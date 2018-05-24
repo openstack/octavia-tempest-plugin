@@ -113,6 +113,11 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             pool[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         pool = waiters.wait_for_status(
             self.mem_pool_client.show_pool,
             pool[const.ID], const.PROVISIONING_STATUS,
@@ -160,6 +165,11 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         pool = self.mem_pool_client.update_pool(
             pool[const.ID], **pool_update_kwargs)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         pool = waiters.wait_for_status(
             self.mem_pool_client.show_pool,
             pool[const.ID], const.PROVISIONING_STATUS,

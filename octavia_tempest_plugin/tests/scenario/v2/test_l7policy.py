@@ -26,14 +26,14 @@ from octavia_tempest_plugin.tests import waiters
 CONF = config.CONF
 
 
-class MemberScenarioTest(test_base.LoadBalancerBaseTest):
+class L7PolicyScenarioTest(test_base.LoadBalancerBaseTest):
 
     @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
-        super(MemberScenarioTest, cls).resource_setup()
+        super(L7PolicyScenarioTest, cls).resource_setup()
 
-        lb_name = data_utils.rand_name("lb_member_lb1_member")
+        lb_name = data_utils.rand_name("lb_member_lb1_l7policy")
         lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
 
@@ -51,7 +51,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
 
-        listener_name = data_utils.rand_name("lb_member_listener1_member")
+        listener_name = data_utils.rand_name("lb_member_listener1_l7policy")
         listener_kwargs = {
             const.NAME: listener_name,
             const.PROTOCOL: const.HTTP,
@@ -71,12 +71,12 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
 
-        pool_name = data_utils.rand_name("lb_member_pool1_member")
+        pool_name = data_utils.rand_name("lb_member_pool1_l7policy")
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.LISTENER_ID: cls.listener_id,
+            const.LOADBALANCER_ID: cls.lb_id,
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
         cls.pool_id = pool[const.ID]
@@ -91,36 +91,33 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
 
-    @decorators.idempotent_id('15c8c3e3-569c-4029-95df-a9f72049e267')
-    def test_member_CRUD(self):
-        """Tests member create, read, update, delete
+    @decorators.idempotent_id('ffd598d9-d8cd-4586-a749-cde4897e64dd')
+    def test_l7policy_CRUD(self):
+        """Tests l7policy create, read, update, delete
 
-        * Create a fully populated member.
-        * Show member details.
-        * Update the member.
-        * Delete the member.
+        * Create a fully populated l7policy.
+        * Show l7policy details.
+        * Update the l7policy.
+        * Delete the l7policy.
         """
-        # Member create
-        member_name = data_utils.rand_name("lb_member_member1-CRUD")
-        member_kwargs = {
-            const.NAME: member_name,
-            const.ADMIN_STATE_UP: True,
-            const.POOL_ID: self.pool_id,
-            const.ADDRESS: '192.0.2.1',
-            const.PROTOCOL_PORT: 80,
-            const.WEIGHT: 50,
-            const.BACKUP: False,
-            const.MONITOR_ADDRESS: '192.0.2.2',
-            const.MONITOR_PORT: 8080,
-        }
-        if self.lb_member_vip_subnet:
-            member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
-                const.ID]
 
-        member = self.mem_member_client.create_member(**member_kwargs)
+        # L7Policy create
+        l7policy_name = data_utils.rand_name("lb_member_l7policy1-CRUD")
+        l7policy_description = data_utils.arbitrary_string(size=255)
+        l7policy_kwargs = {
+            const.LISTENER_ID: self.listener_id,
+            const.NAME: l7policy_name,
+            const.DESCRIPTION: l7policy_description,
+            const.ADMIN_STATE_UP: False,
+            const.POSITION: 1,
+            const.ACTION: const.REDIRECT_TO_POOL,
+            const.REDIRECT_POOL_ID: self.pool_id,
+        }
+
+        l7policy = self.mem_l7policy_client.create_l7policy(**l7policy_kwargs)
         self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member[const.ID], pool_id=self.pool_id,
+            self.mem_l7policy_client.cleanup_l7policy,
+            l7policy[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
@@ -128,86 +125,78 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.PROVISIONING_STATUS, const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
-        member = waiters.wait_for_status(
-            self.mem_member_client.show_member,
-            member[const.ID], const.PROVISIONING_STATUS,
+        l7policy = waiters.wait_for_status(
+            self.mem_l7policy_client.show_l7policy,
+            l7policy[const.ID], const.PROVISIONING_STATUS,
             const.ACTIVE,
             CONF.load_balancer.build_interval,
-            CONF.load_balancer.build_timeout,
-            pool_id=self.pool_id)
+            CONF.load_balancer.build_timeout)
 
-        parser.parse(member[const.CREATED_AT])
-        parser.parse(member[const.UPDATED_AT])
-        UUID(member[const.ID])
-        self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
+        self.assertEqual(l7policy_name, l7policy[const.NAME])
+        self.assertEqual(l7policy_description, l7policy[const.DESCRIPTION])
+        self.assertFalse(l7policy[const.ADMIN_STATE_UP])
+        parser.parse(l7policy[const.CREATED_AT])
+        parser.parse(l7policy[const.UPDATED_AT])
+        UUID(l7policy[const.ID])
+        # Operating status will be OFFLINE while admin_state_up = False
+        self.assertEqual(const.OFFLINE, l7policy[const.OPERATING_STATUS])
+        self.assertEqual(self.listener_id, l7policy[const.LISTENER_ID])
+        self.assertEqual(1, l7policy[const.POSITION])
+        self.assertEqual(const.REDIRECT_TO_POOL, l7policy[const.ACTION])
+        self.assertEqual(self.pool_id, l7policy[const.REDIRECT_POOL_ID])
+        self.assertIsNone(l7policy.pop(const.REDIRECT_URL, None))
 
-        equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT, const.BACKUP,
-                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
-        if const.SUBNET_ID in member_kwargs:
-            equal_items.append(const.SUBNET_ID)
-        else:
-            self.assertIsNone(member.get(const.SUBNET_ID))
-
-        for item in equal_items:
-            self.assertEqual(member_kwargs[item], member[item])
-
-        # Member update
-        new_name = data_utils.rand_name("lb_member_member1-update")
-        member_update_kwargs = {
-            const.POOL_ID: member_kwargs[const.POOL_ID],
+        # L7Policy update
+        new_name = data_utils.rand_name("lb_member_l7policy1-update")
+        new_description = data_utils.arbitrary_string(size=255,
+                                                      base_text='new')
+        redirect_url = 'http://localhost'
+        l7policy_update_kwargs = {
             const.NAME: new_name,
-            const.ADMIN_STATE_UP: not member[const.ADMIN_STATE_UP],
-            const.WEIGHT: member[const.WEIGHT] + 1,
-            const.BACKUP: not member[const.BACKUP],
-            const.MONITOR_ADDRESS: '192.0.2.3',
-            const.MONITOR_PORT: member[const.MONITOR_PORT] + 1,
+            const.DESCRIPTION: new_description,
+            const.ADMIN_STATE_UP: True,
+            const.POSITION: 2,
+            const.ACTION: const.REDIRECT_TO_URL,
+            const.REDIRECT_URL: redirect_url,
         }
-        member = self.mem_member_client.update_member(
-            member[const.ID], **member_update_kwargs)
+        l7policy = self.mem_l7policy_client.update_l7policy(
+            l7policy[const.ID], **l7policy_update_kwargs)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
-        member = waiters.wait_for_status(
-            self.mem_member_client.show_member,
-            member[const.ID], const.PROVISIONING_STATUS,
+        l7policy = waiters.wait_for_status(
+            self.mem_l7policy_client.show_l7policy,
+            l7policy[const.ID], const.PROVISIONING_STATUS,
             const.ACTIVE,
             CONF.load_balancer.build_interval,
-            CONF.load_balancer.build_timeout,
-            pool_id=self.pool_id)
+            CONF.load_balancer.build_timeout)
 
-        # Test changed items
-        equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT,
-                       const.BACKUP, const.MONITOR_ADDRESS, const.MONITOR_PORT]
-        for item in equal_items:
-            self.assertEqual(member_update_kwargs[item], member[item])
+        self.assertEqual(new_name, l7policy[const.NAME])
+        self.assertEqual(new_description, l7policy[const.DESCRIPTION])
+        self.assertTrue(l7policy[const.ADMIN_STATE_UP])
+        # Operating status for a l7policy will be ONLINE if it is enabled:
+        self.assertEqual(const.ONLINE, l7policy[const.OPERATING_STATUS])
+        self.assertEqual(self.listener_id, l7policy[const.LISTENER_ID])
+        # Position will have recalculated to 1
+        self.assertEqual(1, l7policy[const.POSITION])
+        self.assertEqual(const.REDIRECT_TO_URL, l7policy[const.ACTION])
+        self.assertEqual(redirect_url, l7policy[const.REDIRECT_URL])
+        self.assertIsNone(l7policy.pop(const.REDIRECT_POOL_ID, None))
 
-        # Test unchanged items
-        equal_items = [const.ADDRESS, const.PROTOCOL_PORT]
-        if const.SUBNET_ID in member_kwargs:
-            equal_items.append(const.SUBNET_ID)
-        else:
-            self.assertIsNone(member.get(const.SUBNET_ID))
-
-        for item in equal_items:
-            self.assertEqual(member_kwargs[item], member[item])
-
-        # Member delete
+        # L7Policy delete
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer,
             self.lb_id, const.PROVISIONING_STATUS,
             const.ACTIVE,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)
-        self.mem_member_client.delete_member(member[const.ID],
-                                             pool_id=self.pool_id)
+        self.mem_l7policy_client.delete_l7policy(l7policy[const.ID])
 
         waiters.wait_for_deleted_status_or_not_found(
-            self.mem_member_client.show_member, member[const.ID],
+            self.mem_l7policy_client.show_l7policy, l7policy[const.ID],
             const.PROVISIONING_STATUS,
             CONF.load_balancer.check_interval,
-            CONF.load_balancer.check_timeout,
-            pool_id=self.pool_id)
+            CONF.load_balancer.check_timeout)

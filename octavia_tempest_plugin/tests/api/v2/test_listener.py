@@ -84,8 +84,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.X_FORWARDED_FOR: "true",
                 const.X_FORWARDED_PORT: "true"
             },
-            # TODO(rm_work): need to finish the rest of this stuff
-            # const.DEFAULT_POOL_ID: '',
+            # Don't test with a default pool -- we'll do that in the scenario,
+            # but this will allow us to test that the field isn't mandatory,
+            # as well as not conflate pool failures with listener test failures
+            # const.DEFAULT_POOL_ID: self.pool_id,
+
+            # TODO(rm_work): need to add TLS related stuff
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }

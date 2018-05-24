@@ -52,6 +52,46 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
 
+        pool1_name = data_utils.rand_name("lb_member_pool1_listener")
+        pool1_kwargs = {
+            const.NAME: pool1_name,
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LOADBALANCER_ID: cls.lb_id,
+        }
+        pool1 = cls.mem_pool_client.create_pool(**pool1_kwargs)
+        cls.pool1_id = pool1[const.ID]
+        cls.addClassResourceCleanup(
+            cls.mem_pool_client.cleanup_pool,
+            cls.pool1_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
+        waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
+                                cls.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        pool2_name = data_utils.rand_name("lb_member_pool2_listener")
+        pool2_kwargs = {
+            const.NAME: pool2_name,
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LOADBALANCER_ID: cls.lb_id,
+        }
+        pool2 = cls.mem_pool_client.create_pool(**pool2_kwargs)
+        cls.pool2_id = pool2[const.ID]
+        cls.addClassResourceCleanup(
+            cls.mem_pool_client.cleanup_pool,
+            cls.pool2_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
+        waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
+                                cls.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
     @decorators.idempotent_id('4a874014-b7d1-49a4-ac9a-2400b3434700')
     def test_listener_CRUD(self):
         """Tests listener create, read, update, delete
@@ -81,8 +121,8 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                 const.X_FORWARDED_FOR: "true",
                 const.X_FORWARDED_PORT: "true"
             },
+            const.DEFAULT_POOL_ID: self.pool1_id,
             # TODO(rm_work): need to finish the rest of this stuff
-            # const.DEFAULT_POOL_ID: '',
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
@@ -92,6 +132,11 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             listener[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         listener = waiters.wait_for_status(
             self.mem_listener_client.show_listener,
             listener[const.ID], const.PROVISIONING_STATUS,
@@ -119,6 +164,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
         self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
         self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
+        self.assertEqual(self.pool1_id, listener[const.DEFAULT_POOL_ID])
 
         # Listener update
         new_name = data_utils.rand_name("lb_member_listener1-update")
@@ -137,14 +183,19 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                 const.X_FORWARDED_FOR: "false",
                 const.X_FORWARDED_PORT: "false"
             },
+            const.DEFAULT_POOL_ID: self.pool2_id,
             # TODO(rm_work): need to finish the rest of this stuff
-            # const.DEFAULT_POOL_ID: '',
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
         listener = self.mem_listener_client.update_listener(
             listener[const.ID], **listener_update_kwargs)
 
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
         listener = waiters.wait_for_status(
             self.mem_listener_client.show_listener,
             listener[const.ID], const.PROVISIONING_STATUS,
@@ -179,6 +230,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_CONNECT])
         self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_DATA])
         self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
+        self.assertEqual(self.pool2_id, listener[const.DEFAULT_POOL_ID])
 
         # Listener delete
         waiters.wait_for_status(
