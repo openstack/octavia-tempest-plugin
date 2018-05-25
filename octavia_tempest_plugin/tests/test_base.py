@@ -51,6 +51,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                    ['lb_admin', CONF.load_balancer.admin_role]]
 
     client_manager = clients.ManagerV2
+    webserver1_response = 1
+    webserver2_response = 5
 
     @classmethod
     def skip_checks(cls):
@@ -111,6 +113,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         cls.mem_healthmonitor_client = (
             cls.os_roles_lb_member.healthmonitor_client)
         cls.mem_l7policy_client = cls.os_roles_lb_member.l7policy_client
+        cls.mem_l7rule_client = cls.os_roles_lb_member.l7rule_client
 
     @classmethod
     def resource_setup(cls):
@@ -509,17 +512,21 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
 
         # Set up serving on webserver 1
         cls._install_start_webserver(cls.webserver1_public_ip,
-                                     cls.lb_member_keypair['private_key'], 1)
+                                     cls.lb_member_keypair['private_key'],
+                                     cls.webserver1_response)
 
         # Validate webserver 1
-        cls._validate_webserver(cls.webserver1_public_ip, 1)
+        cls._validate_webserver(cls.webserver1_public_ip,
+                                cls.webserver1_response)
 
         # Set up serving on webserver 2
         cls._install_start_webserver(cls.webserver2_public_ip,
-                                     cls.lb_member_keypair['private_key'], 5)
+                                     cls.lb_member_keypair['private_key'],
+                                     cls.webserver2_response)
 
         # Validate webserver 2
-        cls._validate_webserver(cls.webserver2_public_ip, 5)
+        cls._validate_webserver(cls.webserver2_public_ip,
+                                cls.webserver2_response)
 
     @classmethod
     def _create_networks(cls):
@@ -716,7 +723,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                   'period. Failing test.')
         raise Exception()
 
-    def _check_members_balanced(self, vip_address, traffic_member_count=2):
+    def check_members_balanced(self, vip_address, traffic_member_count=2):
         session = requests.Session()
         response_counts = {}
 
@@ -743,3 +750,34 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
 
         # Ensure both members got the same number of responses
         self.assertEqual(1, len(set(response_counts.values())))
+
+    def assertConsistentResponse(self, response, url, method='GET', repeat=10,
+                                 redirect=False, timeout=2, **kwargs):
+        """Assert that a request to URL gets the expected response.
+
+        :param response: Expected response in format (status_code, content).
+        :param url: The URL to request.
+        :param method: The HTTP method to use (GET, POST, PUT, etc)
+        :param repeat: How many times to test the response.
+        :param data: Optional data to send in the request.
+        :param headers: Optional headers to send in the request.
+        :param cookies: Optional cookies to send in the request.
+        :param redirect: Is the request a redirect? If true, assume the passed
+                         content should be the next URL in the chain.
+        :return: boolean success status
+
+        :raises: testtools.matchers.MismatchError
+        """
+        session = requests.Session()
+        response_code, response_content = response
+
+        for i in range(0, repeat):
+            req = session.request(method, url, allow_redirects=not redirect,
+                                  timeout=timeout, **kwargs)
+            if response_code:
+                self.assertEqual(response_code, req.status_code)
+            if redirect:
+                self.assertTrue(req.is_redirect)
+                self.assertEqual(response_content, req.next.url)
+            elif response_content:
+                self.assertEqual(six.text_type(response_content), req.text)

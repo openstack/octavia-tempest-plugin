@@ -12,11 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import testtools
+
 from oslo_log import log as logging
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
-import testtools
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
@@ -118,7 +119,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
     def test_basic_traffic(self):
         """Tests sending traffic through a loadbalancer
 
-        * Create a fully populated loadbalancer.
+        * Set up members on a loadbalancer.
         * Test traffic to ensure it is balanced properly.
         """
         # Set up Member 1 for Webserver 1
@@ -170,7 +171,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             CONF.load_balancer.check_timeout)
 
         # Send some traffic
-        self._check_members_balanced(self.lb_vip_address)
+        self.check_members_balanced(self.lb_vip_address)
 
     @decorators.idempotent_id('a16f8eb4-a77c-4b0e-8b1b-91c237039713')
     def test_healthmonitor_traffic(self):
@@ -286,8 +287,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             pool_id=self.pool_id)
 
         # Send some traffic and verify it is balanced
-        self._check_members_balanced(self.lb_vip_address,
-                                     traffic_member_count=2)
+        self.check_members_balanced(self.lb_vip_address,
+                                    traffic_member_count=2)
 
         # Create the healthmonitor
         hm_name = data_utils.rand_name("lb_member_hm1-hm-traffic")
@@ -346,8 +347,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             pool_id=self.pool_id)
 
         # Send some traffic and verify it is *unbalanced*, as expected
-        self._check_members_balanced(self.lb_vip_address,
-                                     traffic_member_count=1)
+        self.check_members_balanced(self.lb_vip_address,
+                                    traffic_member_count=1)
 
         # Delete the healthmonitor
         self.mem_healthmonitor_client.delete_healthmonitor(hm[const.ID])
@@ -382,4 +383,240 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             pool_id=self.pool_id)
 
         # Send some traffic and verify it is balanced again
-        self._check_members_balanced(self.lb_vip_address)
+        self.check_members_balanced(self.lb_vip_address)
+
+    @decorators.idempotent_id('3558186d-6dcd-4d9d-b7f7-adc190b66149')
+    def test_l7policies_and_l7rules(self):
+        """Tests sending traffic through a loadbalancer with l7rules
+
+        * Create an extra pool.
+        * Put one member on the default pool, and one on the second pool.
+        * Create a policy/rule to redirect to the second pool.
+        * Create a policy/rule to redirect to the identity URI.
+        * Create a policy/rule to reject connections.
+        * Test traffic to ensure it goes to the correct place.
+        """
+        # Create a second pool
+        pool_name = data_utils.rand_name("lb_member_pool2_l7redirect")
+        pool_kwargs = {
+            const.NAME: pool_name,
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LOADBALANCER_ID: self.lb_id,
+        }
+        pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        pool_id = pool[const.ID]
+        self.addCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Set up Member 1 for Webserver 1 on the default pool
+        member1_name = data_utils.rand_name("lb_member_member1-l7redirect")
+        member1_kwargs = {
+            const.POOL_ID: self.pool_id,
+            const.NAME: member1_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_1_subnet:
+            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        member1 = self.mem_member_client.create_member(
+            **member1_kwargs)
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member1[const.ID], pool_id=self.pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 2 for Webserver 2 on the alternate pool
+        member2_name = data_utils.rand_name("lb_member_member2-l7redirect")
+        member2_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member2_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver2_ip,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_2_subnet:
+            member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
+
+        member2 = self.mem_member_client.create_member(
+            **member2_kwargs)
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member2[const.ID], pool_id=self.pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Create the l7policy to redirect to the alternate pool
+        l7policy1_name = data_utils.rand_name("lb_member_l7policy1-l7redirect")
+        l7policy1_description = data_utils.arbitrary_string(size=255)
+        l7policy1_kwargs = {
+            const.LISTENER_ID: self.listener_id,
+            const.NAME: l7policy1_name,
+            const.DESCRIPTION: l7policy1_description,
+            const.ADMIN_STATE_UP: True,
+            const.POSITION: 1,
+            const.ACTION: const.REDIRECT_TO_POOL,
+            const.REDIRECT_POOL_ID: pool_id,
+        }
+        l7policy1 = self.mem_l7policy_client.create_l7policy(
+            **l7policy1_kwargs)
+        self.addCleanup(
+            self.mem_l7policy_client.cleanup_l7policy,
+            l7policy1[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Redirect slow queries to the alternate pool
+        l7rule1_kwargs = {
+            const.L7POLICY_ID: l7policy1[const.ID],
+            const.ADMIN_STATE_UP: True,
+            const.TYPE: const.PATH,
+            const.VALUE: '/slow',
+            const.COMPARE_TYPE: const.STARTS_WITH,
+            const.INVERT: False,
+        }
+
+        l7rule1 = self.mem_l7rule_client.create_l7rule(**l7rule1_kwargs)
+        self.addCleanup(
+            self.mem_l7rule_client.cleanup_l7rule,
+            l7rule1[const.ID], l7policy_id=l7rule1_kwargs[const.L7POLICY_ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Create the l7policy to redirect to the identity URI
+        l7policy2_name = data_utils.rand_name("lb_member_l7policy2-l7redirect")
+        l7policy2_description = data_utils.arbitrary_string(size=255)
+        l7policy2_kwargs = {
+            const.LISTENER_ID: self.listener_id,
+            const.NAME: l7policy2_name,
+            const.DESCRIPTION: l7policy2_description,
+            const.ADMIN_STATE_UP: True,
+            const.POSITION: 1,
+            const.ACTION: const.REDIRECT_TO_URL,
+            const.REDIRECT_URL: CONF.identity.uri_v3,
+        }
+        l7policy2 = self.mem_l7policy_client.create_l7policy(
+            **l7policy2_kwargs)
+        self.addCleanup(
+            self.mem_l7policy_client.cleanup_l7policy,
+            l7policy2[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Redirect queries for 'turtles' to identity
+        l7rule2_kwargs = {
+            const.L7POLICY_ID: l7policy2[const.ID],
+            const.ADMIN_STATE_UP: True,
+            const.TYPE: const.PATH,
+            const.VALUE: '/turtles',
+            const.COMPARE_TYPE: const.EQUAL_TO,
+            const.INVERT: False,
+        }
+
+        l7rule2 = self.mem_l7rule_client.create_l7rule(**l7rule2_kwargs)
+        self.addCleanup(
+            self.mem_l7rule_client.cleanup_l7rule,
+            l7rule2[const.ID], l7policy_id=l7rule2_kwargs[const.L7POLICY_ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Create the l7policy to reject requests
+        l7policy3_name = data_utils.rand_name("lb_member_l7policy3-l7redirect")
+        l7policy3_description = data_utils.arbitrary_string(size=255)
+        l7policy3_kwargs = {
+            const.LISTENER_ID: self.listener_id,
+            const.NAME: l7policy3_name,
+            const.DESCRIPTION: l7policy3_description,
+            const.ADMIN_STATE_UP: True,
+            const.POSITION: 1,
+            const.ACTION: const.REJECT,
+        }
+        l7policy3 = self.mem_l7policy_client.create_l7policy(
+            **l7policy3_kwargs)
+        self.addCleanup(
+            self.mem_l7policy_client.cleanup_l7policy,
+            l7policy3[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Reject requests that include the header data 'reject=true'
+        l7rule3_kwargs = {
+            const.L7POLICY_ID: l7policy3[const.ID],
+            const.ADMIN_STATE_UP: True,
+            const.TYPE: const.HEADER,
+            const.KEY: 'reject',
+            const.VALUE: 'true',
+            const.COMPARE_TYPE: const.EQUAL_TO,
+            const.INVERT: False,
+        }
+
+        l7rule3 = self.mem_l7rule_client.create_l7rule(**l7rule3_kwargs)
+        self.addCleanup(
+            self.mem_l7rule_client.cleanup_l7rule,
+            l7rule3[const.ID], l7policy_id=l7rule3_kwargs[const.L7POLICY_ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Assert that normal traffic goes to pool1->member1
+        url_for_member1 = 'http://{}/'.format(self.lb_vip_address)
+        self.assertConsistentResponse((200, self.webserver1_response),
+                                      url_for_member1)
+
+        # Assert that slow traffic goes to pool2->member2
+        url_for_member2 = 'http://{}/slow?delay=1s'.format(self.lb_vip_address)
+        self.assertConsistentResponse((200, self.webserver2_response),
+                                      url_for_member2)
+
+        # Assert that /turtles is redirected to identity
+        url_for_identity = 'http://{}/turtles'.format(self.lb_vip_address)
+        self.assertConsistentResponse((302, CONF.identity.uri_v3),
+                                      url_for_identity,
+                                      redirect=True)
+
+        # Assert that traffic with header 'reject=true' is rejected
+        self.assertConsistentResponse((403, None),
+                                      url_for_member1,
+                                      headers={'reject': 'true'})
