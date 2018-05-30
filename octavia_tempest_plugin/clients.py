@@ -16,6 +16,8 @@ from tempest import clients
 from tempest import config
 
 from octavia_tempest_plugin.services.load_balancer.v2 import (
+    amphora_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
     healthmonitor_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     l7policy_client)
@@ -52,4 +54,6 @@ class ManagerV2(clients.Manager):
         self.l7policy_client = l7policy_client.L7PolicyClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
         self.l7rule_client = l7rule_client.L7RuleClient(
+            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+        self.amphora_client = amphora_client.AmphoraClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
