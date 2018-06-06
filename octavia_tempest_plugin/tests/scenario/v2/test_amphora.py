@@ -27,13 +27,13 @@ from octavia_tempest_plugin.tests import waiters
 CONF = config.CONF
 
 
-class AmphoraAPITest(test_base.LoadBalancerBaseTest):
+class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
     """Test the amphora object API."""
 
     @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
-        super(AmphoraAPITest, cls).resource_setup()
+        super(AmphoraScenarioTest, cls).resource_setup()
 
         lb_name = data_utils.rand_name("lb_member_lb1_amphora")
         lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
@@ -52,6 +52,12 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
+
+    def _expected_amp_count(self, amp_list):
+        self.assertNotEmpty(amp_list)
+        if amp_list[0][const.ROLE] in (const.ROLE_MASTER, const.ROLE_BACKUP):
+            return 2
+        return 1
 
     @decorators.idempotent_id('a0e9ff99-2c4f-45d5-81c9-78d3107c236f')
     def test_amphora_list_and_show(self):
@@ -81,7 +87,8 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
             amphora_client = self.os_roles_lb_admin.amphora_client
             amphora_adm = amphora_client.list_amphorae()
-            self.assertTrue(len(amphora_adm) >= 2)
+            self.assertTrue(
+                len(amphora_adm) >= 2 * self._expected_amp_count(amphora_adm))
 
         # Test that a different user, with load balancer member role, cannot
         # see this amphora
@@ -100,14 +107,15 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
         # Test that a user with cloud admin role can list the amphorae
         if not CONF.load_balancer.RBAC_test_type == const.NONE:
             adm = self.os_admin.amphora_client.list_amphorae()
-            self.assertTrue(len(adm) >= 2)
+            self.assertTrue(len(adm) >= 2 * self._expected_amp_count(adm))
 
         # Get an actual list of the amphorae
         amphorae = self.os_admin.amphora_client.list_amphorae()
 
         # There should be AT LEAST 2, there may be more depending on the
         # configured topology, or if there are other LBs created besides ours
-        self.assertTrue(len(amphorae) >= 2)
+        self.assertTrue(
+            len(amphorae) >= 2 * self._expected_amp_count(amphorae))
 
         # Make sure all of the fields exist on the amp list records
         for field in const.SHOW_AMPHORA_RESPONSE_FIELDS:
@@ -149,11 +157,11 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
         amphorae = self.os_admin.amphora_client.list_amphorae(
             query_params='{loadbalancer_id}={lb_id}'.format(
                 loadbalancer_id=const.LOADBALANCER_ID, lb_id=self.lb_id))
-        self.assertEqual(1, len(amphorae))
+        self.assertEqual(self._expected_amp_count(amphorae), len(amphorae))
         self.assertEqual(self.lb_id, amphorae[0][const.LOADBALANCER_ID])
 
         amphorae = self.os_admin.amphora_client.list_amphorae(
             query_params='{loadbalancer_id}={lb_id}'.format(
                 loadbalancer_id=const.LOADBALANCER_ID, lb_id=lb_id))
-        self.assertEqual(1, len(amphorae))
+        self.assertEqual(self._expected_amp_count(amphorae), len(amphorae))
         self.assertEqual(lb_id, amphorae[0][const.LOADBALANCER_ID])
