@@ -360,7 +360,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 cls.lb_member_2_ipv6_subnet['id'])
 
     @classmethod
-    def _setup_lb_network_kwargs(cls, lb_kwargs, ip_version=None):
+    def _setup_lb_network_kwargs(cls, lb_kwargs, ip_version=None,
+                                 use_fixed_ip=False):
         if not ip_version:
             ip_version = 6 if CONF.load_balancer.test_with_ipv6 else 4
         if cls.lb_member_vip_subnet:
@@ -376,7 +377,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 lb_vip_address = str(network[ip_index])
                 subnet_id = cls.lb_member_vip_ipv6_subnet[const.ID]
             lb_kwargs[const.VIP_SUBNET_ID] = subnet_id
-            lb_kwargs[const.VIP_ADDRESS] = lb_vip_address
+            if use_fixed_ip:
+                lb_kwargs[const.VIP_ADDRESS] = lb_vip_address
             if CONF.load_balancer.test_with_noop:
                 lb_kwargs[const.VIP_NETWORK_ID] = (
                     cls.lb_member_vip_net[const.ID])

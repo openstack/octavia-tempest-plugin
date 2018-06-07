@@ -69,7 +69,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                      # vip_qos_policy_id=lb_qos_policy_id)
                      const.NAME: lb_name}
 
-        self._setup_lb_network_kwargs(lb_kwargs, ip_version)
+        self._setup_lb_network_kwargs(lb_kwargs, ip_version, use_fixed_ip=True)
 
         # Test that a user without the load balancer role cannot
         # create a load balancer
@@ -433,7 +433,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                      const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
 
-        self._setup_lb_network_kwargs(lb_kwargs, 4)
+        self._setup_lb_network_kwargs(lb_kwargs, 4, use_fixed_ip=True)
 
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
 
@@ -531,7 +531,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                      # vip_qos_policy_id=lb_qos_policy_id)
                      const.NAME: lb_name}
 
-        self._setup_lb_network_kwargs(lb_kwargs, 4)
+        self._setup_lb_network_kwargs(lb_kwargs, 4, use_fixed_ip=True)
 
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
 

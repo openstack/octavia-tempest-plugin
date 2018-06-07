@@ -83,8 +83,6 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
                          lb[const.VIP_NETWORK_ID])
         self.assertIsNotNone(lb[const.VIP_PORT_ID])
         if lb_kwargs[const.VIP_SUBNET_ID]:
-            self.assertEqual(lb_kwargs[const.VIP_ADDRESS],
-                             lb[const.VIP_ADDRESS])
             self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
                              lb[const.VIP_SUBNET_ID])
 
