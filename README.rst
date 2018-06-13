@@ -2,8 +2,8 @@
 Team and repository tags
 ========================
 
-.. image:: http://governance.openstack.org/badges/octavia-tempest-plugin.svg
-    :target: http://governance.openstack.org/reference/tags/index.html
+.. image:: https://governance.openstack.org/tc/badges/octavia-tempest-plugin.svg
+    :target: https://governance.openstack.org/tc/reference/tags/index.html
 
 .. Change things from this point on
 
@@ -21,9 +21,9 @@ For more information about Tempest plugins see:
 https://docs.openstack.org/tempest/latest/plugin.html
 
 * Free software: Apache license
-* Documentation: http://docs.openstack.org/octavia-tempest-plugin/latest
-* Source: http://git.openstack.org/cgit/openstack/octavia-tempest-plugin
-* Bugs: https://storyboard.openstack.org/#!/project/910
+* Documentation: https://docs.openstack.org/octavia-tempest-plugin/latest/
+* Source: https://git.openstack.org/cgit/openstack/octavia-tempest-plugin
+* Bugs: https://storyboard.openstack.org/#!/project/openstack/octavia-tempest-plugin
 
 Installing
 ----------
