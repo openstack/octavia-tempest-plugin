@@ -134,12 +134,14 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
         UUID(amp1[const.ID])
         UUID(amp1[const.COMPUTE_ID])
         UUID(amp1[const.VRRP_PORT_ID])
-        self.assertIn(amp1[const.ROLE], const.AMPHORA_ROLES)
         self.assertIn(amp1[const.STATUS], const.AMPHORA_STATUSES)
         # We might have gotten unassigned/spare amps?
         if amp1[const.STATUS] == const.STATUS_ALLOCATED:
             UUID(amp1[const.HA_PORT_ID])
             UUID(amp1[const.LOADBALANCER_ID])
+            self.assertIn(amp1[const.ROLE], const.AMPHORA_ROLES)
+        else:
+            self.assertIsNone(amp1[const.ROLE])
 
         # Test that all of the fields from the amp list match those from a show
         for field in const.SHOW_AMPHORA_RESPONSE_FIELDS:
