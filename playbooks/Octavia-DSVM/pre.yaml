@@ -5,7 +5,7 @@
         cmd: |
           set -e
           set -x
-          if $(egrep --quiet '(vmx|svm)' /proc/cpuinfo) && [[ ! $(hostname) =~ "ovh" ]]; then
+          if egrep --quiet '(vmx|svm)' /proc/cpuinfo; then
               export DEVSTACK_GATE_LIBVIRT_TYPE=kvm
           fi
 
