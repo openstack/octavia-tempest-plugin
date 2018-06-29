@@ -857,3 +857,10 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout,
             pool_id=self.pool_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer,
+            self.lb_id, const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
