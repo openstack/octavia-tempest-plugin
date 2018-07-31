@@ -15,7 +15,7 @@
       - ^releasenotes/.*$
     vars:
       devstack_localrc:
-        TEMPEST_PLUGINS: "'{{ ansible_user_dir }}/src/git.openstack.org/openstack/octavia-tempest-plugin'"
+        TEMPEST_PLUGINS: "'/opt/stack/octavia-tempest-plugin'"
       devstack_local_conf:
         post-config:
           $OCTAVIA_CONF:
@@ -124,3 +124,20 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: true
+- job:
+    name: octavia-v2-dsvm-scenario-centos.7
+    parent: octavia-v2-dsvm-scenario
+    nodeset: devstack-single-node-centos-7
+    vars:
+      devstack_localrc:
+        OCTAVIA_AMP_BASE_OS: centos
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 7
+        OCTAVIA_AMP_IMAGE_SIZE: 3
+
+- job:
+    name: octavia-v2-dsvm-scenario-ubuntu.bionic
+    parent: octavia-v2-dsvm-scenario
+    vars:
+      devstack_localrc:
+        OCTAVIA_AMP_BASE_OS: ubuntu
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: bionic
