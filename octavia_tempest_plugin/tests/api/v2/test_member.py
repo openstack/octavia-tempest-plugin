@@ -132,10 +132,15 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: member_address,
             const.PROTOCOL_PORT: 80,
             const.WEIGHT: 50,
-            const.BACKUP: False,
             const.MONITOR_ADDRESS: member_monitor_address,
             const.MONITOR_PORT: 8080,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member_kwargs.update({
+                const.BACKUP: False,
+            })
+
         if self.lb_member_vip_subnet:
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -173,8 +178,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT, const.BACKUP,
+                       const.PROTOCOL_PORT, const.WEIGHT,
                        const.MONITOR_ADDRESS, const.MONITOR_PORT]
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.BACKUP)
+
         if const.SUBNET_ID in member_kwargs:
             equal_items.append(const.SUBNET_ID)
         else:
@@ -351,7 +361,11 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                          members[2][const.PROTOCOL_PORT])
 
         # Test fields
-        for field in const.SHOW_MEMBER_RESPONSE_FIELDS:
+        show_member_response_fields = const.SHOW_MEMBER_RESPONSE_FIELDS
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            show_member_response_fields.append('backup')
+        for field in show_member_response_fields:
             members = self.mem_member_client.list_members(
                 pool_id, query_params='{fields}={field}'.format(
                     fields=const.FIELDS, field=field))
@@ -421,10 +435,14 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 81,
             const.WEIGHT: 50,
-            const.BACKUP: False,
             const.MONITOR_ADDRESS: '192.0.2.2',
             const.MONITOR_PORT: 8080,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member_kwargs.update({
+                const.BACKUP: False,
+            })
         if self.lb_member_vip_subnet:
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -454,8 +472,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT, const.BACKUP,
+                       const.PROTOCOL_PORT, const.WEIGHT,
                        const.MONITOR_ADDRESS, const.MONITOR_PORT]
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.BACKUP)
+
         if const.SUBNET_ID in member_kwargs:
             equal_items.append(const.SUBNET_ID)
         else:
@@ -513,10 +536,15 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 82,
             const.WEIGHT: 50,
-            const.BACKUP: False,
             const.MONITOR_ADDRESS: '192.0.2.2',
             const.MONITOR_PORT: 8080,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member_kwargs.update({
+                const.BACKUP: False,
+            })
+
         if self.lb_member_vip_subnet:
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -553,8 +581,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         UUID(member[const.ID])
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT, const.BACKUP,
+                       const.PROTOCOL_PORT, const.WEIGHT,
                        const.MONITOR_ADDRESS, const.MONITOR_PORT]
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.BACKUP)
+
         if const.SUBNET_ID in member_kwargs:
             equal_items.append(const.SUBNET_ID)
         else:
@@ -609,10 +642,15 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: new_name,
             const.ADMIN_STATE_UP: not member[const.ADMIN_STATE_UP],
             const.WEIGHT: member[const.WEIGHT] + 1,
-            const.BACKUP: not member[const.BACKUP],
             const.MONITOR_ADDRESS: '192.0.2.3',
             const.MONITOR_PORT: member[const.MONITOR_PORT] + 1,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member_update_kwargs.update({
+                const.BACKUP: not member[const.BACKUP]
+            })
+
         member = self.mem_member_client.update_member(
             member[const.ID], **member_update_kwargs)
 
@@ -642,7 +680,12 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
 
         # Test changed items
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT,
-                       const.BACKUP, const.MONITOR_ADDRESS, const.MONITOR_PORT]
+                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.BACKUP)
+
         for item in equal_items:
             self.assertEqual(member_update_kwargs[item], member[item])
 
@@ -688,10 +731,15 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 80,
             const.WEIGHT: 50,
-            const.BACKUP: False,
             const.MONITOR_ADDRESS: '192.0.2.2',
             const.MONITOR_PORT: 8080,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member1_kwargs.update({
+                const.BACKUP: False,
+            })
+
         if self.lb_member_vip_subnet:
             member1_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -717,10 +765,15 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.3',
             const.PROTOCOL_PORT: 81,
             const.WEIGHT: 51,
-            const.BACKUP: True,
             const.MONITOR_ADDRESS: '192.0.2.4',
             const.MONITOR_PORT: 8081,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member2_kwargs.update({
+                const.BACKUP: True,
+            })
+
         if self.lb_member_vip_subnet:
             member2_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -745,10 +798,15 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.5',
             const.PROTOCOL_PORT: 82,
             const.WEIGHT: 52,
-            const.BACKUP: True,
             const.MONITOR_ADDRESS: '192.0.2.6',
             const.MONITOR_PORT: 8082,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member3_kwargs.update({
+                const.BACKUP: True,
+            })
+
         if self.lb_member_vip_subnet:
             member3_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]

@@ -53,6 +53,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
     client_manager = clients.ManagerV2
     webserver1_response = 1
     webserver2_response = 5
+    used_ips = []
 
     @classmethod
     def skip_checks(cls):
@@ -122,6 +123,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         super(LoadBalancerBaseTest, cls).resource_setup()
 
         conf_lb = CONF.load_balancer
+
+        cls.api_version = cls.mem_lb_client.get_max_api_version()
 
         if conf_lb.test_subnet_override and not conf_lb.test_network_override:
             raise exceptions.InvalidConfiguration(
@@ -366,6 +369,9 @@ class LoadBalancerBaseTest(test.BaseTestCase):
             ip_version = 6 if CONF.load_balancer.test_with_ipv6 else 4
         if cls.lb_member_vip_subnet:
             ip_index = data_utils.rand_int_id(start=10, end=100)
+            while ip_index in cls.used_ips:
+                ip_index = data_utils.rand_int_id(start=10, end=100)
+            cls.used_ips.append(ip_index)
             if ip_version == 4:
                 network = ipaddress.IPv4Network(
                     six.u(CONF.load_balancer.vip_subnet_cidr))

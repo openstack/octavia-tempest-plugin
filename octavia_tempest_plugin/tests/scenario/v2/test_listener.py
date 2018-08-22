@@ -113,10 +113,6 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: 80,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.TIMEOUT_CLIENT_DATA: 1000,
-            const.TIMEOUT_MEMBER_CONNECT: 1000,
-            const.TIMEOUT_MEMBER_DATA: 1000,
-            const.TIMEOUT_TCP_INSPECT: 50,
             const.INSERT_HEADERS: {
                 const.X_FORWARDED_FOR: "true",
                 const.X_FORWARDED_PORT: "true"
@@ -126,6 +122,15 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            listener_kwargs.update({
+                const.TIMEOUT_CLIENT_DATA: 1000,
+                const.TIMEOUT_MEMBER_CONNECT: 1000,
+                const.TIMEOUT_MEMBER_DATA: 1000,
+                const.TIMEOUT_TCP_INSPECT: 50,
+            })
+
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addClassResourceCleanup(
             self.mem_listener_client.cleanup_listener,
@@ -160,11 +165,13 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
         self.assertTrue(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
-        self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
         self.assertEqual(self.pool1_id, listener[const.DEFAULT_POOL_ID])
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
+            self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
 
         # Listener update
         new_name = data_utils.rand_name("lb_member_listener1-update")
@@ -175,10 +182,6 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
             const.CONNECTION_LIMIT: 400,
-            const.TIMEOUT_CLIENT_DATA: 2000,
-            const.TIMEOUT_MEMBER_CONNECT: 2000,
-            const.TIMEOUT_MEMBER_DATA: 2000,
-            const.TIMEOUT_TCP_INSPECT: 100,
             const.INSERT_HEADERS: {
                 const.X_FORWARDED_FOR: "false",
                 const.X_FORWARDED_PORT: "false"
@@ -188,6 +191,15 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            listener_update_kwargs.update({
+                const.TIMEOUT_CLIENT_DATA: 2000,
+                const.TIMEOUT_MEMBER_CONNECT: 2000,
+                const.TIMEOUT_MEMBER_DATA: 2000,
+                const.TIMEOUT_TCP_INSPECT: 100,
+            })
+
         listener = self.mem_listener_client.update_listener(
             listener[const.ID], **listener_update_kwargs)
 
@@ -226,11 +238,13 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
         self.assertFalse(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])
-        self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_CONNECT])
-        self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_DATA])
-        self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
         self.assertEqual(self.pool2_id, listener[const.DEFAULT_POOL_ID])
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])
+            self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_CONNECT])
+            self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_DATA])
+            self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
 
         # Listener delete
         waiters.wait_for_status(

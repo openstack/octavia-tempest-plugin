@@ -361,6 +361,20 @@ class BaseLBaaSClient(rest_client.RestClient):
             wait_func = self._show_object
 
         LOG.info("Starting cleanup for %s %s...", self.root_tag, obj_id)
+
+        try:
+            request_uri = '{0}/{1}'.format(uri, obj_id)
+            response, body = self.get(request_uri)
+            resp_obj = json.loads(body.decode('utf-8'))[self.root_tag]
+            if (response.status == 404 or
+                    resp_obj['provisioning_status'] == const.DELETED):
+                raise exceptions.NotFound()
+        except exceptions.NotFound:
+            # Already gone, cleanup complete
+            LOG.info("%s %s is already gone. Cleanup considered complete.",
+                     self.root_tag, obj_id)
+            return
+
         LOG.info("Waiting for %s %s to be ACTIVE...",
                  wait_client.root_tag, wait_id)
         try:
@@ -415,5 +429,55 @@ class BaseLBaaSClient(rest_client.RestClient):
             if obj.get(const.PROVISIONING_STATUS) == const.DELETED:
                 return True
         except exceptions.NotFound:
+            return True
+        return False
+
+    def get_max_api_version(self):
+        """Get the maximum version available on the API endpoint.
+
+        :return: Maximum version string available on the endpoint.
+        """
+        response, body = self.get('/')
+        self.expected_success(200, response.status)
+
+        versions_list = json.loads(body.decode('utf-8'))['versions']
+        current_versions = (version for version in versions_list if
+                            version['status'] == 'CURRENT')
+        max_version = '0.0'
+        for version in current_versions:
+
+            ver_string = version['id']
+            if ver_string.startswith("v"):
+                ver_string = ver_string[1:]
+
+            ver_split = list(map(int, ver_string.split('.')))
+            max_split = list(map(int, max_version.split('.')))
+
+            if len(ver_split) > 2:
+                raise exceptions.InvalidAPIVersionString(version=ver_string)
+
+            if ver_split[0] > max_split[0] or (
+                    ver_split[0] == max_split[0] and
+                    ver_split[1] >= max_split[1]):
+                max_version = ver_string
+
+        if max_version == '0.0':
+            raise exceptions.InvalidAPIVersionString(version=max_version)
+
+        return max_version
+
+    def is_version_supported(self, api_version, version):
+        """Check if a version is supported by the API.
+
+        :param api_version: Reference endpoint API version.
+        :param version: Version to check against API version.
+        :return: boolean if the version is supported.
+        """
+
+        api_split = list(map(int, api_version.split('.')))
+        ver_split = list(map(int, version.split('.')))
+
+        if api_split[0] > ver_split[0] or (
+                api_split[0] == ver_split[0] and api_split[1] >= ver_split[1]):
             return True
         return False

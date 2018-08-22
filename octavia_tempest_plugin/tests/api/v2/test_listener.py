@@ -76,10 +76,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: 80,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.TIMEOUT_CLIENT_DATA: 1000,
-            const.TIMEOUT_MEMBER_CONNECT: 1000,
-            const.TIMEOUT_MEMBER_DATA: 1000,
-            const.TIMEOUT_TCP_INSPECT: 50,
             const.INSERT_HEADERS: {
                 const.X_FORWARDED_FOR: "true",
                 const.X_FORWARDED_PORT: "true"
@@ -93,6 +89,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            listener_kwargs.update({
+                const.TIMEOUT_CLIENT_DATA: 1000,
+                const.TIMEOUT_MEMBER_CONNECT: 1000,
+                const.TIMEOUT_MEMBER_DATA: 1000,
+                const.TIMEOUT_TCP_INSPECT: 50,
+            })
 
         # Test that a user without the load balancer role cannot
         # create a listener
@@ -146,10 +150,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
         self.assertTrue(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
-        self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
+            self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
 
     @decorators.idempotent_id('78ba6eb0-178c-477e-9156-b6775ca7b271')
     def test_listener_list(self):
@@ -336,7 +342,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                          listeners[2][const.DESCRIPTION])
 
         # Test fields
-        for field in const.SHOW_LISTENER_RESPONSE_FIELDS:
+        show_listener_response_fields = const.SHOW_LISTENER_RESPONSE_FIELDS
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            show_listener_response_fields.append('timeout_client_data')
+            show_listener_response_fields.append('timeout_member_connect')
+            show_listener_response_fields.append('timeout_member_data')
+            show_listener_response_fields.append('timeout_tcp_inspect')
+        for field in show_listener_response_fields:
             if field in (const.DEFAULT_POOL_ID, const.L7_POLICIES):
                 continue
             listeners = self.mem_listener_client.list_listeners(
@@ -411,10 +424,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: 81,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.TIMEOUT_CLIENT_DATA: 1000,
-            const.TIMEOUT_MEMBER_CONNECT: 1000,
-            const.TIMEOUT_MEMBER_DATA: 1000,
-            const.TIMEOUT_TCP_INSPECT: 50,
             const.INSERT_HEADERS: {
                 const.X_FORWARDED_FOR: "true",
                 const.X_FORWARDED_PORT: "true"
@@ -424,6 +433,15 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            listener_kwargs.update({
+                const.TIMEOUT_CLIENT_DATA: 1000,
+                const.TIMEOUT_MEMBER_CONNECT: 1000,
+                const.TIMEOUT_MEMBER_DATA: 1000,
+                const.TIMEOUT_TCP_INSPECT: 50,
+            })
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addClassResourceCleanup(
@@ -469,10 +487,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
         self.assertTrue(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
-        self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
+            self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
 
         # Test that a user with lb_admin role can see the listener
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
@@ -525,10 +546,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: 82,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.TIMEOUT_CLIENT_DATA: 1000,
-            const.TIMEOUT_MEMBER_CONNECT: 1000,
-            const.TIMEOUT_MEMBER_DATA: 1000,
-            const.TIMEOUT_TCP_INSPECT: 50,
             const.INSERT_HEADERS: {
                 const.X_FORWARDED_FOR: "true",
                 const.X_FORWARDED_PORT: "true"
@@ -538,6 +555,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            listener_kwargs.update({
+                const.TIMEOUT_CLIENT_DATA: 1000,
+                const.TIMEOUT_MEMBER_CONNECT: 1000,
+                const.TIMEOUT_MEMBER_DATA: 1000,
+                const.TIMEOUT_TCP_INSPECT: 50,
+            })
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addClassResourceCleanup(
@@ -573,10 +598,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
         self.assertTrue(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
-        self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
-        self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
+            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
+            self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -616,10 +643,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
             const.CONNECTION_LIMIT: 400,
-            const.TIMEOUT_CLIENT_DATA: 2000,
-            const.TIMEOUT_MEMBER_CONNECT: 2000,
-            const.TIMEOUT_MEMBER_DATA: 2000,
-            const.TIMEOUT_TCP_INSPECT: 100,
             const.INSERT_HEADERS: {
                 const.X_FORWARDED_FOR: "false",
                 const.X_FORWARDED_PORT: "false"
@@ -629,6 +652,15 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            listener_update_kwargs.update({
+                const.TIMEOUT_CLIENT_DATA: 2000,
+                const.TIMEOUT_MEMBER_CONNECT: 2000,
+                const.TIMEOUT_MEMBER_DATA: 2000,
+                const.TIMEOUT_TCP_INSPECT: 100,
+            })
+
         listener = self.mem_listener_client.update_listener(
             listener[const.ID], **listener_update_kwargs)
 
@@ -665,10 +697,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
         self.assertFalse(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])
-        self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_CONNECT])
-        self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_DATA])
-        self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])
+            self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_CONNECT])
+            self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_DATA])
+            self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
 
     @decorators.idempotent_id('16f11c82-f069-4592-8954-81b35a98e3b7')
     def test_listener_delete(self):

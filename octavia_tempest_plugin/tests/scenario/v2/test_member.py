@@ -109,10 +109,15 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 80,
             const.WEIGHT: 50,
-            const.BACKUP: False,
             const.MONITOR_ADDRESS: '192.0.2.2',
             const.MONITOR_PORT: 8080,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member_kwargs.update({
+                const.BACKUP: False,
+            })
+
         if self.lb_member_vip_subnet:
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -139,11 +144,25 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         parser.parse(member[const.CREATED_AT])
         parser.parse(member[const.UPDATED_AT])
         UUID(member[const.ID])
-        self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
+
+        # Members may be in a transitional state initially
+        # like DOWN or MAINT, give it some time to stablize on
+        # NO_MONITOR. This is LIVE status.
+        member = waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member[const.ID], const.OPERATING_STATUS,
+            const.NO_MONITOR,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout,
+            pool_id=self.pool_id)
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT, const.BACKUP,
+                       const.PROTOCOL_PORT, const.WEIGHT,
                        const.MONITOR_ADDRESS, const.MONITOR_PORT]
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.BACKUP)
+
         if const.SUBNET_ID in member_kwargs:
             equal_items.append(const.SUBNET_ID)
         else:
@@ -159,10 +178,15 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.NAME: new_name,
             const.ADMIN_STATE_UP: not member[const.ADMIN_STATE_UP],
             const.WEIGHT: member[const.WEIGHT] + 1,
-            const.BACKUP: not member[const.BACKUP],
             const.MONITOR_ADDRESS: '192.0.2.3',
             const.MONITOR_PORT: member[const.MONITOR_PORT] + 1,
         }
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            member_update_kwargs.update({
+                const.BACKUP: not member[const.BACKUP],
+            })
+
         member = self.mem_member_client.update_member(
             member[const.ID], **member_update_kwargs)
 
@@ -181,7 +205,11 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
 
         # Test changed items
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT,
-                       const.BACKUP, const.MONITOR_ADDRESS, const.MONITOR_PORT]
+                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.BACKUP)
+
         for item in equal_items:
             self.assertEqual(member_update_kwargs[item], member[item])
 

@@ -117,43 +117,53 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
         self.assertTrue(
             len(amphorae) >= 2 * self._expected_amp_count(amphorae))
 
-        # Make sure all of the fields exist on the amp list records
-        for field in const.SHOW_AMPHORA_RESPONSE_FIELDS:
-            self.assertIn(field, amphorae[0])
+        show_amphora_response_fields = const.SHOW_AMPHORA_RESPONSE_FIELDS
+        if self.mem_amphora_client.is_version_supported(
+                self.api_version, '2.1'):
+            show_amphora_response_fields.append('created_at')
+            show_amphora_response_fields.append('updated_at')
+            show_amphora_response_fields.append('image_id')
 
-        amp1_id = amphorae[0][const.ID]
-        amp1 = self.os_admin.amphora_client.show_amphora(amphora_id=amp1_id)
+        for amp in amphorae:
 
-        # Make sure all of the fields exist on the amp show record
-        for field in const.SHOW_AMPHORA_RESPONSE_FIELDS:
-            self.assertIn(field, amp1)
+            # Make sure all of the fields exist on the amp list records
+            for field in show_amphora_response_fields:
+                self.assertIn(field, amp)
 
-        # Verify a few of the fields are the right type
-        parser.parse(amp1[const.CREATED_AT])
-        parser.parse(amp1[const.UPDATED_AT])
-        UUID(amp1[const.ID])
-        UUID(amp1[const.COMPUTE_ID])
-        UUID(amp1[const.VRRP_PORT_ID])
-        self.assertIn(amp1[const.STATUS], const.AMPHORA_STATUSES)
-        # We might have gotten unassigned/spare amps?
-        if amp1[const.STATUS] == const.STATUS_ALLOCATED:
-            UUID(amp1[const.HA_PORT_ID])
-            UUID(amp1[const.LOADBALANCER_ID])
-            self.assertIn(amp1[const.ROLE], const.AMPHORA_ROLES)
-        else:
-            self.assertIsNone(amp1[const.ROLE])
+            amp_id = amp[const.ID]
+            amp_obj = self.os_admin.amphora_client.show_amphora(
+                amphora_id=amp_id)
 
-        # Test that all of the fields from the amp list match those from a show
-        for field in const.SHOW_AMPHORA_RESPONSE_FIELDS:
-            self.assertEqual(amphorae[0][field], amp1[field])
+            # Make sure all of the fields exist on the amp show record
+            for field in show_amphora_response_fields:
+                self.assertIn(field, amp_obj)
 
-        amp2_id = amphorae[1][const.ID]
-        amp2 = self.os_admin.amphora_client.show_amphora(amphora_id=amp2_id)
+            # Verify a few of the fields are the right type
+            if self.mem_amphora_client.is_version_supported(
+                    self.api_version, '2.1'):
+                parser.parse(amp_obj[const.CREATED_AT])
+                parser.parse(amp_obj[const.UPDATED_AT])
+            UUID(amp_obj[const.ID])
+            self.assertIn(amp_obj[const.STATUS], const.AMPHORA_STATUSES)
 
-        # Test that all of the fields from the amp list match those from a show
-        # (on another amphora)
-        for field in const.SHOW_AMPHORA_RESPONSE_FIELDS:
-            self.assertEqual(amphorae[1][field], amp2[field])
+            # We might have gotten unassigned/spare amps?
+            if amp_obj[const.STATUS] == const.STATUS_ALLOCATED:
+                # Only check the state of fields for the LB we created,
+                # otherwise some fields (HA_PORT_ID) may not yet be
+                # populated in amps for parallel tests.
+                if lb_id == amp_obj[const.LOADBALANCER_ID]:
+                    UUID(amp_obj[const.HA_PORT_ID])
+                    UUID(amp_obj[const.LOADBALANCER_ID])
+                    UUID(amp_obj[const.COMPUTE_ID])
+                    UUID(amp_obj[const.VRRP_PORT_ID])
+                    self.assertIn(amp_obj[const.ROLE], const.AMPHORA_ROLES)
+            else:
+                self.assertIsNone(amp_obj[const.ROLE])
+
+            # Test that all of the fields from the amp list match those
+            # from a show
+            for field in show_amphora_response_fields:
+                self.assertEqual(amp[field], amp_obj[field])
 
         # Test filtering by loadbalancer_id
         amphorae = self.os_admin.amphora_client.list_amphorae(

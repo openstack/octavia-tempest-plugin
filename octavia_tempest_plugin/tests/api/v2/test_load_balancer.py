@@ -90,6 +90,12 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                      const.ACTIVE,
                                      CONF.load_balancer.lb_build_interval,
                                      CONF.load_balancer.lb_build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                         lb[const.ID], const.OPERATING_STATUS,
+                                         const.ONLINE,
+                                         CONF.load_balancer.check_interval,
+                                         CONF.load_balancer.check_timeout)
 
         self.assertTrue(lb[const.ADMIN_STATE_UP])
         parser.parse(lb[const.CREATED_AT])
@@ -102,6 +108,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, lb[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, lb[const.OPERATING_STATUS])
+
         self.assertEqual(self.os_roles_lb_member.credentials.project_id,
                          lb[const.PROJECT_ID])
         self.assertEqual(CONF.load_balancer.provider, lb[const.PROVIDER])
@@ -270,6 +277,13 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                       const.ACTIVE,
                                       CONF.load_balancer.lb_build_interval,
                                       CONF.load_balancer.lb_build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            lb1 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                          lb[const.ID], const.OPERATING_STATUS,
+                                          const.ONLINE,
+                                          CONF.load_balancer.check_interval,
+                                          CONF.load_balancer.check_timeout)
+
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -293,6 +307,13 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                       const.ACTIVE,
                                       CONF.load_balancer.lb_build_interval,
                                       CONF.load_balancer.lb_build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            lb2 = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                          lb[const.ID], const.OPERATING_STATUS,
+                                          const.ONLINE,
+                                          CONF.load_balancer.check_interval,
+                                          CONF.load_balancer.check_timeout)
+
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -709,6 +730,12 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                      const.ACTIVE,
                                      CONF.load_balancer.lb_build_interval,
                                      CONF.load_balancer.lb_build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                         lb[const.ID], const.OPERATING_STATUS,
+                                         const.ONLINE,
+                                         CONF.load_balancer.check_interval,
+                                         CONF.load_balancer.check_timeout)
 
         # Test that a user, without the load balancer member role, cannot
         # use this method
