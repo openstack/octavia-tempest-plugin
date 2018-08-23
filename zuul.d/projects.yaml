@@ -1,6 +1,10 @@
 # Note: Some official OpenStack wide jobs are still defined in the
 #       project-config repository
 - project:
+    templates:
+      - check-requirements
+      - publish-openstack-sphinx-docs
+      - tempest-plugin-jobs
     check:
       jobs:
         - octavia-v2-dsvm-noop-api
