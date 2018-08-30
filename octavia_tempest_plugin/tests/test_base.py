@@ -191,15 +191,16 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         if cls.lb_member_2_subnet:
             LOG.debug('Octavia Setup: lb_member_2_subnet = {}'.format(
                 cls.lb_member_2_subnet[const.ID]))
-        if cls.lb_member_vip_ipv6_subnet:
-            LOG.debug('Octavia Setup: lb_member_vip_ipv6_subnet = {}'.format(
-                cls.lb_member_vip_ipv6_subnet[const.ID]))
-        if cls.lb_member_1_ipv6_subnet:
-            LOG.debug('Octavia Setup: lb_member_1_ipv6_subnet = {}'.format(
-                cls.lb_member_1_ipv6_subnet[const.ID]))
-        if cls.lb_member_2_ipv6_subnet:
-            LOG.debug('Octavia Setup: lb_member_2_ipv6_subnet = {}'.format(
-                cls.lb_member_2_ipv6_subnet[const.ID]))
+        if CONF.load_balancer.test_with_ipv6:
+            if cls.lb_member_vip_ipv6_subnet:
+                LOG.debug('Octavia Setup: lb_member_vip_ipv6_subnet = '
+                          '{}'.format(cls.lb_member_vip_ipv6_subnet[const.ID]))
+            if cls.lb_member_1_ipv6_subnet:
+                LOG.debug('Octavia Setup: lb_member_1_ipv6_subnet = {}'.format(
+                    cls.lb_member_1_ipv6_subnet[const.ID]))
+            if cls.lb_member_2_ipv6_subnet:
+                LOG.debug('Octavia Setup: lb_member_2_ipv6_subnet = {}'.format(
+                    cls.lb_member_2_ipv6_subnet[const.ID]))
 
     @classmethod
     def _create_networks(cls):
