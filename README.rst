@@ -41,7 +41,7 @@ To run all the tests from this plugin, call from the tempest repo::
 
 To run a single test case, call with full path, for example::
 
-    $ tox -e all-plugin -- octavia_tempest_plugin.tests.v2.scenario.test_basic_ops.BasicOpsTest.test_basic_ops
+    $ tox -e all-plugin -- octavia_tempest_plugin.tests.scenario.v2.test_traffic_ops.TrafficOperationsScenarioTest.test_basic_traffic
 
 To retrieve a list of all tempest tests, run::
 
