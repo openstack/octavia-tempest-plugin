@@ -35,6 +35,9 @@ class OctaviaTempestPlugin(plugins.TempestPlugin):
                                   project_config.ServiceAvailableGroup)
         config.register_opt_group(conf, project_config.octavia_group,
                                   project_config.OctaviaGroup)
+        config.register_opt_group(conf,
+                                  project_config.lb_feature_enabled_group,
+                                  project_config.LBFeatureEnabledGroup)
 
     def get_opt_lists(self):
         return [
@@ -42,6 +45,8 @@ class OctaviaTempestPlugin(plugins.TempestPlugin):
              project_config.ServiceAvailableGroup),
             (project_config.octavia_group.name,
              project_config.OctaviaGroup),
+            (project_config.lb_feature_enabled_group.name,
+             project_config.LBFeatureEnabledGroup)
         ]
 
     def get_service_clients(self):

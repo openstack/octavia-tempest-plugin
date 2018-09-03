@@ -34,6 +34,12 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
     """Test the healthmonitor object API."""
 
     @classmethod
+    def skip_checks(cls):
+        super(HealthMonitorAPITest, cls).skip_checks()
+        if not CONF.loadbalancer_feature_enabled.health_monitor_enabled:
+            cls.skip('Health Monitors not supported')
+
+    @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
         super(HealthMonitorAPITest, cls).resource_setup()

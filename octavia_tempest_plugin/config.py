@@ -144,3 +144,12 @@ OctaviaGroup = [
                default=None,
                help='Availability zone to use for creating servers.'),
 ]
+
+lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',
+                                        title='Enabled/Disabled LB features')
+LBFeatureEnabledGroup = [
+    cfg.BoolOpt('health_monitor_enabled',
+                default=True,
+                help="Whether Health Monitor is available with provider"
+                     " driver or not."),
+]

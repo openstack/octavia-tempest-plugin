@@ -29,6 +29,12 @@ CONF = config.CONF
 class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
 
     @classmethod
+    def skip_checks(cls):
+        super(HealthMonitorScenarioTest, cls).skip_checks()
+        if not CONF.loadbalancer_feature_enabled.health_monitor_enabled:
+            cls.skip('Health Monitors not supported')
+
+    @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
         super(HealthMonitorScenarioTest, cls).resource_setup()
