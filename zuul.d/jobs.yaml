@@ -51,6 +51,7 @@
 - job:
     name: octavia-dsvm-live-base
     parent: octavia-dsvm-base
+    timeout: 9000
     required-projects:
       - openstack/barbican
       - openstack/diskimage-builder
@@ -107,7 +108,7 @@
 
 - job:
     name: octavia-v2-dsvm-scenario
-    parent: octavia-dsvm-base
+    parent: octavia-dsvm-live-base
     vars:
       devstack_local_conf:
         post-config:
@@ -125,7 +126,7 @@
       devstack_localrc:
         USE_PYTHON3: true
 - job:
-    name: octavia-v2-dsvm-scenario-centos.7
+    name: octavia-v2-dsvm-scenario-centos-7
     parent: octavia-v2-dsvm-scenario
     nodeset: devstack-single-node-centos-7
     vars:
@@ -135,7 +136,7 @@
         OCTAVIA_AMP_IMAGE_SIZE: 3
 
 - job:
-    name: octavia-v2-dsvm-scenario-ubuntu.bionic
+    name: octavia-v2-dsvm-scenario-ubuntu-bionic
     parent: octavia-v2-dsvm-scenario
     vars:
       devstack_localrc:
