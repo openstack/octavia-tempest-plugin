@@ -1,3 +1,36 @@
+- nodeset:
+    name: octavia-two-node
+    nodes:
+      - name: controller
+        label: ubuntu-xenial
+      - name: controller2
+        label: ubuntu-xenial
+    groups:
+      - name: controller
+        nodes:
+          - controller
+      # Node where tests are executed and test results collected
+      - name: tempest
+        nodes:
+          - controller
+      # Nodes running the compute service
+      - name: compute
+        nodes:
+          - controller
+          - controller2
+      # Nodes that are not the controller
+      - name: subnode
+        nodes:
+          - controller2
+      # Switch node for multinode networking setup
+      - name: switch
+        nodes:
+          - controller
+      # Peer nodes for multinode networking setup
+      - name: peers
+        nodes:
+          - controller2
+
 - job:
     name: octavia-dsvm-base
     parent: devstack-tempest
@@ -47,7 +80,7 @@
         s-proxy: false
         tempest: true
       devstack_plugins:
-        octavia: https://github.com/openstack/octavia.git
+        octavia: https://git.openstack.org/openstack/octavia.git
 
 - job:
     name: octavia-dsvm-live-base
@@ -64,10 +97,146 @@
         barbican: true
         neutron-qos: true
       devstack_plugins:
-        barbican: https://github.com/openstack/barbican.git
-        neutron: https://github.com/openstack/neutron.git
+        barbican: https://git.openstack.org/openstack/barbican.git
+        neutron: https://git.openstack.org/openstack/neutron.git
       zuul_copy_output:
         '/var/log/dib-build' : logs
+
+- job:
+    name: octavia-dsvm-live-two-node-base
+    parent: octavia-dsvm-base
+    nodeset: octavia-two-node
+    timeout: 9000
+    required-projects:
+      - openstack/barbican
+      - openstack/diskimage-builder
+      - openstack/python-barbicanclient
+    host-vars:
+      controller:
+        devstack_localrc:
+          # From devstack "vars:"
+          DATABASE_USER: octavia
+          DATABASE_PASSWORD: octavia_database_pw
+          RABBIT_PASSWORD: octavia_rabbit_pw
+          ADMIN_PASSWORD: octavia_admin_pw
+          SERVICE_PASSWORD: octavia_service_pw
+          NETWORK_GATEWAY: 10.1.0.1
+          FIXED_RANGE: 10.1.0.0/20
+          IPV4_ADDRS_SAFE_TO_USE: 10.1.0.0/20
+          FLOATING_RANGE: 172.24.5.0/24
+          PUBLIC_NETWORK_GATEWAY: 172.24.5.1
+          LOGFILE: /opt/stack/logs/devstacklog.txt
+          LOG_COLOR: false
+          VERBOSE: true
+          VERBOSE_NO_TIMESTAMP: true
+          NOVNC_FROM_PACKAGE: true
+          ERROR_ON_CLONE: true
+          MULTI_HOST: 1
+          SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          HOST_IP: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          TEMPEST_PLUGINS: "'/opt/stack/octavia-tempest-plugin'"
+          USE_PYTHON3: true
+          # Octavia specific settings
+          OCTAVIA_CONTROLLER_IP_PORT_LIST: 192.168.0.3:5555,192.168.0.4:5555
+          OCTAVIA_MGMT_PORT_IP: 192.168.0.3
+          OCTAVIA_NODE: main
+          OCTAVIA_NODES: "main:{{ hostvars['controller']['nodepool']['private_ipv4'] }},second:{{ hostvars['controller2']['nodepool']['private_ipv4'] }}"
+          OCTAVIA_USE_PREGENERATED_CERTS: true
+        devstack_plugins:
+          barbican: https://git.openstack.org/openstack/barbican.git
+          neutron: https://git.openstack.org/openstack/neutron.git
+          octavia: https://git.openstack.org/openstack/octavia.git
+      controller2:
+        devstack_localrc:
+          # From devstack "vars:"
+          DATABASE_USER: octavia
+          DATABASE_PASSWORD: octavia_database_pw
+          RABBIT_PASSWORD: octavia_rabbit_pw
+          ADMIN_PASSWORD: octavia_admin_pw
+          SERVICE_PASSWORD: octavia_service_pw
+          NETWORK_GATEWAY: 10.1.0.1
+          FIXED_RANGE: 10.1.0.0/20
+          IPV4_ADDRS_SAFE_TO_USE: 10.1.0.0/20
+          FLOATING_RANGE: 172.24.5.0/24
+          PUBLIC_NETWORK_GATEWAY: 172.24.5.1
+          LOGFILE: /opt/stack/logs/devstacklog.txt
+          LOG_COLOR: false
+          VERBOSE: true
+          VERBOSE_NO_TIMESTAMP: true
+          NOVNC_FROM_PACKAGE: true
+          ERROR_ON_CLONE: true
+          MULTI_HOST: 1
+          HOST_IP: "{{ hostvars['controller2']['nodepool']['private_ipv4'] }}"
+          SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          NEUTRON_SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          DATABASE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          RABBIT_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
+          GLANCE_HOSTPORT: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}:9292"
+          USE_PYTHON3: true
+          # Octavia specific settings
+          OCTAVIA_CONTROLLER_IP_PORT_LIST: 192.168.0.3:5555,192.168.0.4:5555
+          OCTAVIA_NODE: subnode
+          OCTAVIA_USE_PREGENERATED_CERTS: true
+          OCTAVIA_MGMT_PORT_IP: 192.168.0.4
+        devstack_plugins:
+          octavia: https://git.openstack.org/openstack/octavia.git
+    group-vars:
+      controller:
+        devstack_local_conf:
+          post-config:
+            $OCTAVIA_CONF:
+              DEFAULT:
+                debug: True
+              api_settings:
+                api_v1_enabled: False
+        devstack_services:
+          base: false
+          barbican: true
+          dstat: true
+          g-api: true
+          g-reg: true
+          key: true
+          mysql: true
+          n-api: true
+          n-api-meta: true
+          n-cauth: true
+          n-cond: true
+          n-cpu: true
+          n-obj: true
+          n-sch: true
+          neutron-qos: true
+          octavia: true
+          o-api-ha: true
+          o-api: true
+          o-cw: true
+          o-hm: true
+          o-hk: true
+          peakmem_tracker: true
+          placement-api: true
+          q-agt: true
+          q-dhcp: true
+          q-l3: true
+          q-meta: true
+          q-svc: true
+          rabbit: true
+          tempest: true
+          tls-proxy: true
+      subnode:
+        devstack_local_conf:
+          post-config:
+            $OCTAVIA_CONF:
+              DEFAULT:
+                debug: True
+              api_settings:
+                api_v1_enabled: False
+        devstack_services:
+          c-vol: false
+          c-bak: false
+          octavia: true
+          o-api: true
+          o-cw: true
+          o-hm: true
+          o-hk: true
 
 - job:
     name: octavia-dsvm-noop-base
@@ -150,6 +319,25 @@
     name: octavia-v2-dsvm-py2-scenario-stable-queens
     parent: octavia-v2-dsvm-py2-scenario
     override-checkout: stable/queens
+
+- job:
+    name: octavia-v2-dsvm-scenario-two-node
+    parent: octavia-dsvm-live-two-node-base
+    vars:
+      tempest_concurrency: 2
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
+      tox_envlist: all
+
+- job:
+    name: octavia-v2-dsvm-py2-scenario-two-node
+    parent: octavia-v2-dsvm-scenario-two-node
+    host-vars:
+      controller:
+        devstack_localrc:
+          USE_PYTHON3: False
+      controller2:
+        devstack_localrc:
+          USE_PYTHON3: False
 
 - job:
     name: octavia-v2-dsvm-py2-scenario-centos-7
