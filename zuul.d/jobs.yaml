@@ -57,6 +57,8 @@
       - openstack/diskimage-builder
       - openstack/python-barbicanclient
     vars:
+      devstack_localrc:
+        DIB_LOCAL_ELEMENTS: openstack-ci-mirrors
       devstack_services:
         barbican: true
         neutron-qos: true
