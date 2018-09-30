@@ -51,7 +51,7 @@ OctaviaGroup = [
                help='Time in seconds between build status checks for '
                     'non-load-balancer resources to build'),
     cfg.IntOpt('build_timeout',
-               default=60,
+               default=300,
                help='Timeout in seconds to wait for non-load-balancer '
                     'resources to build'),
     # load-balancer specific options
