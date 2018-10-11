@@ -109,6 +109,16 @@
         USE_PYTHON3: true
 
 - job:
+    name: octavia-v2-dsvm-noop-api-stable-rocky
+    parent: octavia-v2-dsvm-noop-api
+    override-checkout: stable/rocky
+
+- job:
+    name: octavia-v2-dsvm-noop-api-stable-queens
+    parent: octavia-v2-dsvm-noop-api
+    override-checkout: stable/queens
+
+- job:
     name: octavia-v2-dsvm-scenario
     parent: octavia-dsvm-live-base
     vars:
@@ -127,6 +137,17 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: true
+
+- job:
+    name: octavia-v2-dsvm-scenario-stable-rocky
+    parent: octavia-v2-dsvm-scenario
+    override-checkout: stable/rocky
+
+- job:
+    name: octavia-v2-dsvm-scenario-stable-queens
+    parent: octavia-v2-dsvm-scenario
+    override-checkout: stable/queens
+
 - job:
     name: octavia-v2-dsvm-scenario-centos-7
     parent: octavia-v2-dsvm-scenario
