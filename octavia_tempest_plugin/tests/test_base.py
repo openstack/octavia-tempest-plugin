@@ -305,6 +305,10 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 'cidr': CONF.load_balancer.member_1_ipv6_subnet_cidr,
                 'ip_version': 6}
             result = cls.lb_mem_subnet_client.create_subnet(**subnet_kwargs)
+            cls.lb_member_1_subnet_prefix = (
+                CONF.load_balancer.member_1_ipv6_subnet_cidr.rpartition('/')[2]
+                )
+            assert(cls.lb_member_1_subnet_prefix.isdigit())
             cls.lb_member_1_ipv6_subnet = result['subnet']
             LOG.info('lb_member_1_ipv6_subnet: {}'.format(
                 cls.lb_member_1_ipv6_subnet))
@@ -354,6 +358,10 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 'cidr': CONF.load_balancer.member_2_ipv6_subnet_cidr,
                 'ip_version': 6}
             result = cls.lb_mem_subnet_client.create_subnet(**subnet_kwargs)
+            cls.lb_member_2_subnet_prefix = (
+                CONF.load_balancer.member_2_ipv6_subnet_cidr.rpartition('/')[2]
+                )
+            assert(cls.lb_member_2_subnet_prefix.isdigit())
             cls.lb_member_2_ipv6_subnet = result['subnet']
             LOG.info('lb_member_2_ipv6_subnet: {}'.format(
                 cls.lb_member_2_ipv6_subnet))
@@ -519,6 +527,17 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             cls.webserver2_ipv6))
         LOG.debug('Octavia Setup: webserver2_public_ip = {}'.format(
             cls.webserver2_public_ip))
+
+        if CONF.load_balancer.test_with_ipv6:
+            # Enable the IPv6 nic in webserver 1
+            cls._enable_ipv6_nic_webserver(
+                cls.webserver1_public_ip, cls.lb_member_keypair['private_key'],
+                cls.webserver1_ipv6, cls.lb_member_1_subnet_prefix)
+
+            # Enable the IPv6 nic in webserver 2
+            cls._enable_ipv6_nic_webserver(
+                cls.webserver2_public_ip, cls.lb_member_keypair['private_key'],
+                cls.webserver2_ipv6, cls.lb_member_2_subnet_prefix)
 
         # Set up serving on webserver 1
         cls._install_start_webserver(cls.webserver1_public_ip,
@@ -709,6 +728,19 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                                   '-id {1}'.format(dest_file, start_id))
         linux_client.exec_command('sudo screen -d -m {0} -port 81 '
                                   '-id {1}'.format(dest_file, start_id + 1))
+
+    # Cirros does not configure the assigned IPv6 address by default
+    # so enable it manually like tempest does here:
+    # tempest/scenario/test_netowrk_v6.py turn_nic6_on()
+    @classmethod
+    def _enable_ipv6_nic_webserver(cls, ip_address, ssh_key,
+                                   ipv6_address, ipv6_prefix):
+        linux_client = remote_client.RemoteClient(
+            ip_address, CONF.validation.image_ssh_user, pkey=ssh_key)
+        linux_client.validate_authentication()
+
+        linux_client.exec_command('sudo ip address add {0}/{1} dev '
+                                  'eth0'.format(ipv6_address, ipv6_prefix))
 
     @classmethod
     def _validate_webserver(cls, ip_address, start_id):

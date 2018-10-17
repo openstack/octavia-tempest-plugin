@@ -620,3 +620,66 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         self.assertConsistentResponse((403, None),
                                       url_for_member1,
                                       headers={'reject': 'true'})
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
+                          'Mixed IPv4/IPv6 member test requires IPv6.')
+    @decorators.idempotent_id('20b6b671-0101-4bed-a249-9af6ee3aa6d9')
+    def test_mixed_ipv4_ipv6_members_traffic(self):
+        """Tests traffic through a loadbalancer with IPv4 and IPv6 members.
+
+        * Set up members on a loadbalancer.
+        * Test traffic to ensure it is balanced properly.
+        """
+        # Set up Member 1 for Webserver 1
+        member1_name = data_utils.rand_name("lb_member_member1-traffic")
+        member1_kwargs = {
+            const.POOL_ID: self.pool_id,
+            const.NAME: member1_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_1_subnet:
+            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        member1 = self.mem_member_client.create_member(
+            **member1_kwargs)
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member1[const.ID], pool_id=self.pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 2 for Webserver 2
+        member2_name = data_utils.rand_name("lb_member_member2-traffic")
+        member2_kwargs = {
+            const.POOL_ID: self.pool_id,
+            const.NAME: member2_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver2_ipv6,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_2_ipv6_subnet:
+            member2_kwargs[const.SUBNET_ID] = (
+                self.lb_member_2_ipv6_subnet[const.ID])
+
+        member2 = self.mem_member_client.create_member(
+            **member2_kwargs)
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member2[const.ID], pool_id=self.pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Send some traffic
+        self.check_members_balanced(self.lb_vip_address)
