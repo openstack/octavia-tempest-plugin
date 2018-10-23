@@ -65,6 +65,8 @@
       devstack_plugins:
         barbican: https://github.com/openstack/barbican.git
         neutron: https://github.com/openstack/neutron.git
+      zuul_copy_output:
+        '/var/log/dib-build' : logs
 
 - job:
     name: octavia-dsvm-noop-base
