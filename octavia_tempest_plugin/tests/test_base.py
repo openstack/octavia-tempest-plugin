@@ -75,7 +75,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
 
         for service, available in service_list.items():
             if not available:
-                skip_msg = ("{0} skipped as {1} serivce is not "
+                skip_msg = ("{0} skipped as {1} service is not "
                             "available.".format(cls.__name__, service))
                 raise cls.skipException(skip_msg)
 
