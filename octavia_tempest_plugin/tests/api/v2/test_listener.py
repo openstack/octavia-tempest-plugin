@@ -42,6 +42,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                      const.NAME: lb_name}
 
         cls._setup_lb_network_kwargs(lb_kwargs)
+        cls.protocol = const.HTTP
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = lb_feature_enabled.l4_protocol
 
         lb = cls.mem_lb_client.create_loadbalancer(**lb_kwargs)
         cls.lb_id = lb[const.ID]
@@ -72,7 +76,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 80,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
@@ -142,7 +146,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, listener[const.PROTOCOL])
+        self.assertEqual(self.protocol, listener[const.PROTOCOL])
         self.assertEqual(80, listener[const.PROTOCOL_PORT])
         self.assertEqual(200, listener[const.CONNECTION_LIMIT])
         insert_headers = listener[const.INSERT_HEADERS]
@@ -194,7 +198,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener1_name,
             const.DESCRIPTION: listener1_desc,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 80,
             const.LOADBALANCER_ID: lb_id,
         }
@@ -226,7 +230,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener2_name,
             const.DESCRIPTION: listener2_desc,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 81,
             const.LOADBALANCER_ID: lb_id,
         }
@@ -258,7 +262,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener3_name,
             const.DESCRIPTION: listener3_desc,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 82,
             const.LOADBALANCER_ID: lb_id,
         }
@@ -420,7 +424,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 81,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
@@ -479,7 +483,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, listener[const.PROTOCOL])
+        self.assertEqual(self.protocol, listener[const.PROTOCOL])
         self.assertEqual(81, listener[const.PROTOCOL_PORT])
         self.assertEqual(200, listener[const.CONNECTION_LIMIT])
         insert_headers = listener[const.INSERT_HEADERS]
@@ -542,7 +546,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 82,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
@@ -590,7 +594,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         UUID(listener[const.ID])
         # Operating status will be OFFLINE while admin_state_up = False
         self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, listener[const.PROTOCOL])
+        self.assertEqual(self.protocol, listener[const.PROTOCOL])
         self.assertEqual(82, listener[const.PROTOCOL_PORT])
         self.assertEqual(200, listener[const.CONNECTION_LIMIT])
         insert_headers = listener[const.INSERT_HEADERS]
@@ -717,7 +721,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 83,
             const.LOADBALANCER_ID: self.lb_id,
         }

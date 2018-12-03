@@ -39,8 +39,11 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         lb_name = data_utils.rand_name("lb_member_lb1_pool")
         lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
-
         cls._setup_lb_network_kwargs(lb_kwargs)
+        cls.protocol = const.HTTP
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = lb_feature_enabled.l4_protocol
 
         lb = cls.mem_lb_client.create_loadbalancer(**lb_kwargs)
         cls.lb_id = lb[const.ID]
@@ -57,7 +60,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         listener_name = data_utils.rand_name("lb_member_listener1_pool")
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: cls.protocol,
             const.PROTOCOL_PORT: '80',
             const.LOADBALANCER_ID: cls.lb_id,
         }
@@ -98,7 +101,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: pool_name,
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.SESSION_PERSISTENCE: {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -156,7 +159,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         else:
             # OFFLINE if it is just on the LB directly or is in noop mode
             self.assertEqual(const.OFFLINE, pool[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, pool[const.PROTOCOL])
+        self.assertEqual(self.protocol, pool[const.PROTOCOL])
         self.assertEqual(1, len(pool[const.LOADBALANCERS]))
         self.assertEqual(self.lb_id, pool[const.LOADBALANCERS][0][const.ID])
         if has_listener:
@@ -211,7 +214,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: pool1_name,
             const.DESCRIPTION: pool1_desc,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.SESSION_PERSISTENCE: {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -248,7 +251,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: pool2_name,
             const.DESCRIPTION: pool2_desc,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.SESSION_PERSISTENCE: {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -284,7 +287,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: pool3_name,
             const.DESCRIPTION: pool3_desc,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             # No session persistence, just so there's one test for that
             const.LOADBALANCER_ID: lb_id,
@@ -425,7 +428,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: pool_name,
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.SESSION_PERSISTENCE: {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -460,7 +463,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         UUID(pool[const.ID])
         # Operating status for pools will always be offline without members
         self.assertEqual(const.OFFLINE, pool[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, pool[const.PROTOCOL])
+        self.assertEqual(self.protocol, pool[const.PROTOCOL])
         self.assertEqual(1, len(pool[const.LOADBALANCERS]))
         self.assertEqual(self.lb_id, pool[const.LOADBALANCERS][0][const.ID])
         self.assertEmpty(pool[const.LISTENERS])
@@ -519,7 +522,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: pool_name,
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.SESSION_PERSISTENCE: {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -554,7 +557,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         UUID(pool[const.ID])
         # Operating status for pools will always be offline without members
         self.assertEqual(const.OFFLINE, pool[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, pool[const.PROTOCOL])
+        self.assertEqual(self.protocol, pool[const.PROTOCOL])
         self.assertEqual(1, len(pool[const.LOADBALANCERS]))
         self.assertEqual(self.lb_id, pool[const.LOADBALANCERS][0][const.ID])
         self.assertEmpty(pool[const.LISTENERS])
@@ -667,7 +670,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         pool_sp_cookie_name = 'my_cookie'
         pool_kwargs = {
             const.NAME: pool_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.SESSION_PERSISTENCE: {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,

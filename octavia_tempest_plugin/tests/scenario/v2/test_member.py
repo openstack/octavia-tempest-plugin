@@ -50,11 +50,15 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
+        protocol = const.HTTP
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = lb_feature_enabled.l4_protocol
 
         listener_name = data_utils.rand_name("lb_member_listener1_member")
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: protocol,
             const.PROTOCOL_PORT: '80',
             const.LOADBALANCER_ID: cls.lb_id,
         }
@@ -74,7 +78,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         pool_name = data_utils.rand_name("lb_member_pool1_member")
         pool_kwargs = {
             const.NAME: pool_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.LISTENER_ID: cls.listener_id,
         }

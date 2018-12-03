@@ -50,11 +50,15 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
+        cls.protocol = const.HTTP
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = lb_feature_enabled.l4_protocol
 
         listener_name = data_utils.rand_name("lb_member_listener1_pool")
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: cls.protocol,
             const.PROTOCOL_PORT: '80',
             const.LOADBALANCER_ID: cls.lb_id,
         }
@@ -95,7 +99,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             const.NAME: pool_name,
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.SESSION_PERSISTENCE: {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -132,7 +136,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         parser.parse(pool[const.UPDATED_AT])
         UUID(pool[const.ID])
         self.assertEqual(const.OFFLINE, pool[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, pool[const.PROTOCOL])
+        self.assertEqual(self.protocol, pool[const.PROTOCOL])
         self.assertEqual(1, len(pool[const.LOADBALANCERS]))
         self.assertEqual(self.lb_id, pool[const.LOADBALANCERS][0][const.ID])
         if has_listener:
@@ -158,10 +162,10 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
             const.LB_ALGORITHM: const.LB_ALGORITHM_LEAST_CONNECTIONS,
-            const.SESSION_PERSISTENCE: {
-                const.TYPE: const.SESSION_PERSISTENCE_HTTP_COOKIE,
-            },
         }
+        if self.protocol == const.HTTP:
+            pool_update_kwargs[const.SESSION_PERSISTENCE] = {
+                const.TYPE: const.SESSION_PERSISTENCE_HTTP_COOKIE}
         pool = self.mem_pool_client.update_pool(
             pool[const.ID], **pool_update_kwargs)
 
@@ -183,8 +187,9 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.LB_ALGORITHM_LEAST_CONNECTIONS,
                          pool[const.LB_ALGORITHM])
         self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
-        self.assertEqual(const.SESSION_PERSISTENCE_HTTP_COOKIE,
-                         pool[const.SESSION_PERSISTENCE][const.TYPE])
+        if self.protocol == const.HTTP:
+            self.assertEqual(const.SESSION_PERSISTENCE_HTTP_COOKIE,
+                             pool[const.SESSION_PERSISTENCE][const.TYPE])
         self.assertIsNone(
             pool[const.SESSION_PERSISTENCE].get(const.COOKIE_NAME))
 

@@ -51,11 +51,15 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
+        cls.protocol = const.HTTP
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = lb_feature_enabled.l4_protocol
 
         pool1_name = data_utils.rand_name("lb_member_pool1_listener")
         pool1_kwargs = {
             const.NAME: pool1_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: cls.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.LOADBALANCER_ID: cls.lb_id,
         }
@@ -75,7 +79,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         pool2_name = data_utils.rand_name("lb_member_pool2_listener")
         pool2_kwargs = {
             const.NAME: pool2_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: cls.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.LOADBALANCER_ID: cls.lb_id,
         }
@@ -109,7 +113,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: self.protocol,
             const.PROTOCOL_PORT: 80,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
@@ -157,7 +161,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         UUID(listener[const.ID])
         # Operating status will be OFFLINE while admin_state_up = False
         self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, listener[const.PROTOCOL])
+        self.assertEqual(self.protocol, listener[const.PROTOCOL])
         self.assertEqual(80, listener[const.PROTOCOL_PORT])
         self.assertEqual(200, listener[const.CONNECTION_LIMIT])
         insert_headers = listener[const.INSERT_HEADERS]
@@ -230,7 +234,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(const.HTTP, listener[const.PROTOCOL])
+        self.assertEqual(self.protocol, listener[const.PROTOCOL])
         self.assertEqual(80, listener[const.PROTOCOL_PORT])
         self.assertEqual(400, listener[const.CONNECTION_LIMIT])
         insert_headers = listener[const.INSERT_HEADERS]

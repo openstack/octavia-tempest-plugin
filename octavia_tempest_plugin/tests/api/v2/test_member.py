@@ -40,8 +40,11 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         lb_name = data_utils.rand_name("lb_member_lb1_member")
         lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
-
         cls._setup_lb_network_kwargs(lb_kwargs)
+        cls.protocol = const.HTTP
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = lb_feature_enabled.l4_protocol
 
         lb = cls.mem_lb_client.create_loadbalancer(**lb_kwargs)
         cls.lb_id = lb[const.ID]
@@ -58,7 +61,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         listener_name = data_utils.rand_name("lb_member_listener1_member")
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: cls.protocol,
             const.PROTOCOL_PORT: '80',
             const.LOADBALANCER_ID: cls.lb_id,
         }
@@ -78,7 +81,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         pool_name = data_utils.rand_name("lb_member_pool1_member")
         pool_kwargs = {
             const.NAME: pool_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: cls.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.LISTENER_ID: cls.listener_id,
         }
@@ -211,7 +214,8 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         pool_name = data_utils.rand_name("lb_member_pool2_member-list")
         pool = self.mem_pool_client.create_pool(
             name=pool_name, loadbalancer_id=self.lb_id,
-            protocol=const.HTTP, lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN)
+            protocol=self.protocol,
+            lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN)
         pool_id = pool[const.ID]
         self.addCleanup(
             self.mem_pool_client.cleanup_pool, pool_id,
@@ -710,7 +714,8 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         pool_name = data_utils.rand_name("lb_member_pool3_member-batch")
         pool = self.mem_pool_client.create_pool(
             name=pool_name, loadbalancer_id=self.lb_id,
-            protocol=const.HTTP, lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN)
+            protocol=self.protocol,
+            lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN)
         pool_id = pool[const.ID]
         self.addClassResourceCleanup(
             self.mem_pool_client.cleanup_pool, pool_id,
