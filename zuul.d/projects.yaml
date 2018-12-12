@@ -15,7 +15,8 @@
         - octavia-v2-dsvm-scenario-stable-rocky
         - octavia-v2-dsvm-scenario-stable-queens
         - octavia-v2-dsvm-py35-scenario
-        - octavia-v2-dsvm-scenario-centos-7
+        - octavia-v2-dsvm-scenario-centos-7:
+            voting: false
         - octavia-v2-dsvm-scenario-ubuntu-bionic:
             voting: false
     gate:
@@ -29,4 +30,3 @@
         - octavia-v2-dsvm-scenario-stable-rocky
         - octavia-v2-dsvm-scenario-stable-queens
         - octavia-v2-dsvm-py35-scenario
-        - octavia-v2-dsvm-scenario-centos-7
