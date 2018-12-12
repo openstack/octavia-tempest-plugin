@@ -16,6 +16,7 @@
     vars:
       devstack_localrc:
         TEMPEST_PLUGINS: "'/opt/stack/octavia-tempest-plugin'"
+        USE_PYTHON3: true
       devstack_local_conf:
         post-config:
           $OCTAVIA_CONF:
@@ -104,20 +105,20 @@
       tox_envlist: all
 
 - job:
-    name: octavia-v2-dsvm-noop-py35-api
+    name: octavia-v2-dsvm-noop-py2-api
     parent: octavia-v2-dsvm-noop-api
     vars:
       devstack_localrc:
-        USE_PYTHON3: true
+        USE_PYTHON3: False
 
 - job:
-    name: octavia-v2-dsvm-noop-api-stable-rocky
-    parent: octavia-v2-dsvm-noop-api
+    name: octavia-v2-dsvm-noop-py2-api-stable-rocky
+    parent: octavia-v2-dsvm-noop-py2-api
     override-checkout: stable/rocky
 
 - job:
-    name: octavia-v2-dsvm-noop-api-stable-queens
-    parent: octavia-v2-dsvm-noop-api
+    name: octavia-v2-dsvm-noop-py2-api-stable-queens
+    parent: octavia-v2-dsvm-noop-py2-api
     override-checkout: stable/queens
 
 - job:
@@ -134,25 +135,25 @@
       tox_envlist: all
 
 - job:
-    name: octavia-v2-dsvm-py35-scenario
+    name: octavia-v2-dsvm-py2-scenario
     parent: octavia-v2-dsvm-scenario
     vars:
       devstack_localrc:
-        USE_PYTHON3: true
+        USE_PYTHON3: False
 
 - job:
-    name: octavia-v2-dsvm-scenario-stable-rocky
-    parent: octavia-v2-dsvm-scenario
+    name: octavia-v2-dsvm-py2-scenario-stable-rocky
+    parent: octavia-v2-dsvm-py2-scenario
     override-checkout: stable/rocky
 
 - job:
-    name: octavia-v2-dsvm-scenario-stable-queens
-    parent: octavia-v2-dsvm-scenario
+    name: octavia-v2-dsvm-py2-scenario-stable-queens
+    parent: octavia-v2-dsvm-py2-scenario
     override-checkout: stable/queens
 
 - job:
-    name: octavia-v2-dsvm-scenario-centos-7
-    parent: octavia-v2-dsvm-scenario
+    name: octavia-v2-dsvm-py2-scenario-centos-7
+    parent: octavia-v2-dsvm-py2-scenario
     nodeset: devstack-single-node-centos-7
     vars:
       devstack_localrc:
@@ -167,3 +168,17 @@
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: ubuntu
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: bionic
+
+# Temporary transitional aliases for gates used in other repos
+# Remove once octavia has transitioned job names
+- job:
+    name: octavia-v2-dsvm-noop-py35-api
+    parent: octavia-v2-dsvm-noop-api
+
+- job:
+    name: octavia-v2-dsvm-py35-scenario
+    parent: octavia-v2-dsvm-scenario
+
+- job:
+    name: octavia-v2-dsvm-scenario-centos-7
+    parent: octavia-v2-dsvm-py2-scenario-centos-7
