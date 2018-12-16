@@ -269,6 +269,10 @@
           $OCTAVIA_CONF:
             api_settings:
               api_v1_enabled: False
+            audit:
+              enabled: True
+            audit_middleware_notifications:
+              driver: log
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.api.v2
       tox_envlist: all
