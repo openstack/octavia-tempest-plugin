@@ -774,6 +774,8 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         :param cookies: Optional cookies to send in the request.
         :param redirect: Is the request a redirect? If true, assume the passed
                          content should be the next URL in the chain.
+        :param timeout: Optional seconds to wait for the server to send data.
+
         :return: boolean success status
 
         :raises: testtools.matchers.MismatchError
@@ -788,6 +790,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                 self.assertEqual(response_code, req.status_code)
             if redirect:
                 self.assertTrue(req.is_redirect)
-                self.assertEqual(response_content, req.next.url)
+                self.assertEqual(response_content,
+                                 session.get_redirect_target(req))
             elif response_content:
                 self.assertEqual(six.text_type(response_content), req.text)
