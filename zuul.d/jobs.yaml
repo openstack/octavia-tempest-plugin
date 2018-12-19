@@ -99,12 +99,16 @@
               # Set these higher for non-nested virt nodepool instances
               connection_max_retries: 300
               build_active_retries: 300
+            amphora_agent:
+              forward_all_logs: True
       devstack_services:
         neutron-qos: true
       devstack_plugins:
         neutron: https://opendev.org/openstack/neutron.git
       zuul_copy_output:
         '/var/log/dib-build' : logs
+        '/var/log/octavia-amphora.log': logs
+        '/var/log/octavia-tenant-traffic.log': logs
 
 - job:
     name: octavia-dsvm-live-two-node-base
@@ -147,6 +151,10 @@
         devstack_plugins:
           neutron: https://opendev.org/openstack/neutron.git
           octavia: https://opendev.org/openstack/octavia.git
+        zuul_copy_output:
+          '/var/log/dib-build' : logs
+          '/var/log/octavia-amphora.log': logs
+          '/var/log/octavia-tenant-traffic.log': logs
       controller2:
         devstack_localrc:
           # From devstack "vars:"
@@ -181,6 +189,9 @@
           OCTAVIA_MGMT_PORT_IP: 192.168.0.4
         devstack_plugins:
           octavia: https://opendev.org/openstack/octavia.git
+        zuul_copy_output:
+          '/var/log/octavia-amphora.log': logs
+          '/var/log/octavia-tenant-traffic.log': logs
     group-vars:
       controller:
         devstack_local_conf:
@@ -190,6 +201,8 @@
                 debug: True
               api_settings:
                 api_v1_enabled: False
+              amphora_agent:
+                forward_all_logs: True
         devstack_services:
           base: false
           barbican: false
@@ -230,6 +243,8 @@
                 debug: True
               api_settings:
                 api_v1_enabled: False
+              amphora_agent:
+                forward_all_logs: True
         devstack_services:
           c-vol: false
           c-bak: false
