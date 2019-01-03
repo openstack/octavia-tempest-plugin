@@ -87,17 +87,13 @@
     parent: octavia-dsvm-base
     timeout: 9000
     required-projects:
-      - openstack/barbican
       - openstack/diskimage-builder
-      - openstack/python-barbicanclient
     vars:
       devstack_localrc:
         DIB_LOCAL_ELEMENTS: openstack-ci-mirrors
       devstack_services:
-        barbican: true
         neutron-qos: true
       devstack_plugins:
-        barbican: https://git.openstack.org/openstack/barbican.git
         neutron: https://git.openstack.org/openstack/neutron.git
       zuul_copy_output:
         '/var/log/dib-build' : logs
@@ -108,9 +104,7 @@
     nodeset: octavia-two-node
     timeout: 9000
     required-projects:
-      - openstack/barbican
       - openstack/diskimage-builder
-      - openstack/python-barbicanclient
     host-vars:
       controller:
         devstack_localrc:
@@ -143,7 +137,6 @@
           OCTAVIA_NODES: "main:{{ hostvars['controller']['nodepool']['private_ipv4'] }},second:{{ hostvars['controller2']['nodepool']['private_ipv4'] }}"
           OCTAVIA_USE_PREGENERATED_CERTS: true
         devstack_plugins:
-          barbican: https://git.openstack.org/openstack/barbican.git
           neutron: https://git.openstack.org/openstack/neutron.git
           octavia: https://git.openstack.org/openstack/octavia.git
       controller2:
@@ -191,7 +184,7 @@
                 api_v1_enabled: False
         devstack_services:
           base: false
-          barbican: true
+          barbican: false
           dstat: true
           g-api: true
           g-reg: true
@@ -361,6 +354,20 @@
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: ubuntu
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: bionic
+
+- job:
+    name: octavia-v2-dsvm-tls-barbican
+    parent: octavia-v2-dsvm-scenario
+    required-projects:
+      - openstack/barbican
+      - openstack/diskimage-builder
+      - openstack/python-barbicanclient
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.barbican_scenario.v2
+      devstack_services:
+        barbican: true
+      devstack_plugins:
+        barbican: https://git.openstack.org/openstack/barbican.git
 
 # Temporary transitional aliases for gates used in other repos
 # Remove once octavia has transitioned job names

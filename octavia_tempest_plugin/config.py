@@ -14,8 +14,12 @@
 
 
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from octavia_tempest_plugin.common import constants as const
+
+
+LOG = logging.getLogger(__name__)
 
 service_available_group = cfg.OptGroup(name='service_available',
                                        title='Available OpenStack Services')
@@ -26,6 +30,19 @@ ServiceAvailableGroup = [
                 help="Whether or not the load-balancer service is expected "
                      "to be available."),
 ]
+
+# Pull in the service_available for barbican if it is not defined.
+# If the barbican tempest plugin isn't loaded, this won't load from
+# tempest.conf.
+try:
+    if cfg.CONF.service_available.barbican is not None:
+        LOG.info('Barbican service_available state: {}'.format(
+            cfg.CONF.service_available.barbican))
+except cfg.NoSuchOptError:
+    ServiceAvailableGroup.append(
+        cfg.BoolOpt('barbican', default=False,
+                    help="Whether or not the barbican service is expected to "
+                         "be available."))
 
 octavia_group = cfg.OptGroup(name='load_balancer',
                              title='load-balancer service options')
@@ -54,6 +71,9 @@ OctaviaGroup = [
                default=300,
                help='Timeout in seconds to wait for non-load-balancer '
                     'resources to build'),
+    cfg.StrOpt('octavia_svc_username', default='admin',
+               help='The service_auth username the Octavia services are using'
+                    'to access other OpenStack services.'),
     # load-balancer specific options
     cfg.IntOpt('check_interval',
                default=5,
@@ -152,4 +172,8 @@ LBFeatureEnabledGroup = [
                 default=True,
                 help="Whether Health Monitor is available with provider"
                      " driver or not."),
+    cfg.BoolOpt('terminated_tls_enabled',
+                default=True,
+                help="Whether TLS termination is available with provider "
+                     "driver or not."),
 ]

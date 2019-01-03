@@ -766,13 +766,15 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         URL = 'http://{0}:81'.format(ip_address)
         validators.validate_URL_response(URL, expected_body=str(start_id + 1))
 
-    def _wait_for_lb_functional(self, vip_address):
+    def _wait_for_lb_functional(self, vip_address,
+                                protocol='http', verify=True):
         session = requests.Session()
         start = time.time()
 
         while time.time() - start < CONF.load_balancer.build_timeout:
             try:
-                session.get("http://{0}".format(vip_address), timeout=2)
+                session.get("{0}://{1}".format(protocol, vip_address),
+                            timeout=2, verify=verify)
                 time.sleep(1)
                 return
             except Exception:
@@ -782,20 +784,21 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                   'period. Failing test.')
         raise Exception()
 
-    def check_members_balanced(self, vip_address, traffic_member_count=2):
+    def check_members_balanced(self, vip_address, traffic_member_count=2,
+                               protocol='http', verify=True):
         session = requests.Session()
         response_counts = {}
 
         if ipaddress.ip_address(vip_address).version == 6:
             vip_address = '[{}]'.format(vip_address)
 
-        self._wait_for_lb_functional(vip_address)
+        self._wait_for_lb_functional(vip_address, protocol, verify)
 
         # Send a number requests to lb vip
         for i in range(20):
             try:
-                r = session.get('http://{0}'.format(vip_address),
-                                timeout=2)
+                r = session.get('{0}://{1}'.format(protocol, vip_address),
+                                timeout=2, verify=verify)
 
                 if r.content in response_counts:
                     response_counts[r.content] += 1
