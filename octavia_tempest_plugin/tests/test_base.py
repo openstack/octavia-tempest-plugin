@@ -140,6 +140,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
             cls.lb_member_2_net = {'id': uuidutils.generate_uuid()}
             cls.lb_member_2_subnet = {'id': uuidutils.generate_uuid()}
             if CONF.load_balancer.test_with_ipv6:
+                cls.lb_member_vip_ipv6_net = {'id': uuidutils.generate_uuid()}
                 cls.lb_member_vip_ipv6_subnet = {'id':
                                                  uuidutils.generate_uuid()}
                 cls.lb_member_1_ipv6_subnet = {'id': uuidutils.generate_uuid()}
@@ -250,20 +251,30 @@ class LoadBalancerBaseTest(test.BaseTestCase):
 
         # Create tenant VIP IPv6 subnet
         if CONF.load_balancer.test_with_ipv6:
-            subnet_kwargs = {
-                'name': data_utils.rand_name("lb_member_vip_ipv6_subnet"),
-                'network_id': cls.lb_member_vip_net['id'],
-                'cidr': CONF.load_balancer.vip_ipv6_subnet_cidr,
-                'ip_version': 6}
-            result = cls.lb_mem_subnet_client.create_subnet(**subnet_kwargs)
-            cls.lb_member_vip_ipv6_subnet = result['subnet']
+            # See if ipv6-public-subnet exists and use it if so.
+            pub_ipv6_subnet = cls.os_admin.subnets_client.list_subnets(
+                name='ipv6-public-subnet')['subnets']
+
+            if len(pub_ipv6_subnet) == 1:
+                cls.lb_member_vip_ipv6_subnet = pub_ipv6_subnet[0]
+                cls.lb_member_vip_ipv6_net = {
+                    'id': pub_ipv6_subnet[0]['network_id']}
+            else:
+                subnet_kwargs = {
+                    'name': data_utils.rand_name("lb_member_vip_ipv6_subnet"),
+                    'network_id': cls.lb_member_vip_net['id'],
+                    'cidr': CONF.load_balancer.vip_ipv6_subnet_cidr,
+                    'ip_version': 6}
+                result = cls.lb_mem_subnet_client.create_subnet(
+                    **subnet_kwargs)
+                cls.lb_member_vip_ipv6_subnet = result['subnet']
+                cls.addClassResourceCleanup(
+                    waiters.wait_for_not_found,
+                    cls.lb_mem_subnet_client.delete_subnet,
+                    cls.lb_mem_subnet_client.show_subnet,
+                    cls.lb_member_vip_ipv6_subnet['id'])
             LOG.info('lb_member_vip_ipv6_subnet: {}'.format(
                 cls.lb_member_vip_ipv6_subnet))
-            cls.addClassResourceCleanup(
-                waiters.wait_for_not_found,
-                cls.lb_mem_subnet_client.delete_subnet,
-                cls.lb_mem_subnet_client.show_subnet,
-                cls.lb_member_vip_ipv6_subnet['id'])
 
         # Create tenant member 1 network
         network_kwargs = {
@@ -376,21 +387,27 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                                  use_fixed_ip=False):
         if not ip_version:
             ip_version = 6 if CONF.load_balancer.test_with_ipv6 else 4
-        if cls.lb_member_vip_subnet:
+        if cls.lb_member_vip_subnet or cls.lb_member_vip_ipv6_subnet:
             ip_index = data_utils.rand_int_id(start=10, end=100)
             while ip_index in cls.used_ips:
                 ip_index = data_utils.rand_int_id(start=10, end=100)
             cls.used_ips.append(ip_index)
             if ip_version == 4:
-                network = ipaddress.IPv4Network(
-                    six.u(CONF.load_balancer.vip_subnet_cidr))
-                lb_vip_address = str(network[ip_index])
                 subnet_id = cls.lb_member_vip_subnet[const.ID]
+                if CONF.load_balancer.test_with_noop:
+                    lb_vip_address = '198.18.33.33'
+                else:
+                    subnet = cls.os_admin.subnets_client.show_subnet(subnet_id)
+                    network = ipaddress.IPv4Network(subnet['subnet']['cidr'])
+                    lb_vip_address = str(network[ip_index])
             else:
-                network = ipaddress.IPv6Network(
-                    six.u(CONF.load_balancer.vip_ipv6_subnet_cidr))
-                lb_vip_address = str(network[ip_index])
                 subnet_id = cls.lb_member_vip_ipv6_subnet[const.ID]
+                if CONF.load_balancer.test_with_noop:
+                    lb_vip_address = '2001:db8:33:33:33:33:33:33'
+                else:
+                    subnet = cls.os_admin.subnets_client.show_subnet(subnet_id)
+                    network = ipaddress.IPv6Network(subnet['subnet']['cidr'])
+                    lb_vip_address = str(network[ip_index])
             lb_kwargs[const.VIP_SUBNET_ID] = subnet_id
             if use_fixed_ip:
                 lb_kwargs[const.VIP_ADDRESS] = lb_vip_address
@@ -768,6 +785,9 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
     def check_members_balanced(self, vip_address, traffic_member_count=2):
         session = requests.Session()
         response_counts = {}
+
+        if ipaddress.ip_address(vip_address).version == 6:
+            vip_address = '[{}]'.format(vip_address)
 
         self._wait_for_lb_functional(vip_address)
 

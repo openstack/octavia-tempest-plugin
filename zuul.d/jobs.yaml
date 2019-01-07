@@ -237,6 +237,7 @@
           o-cw: true
           o-hm: true
           o-hk: true
+          q-agt: true
 
 - job:
     name: octavia-dsvm-noop-base

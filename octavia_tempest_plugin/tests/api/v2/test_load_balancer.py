@@ -108,12 +108,16 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, lb[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, lb[const.OPERATING_STATUS])
+            if ip_version == 4:
+                self.assertEqual(self.lb_member_vip_net[const.ID],
+                                 lb[const.VIP_NETWORK_ID])
+            else:
+                self.assertEqual(self.lb_member_vip_ipv6_net[const.ID],
+                                 lb[const.VIP_NETWORK_ID])
 
         self.assertEqual(self.os_roles_lb_member.credentials.project_id,
                          lb[const.PROJECT_ID])
         self.assertEqual(CONF.load_balancer.provider, lb[const.PROVIDER])
-        self.assertEqual(self.lb_member_vip_net[const.ID],
-                         lb[const.VIP_NETWORK_ID])
         self.assertIsNotNone(lb[const.VIP_PORT_ID])
         if lb_kwargs[const.VIP_SUBNET_ID]:
             self.assertEqual(lb_kwargs[const.VIP_ADDRESS],
