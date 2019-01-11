@@ -35,6 +35,8 @@ from octavia_tempest_plugin.services.load_balancer.v2 import (
     member_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     pool_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
+    provider_client)
 
 CONF = config.CONF
 SERVICE_TYPE = 'load-balancer'
@@ -64,4 +66,6 @@ class ManagerV2(clients.Manager):
         self.flavor_profile_client = flavor_profile_client.FlavorProfileClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
         self.flavor_client = flavor_client.FlavorClient(
+            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+        self.provider_client = provider_client.ProviderClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
