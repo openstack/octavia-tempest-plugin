@@ -32,7 +32,7 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
     def skip_checks(cls):
         super(HealthMonitorScenarioTest, cls).skip_checks()
         if not CONF.loadbalancer_feature_enabled.health_monitor_enabled:
-            cls.skip('Health Monitors not supported')
+            raise cls.skipException('Health Monitors not supported')
 
     @classmethod
     def resource_setup(cls):

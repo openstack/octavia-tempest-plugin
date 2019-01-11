@@ -34,10 +34,10 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
     def skip_checks(cls):
         super(L7RuleAPITest, cls).skip_checks()
         if not CONF.loadbalancer_feature_enabled.l7_protocol_enabled:
-            cls.skipException('[loadbalancer-feature-enabled]'
-                              ' "l7_protocol_enabled" is set to False in the'
-                              ' Tempest configuration.L7 Scenario tests would'
-                              ' be skipped.')
+            raise cls.skipException(
+                '[loadbalancer-feature-enabled] '
+                '"l7_protocol_enabled" is set to False in the Tempest '
+                'configuration. L7 API tests will be skipped.')
 
     @classmethod
     def resource_setup(cls):
