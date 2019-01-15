@@ -124,6 +124,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         cls.mem_amphora_client = cls.os_roles_lb_member.amphora_client
         cls.lb_admin_flavor_profile_client = (
             cls.os_roles_lb_admin.flavor_profile_client)
+        cls.lb_admin_flavor_client = cls.os_roles_lb_admin.flavor_client
+        cls.mem_flavor_client = cls.os_roles_lb_member.flavor_client
 
     @classmethod
     def resource_setup(cls):
