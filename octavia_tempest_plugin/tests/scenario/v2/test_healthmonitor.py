@@ -103,7 +103,7 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
         }
 
         hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_healthmonitor_client.cleanup_healthmonitor,
             hm[const.ID], lb_client=self.mem_lb_client, lb_id=self.lb_id)
 

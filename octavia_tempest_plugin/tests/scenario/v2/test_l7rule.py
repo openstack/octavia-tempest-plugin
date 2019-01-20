@@ -112,7 +112,7 @@ class L7RuleScenarioTest(test_base.LoadBalancerBaseTest):
         }
 
         l7rule = self.mem_l7rule_client.create_l7rule(**l7rule_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_l7rule_client.cleanup_l7rule,
             l7rule[const.ID], l7policy_id=self.l7policy_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)

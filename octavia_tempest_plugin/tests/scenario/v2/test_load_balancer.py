@@ -59,7 +59,7 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
         self._setup_lb_network_kwargs(lb_kwargs, ip_version)
 
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
 

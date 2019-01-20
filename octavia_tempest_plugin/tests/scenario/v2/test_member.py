@@ -123,7 +123,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
                 const.ID]
 
         member = self.mem_member_client.create_member(**member_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_member_client.cleanup_member,
             member[const.ID], pool_id=self.pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)

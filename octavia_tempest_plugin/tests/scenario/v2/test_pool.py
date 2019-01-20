@@ -108,7 +108,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             pool_kwargs[const.LOADBALANCER_ID] = self.lb_id
 
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_pool_client.cleanup_pool,
             pool[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)

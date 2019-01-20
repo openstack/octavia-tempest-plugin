@@ -30,6 +30,7 @@ from tempest.lib.common.utils import data_utils
 from tempest.lib.common.utils.linux import remote_client
 from tempest.lib import exceptions
 from tempest import test
+import tenacity
 
 from octavia_tempest_plugin import clients
 from octavia_tempest_plugin.common import constants as const
@@ -38,6 +39,11 @@ from octavia_tempest_plugin.tests import waiters
 
 CONF = config.CONF
 LOG = logging.getLogger(__name__)
+
+RETRY_ATTEMPTS = 15
+RETRY_INITIAL_DELAY = 1
+RETRY_BACKOFF = 1
+RETRY_MAX = 5
 
 
 class LoadBalancerBaseTest(test.BaseTestCase):
@@ -204,6 +210,42 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                     cls.lb_member_2_ipv6_subnet[const.ID]))
 
     @classmethod
+    # Neutron can be slow to clean up ports from the subnets/networks.
+    # Retry this delete a few times if we get a "Conflict" error to give
+    # neutron time to fully cleanup the ports.
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(exceptions.Conflict),
+        wait=tenacity.wait_incrementing(
+            RETRY_INITIAL_DELAY, RETRY_BACKOFF, RETRY_MAX),
+        stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS))
+    def _logging_delete_network(cls, net_id):
+        try:
+            cls.lb_mem_net_client.delete_network(net_id)
+        except Exception:
+            LOG.error('Unable to delete network {}. Active ports:'.format(
+                net_id))
+            LOG.error(cls.lb_mem_ports_client.list_ports())
+            raise
+
+    @classmethod
+    # Neutron can be slow to clean up ports from the subnets/networks.
+    # Retry this delete a few times if we get a "Conflict" error to give
+    # neutron time to fully cleanup the ports.
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(exceptions.Conflict),
+        wait=tenacity.wait_incrementing(
+            RETRY_INITIAL_DELAY, RETRY_BACKOFF, RETRY_MAX),
+        stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS))
+    def _logging_delete_subnet(cls, subnet_id):
+        try:
+            cls.lb_mem_subnet_client.delete_subnet(subnet_id)
+        except Exception:
+            LOG.error('Unable to delete subnet {}. Active ports:'.format(
+                subnet_id))
+            LOG.error(cls.lb_mem_ports_client.list_ports())
+            raise
+
+    @classmethod
     def _create_networks(cls):
         """Creates networks, subnets, and routers used in tests.
 
@@ -230,7 +272,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         LOG.info('lb_member_vip_net: {}'.format(cls.lb_member_vip_net))
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
-            cls.lb_mem_net_client.delete_network,
+            cls._logging_delete_network,
             cls.lb_mem_net_client.show_network,
             cls.lb_member_vip_net['id'])
 
@@ -245,7 +287,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         LOG.info('lb_member_vip_subnet: {}'.format(cls.lb_member_vip_subnet))
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
-            cls.lb_mem_subnet_client.delete_subnet,
+            cls._logging_delete_subnet,
             cls.lb_mem_subnet_client.show_subnet,
             cls.lb_member_vip_subnet['id'])
 
@@ -270,7 +312,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 cls.lb_member_vip_ipv6_subnet = result['subnet']
                 cls.addClassResourceCleanup(
                     waiters.wait_for_not_found,
-                    cls.lb_mem_subnet_client.delete_subnet,
+                    cls._logging_delete_subnet,
                     cls.lb_mem_subnet_client.show_subnet,
                     cls.lb_member_vip_ipv6_subnet['id'])
             LOG.info('lb_member_vip_ipv6_subnet: {}'.format(
@@ -289,7 +331,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         LOG.info('lb_member_1_net: {}'.format(cls.lb_member_1_net))
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
-            cls.lb_mem_net_client.delete_network,
+            cls._logging_delete_network,
             cls.lb_mem_net_client.show_network,
             cls.lb_member_1_net['id'])
 
@@ -304,7 +346,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         LOG.info('lb_member_1_subnet: {}'.format(cls.lb_member_1_subnet))
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
-            cls.lb_mem_subnet_client.delete_subnet,
+            cls._logging_delete_subnet,
             cls.lb_mem_subnet_client.show_subnet,
             cls.lb_member_1_subnet['id'])
 
@@ -325,7 +367,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 cls.lb_member_1_ipv6_subnet))
             cls.addClassResourceCleanup(
                 waiters.wait_for_not_found,
-                cls.lb_mem_subnet_client.delete_subnet,
+                cls._logging_delete_subnet,
                 cls.lb_mem_subnet_client.show_subnet,
                 cls.lb_member_1_ipv6_subnet['id'])
 
@@ -342,7 +384,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         LOG.info('lb_member_2_net: {}'.format(cls.lb_member_2_net))
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
-            cls.lb_mem_net_client.delete_network,
+            cls._logging_delete_network,
             cls.lb_mem_net_client.show_network,
             cls.lb_member_2_net['id'])
 
@@ -357,7 +399,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         LOG.info('lb_member_2_subnet: {}'.format(cls.lb_member_2_subnet))
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
-            cls.lb_mem_subnet_client.delete_subnet,
+            cls._logging_delete_subnet,
             cls.lb_mem_subnet_client.show_subnet,
             cls.lb_member_2_subnet['id'])
 
@@ -378,7 +420,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 cls.lb_member_2_ipv6_subnet))
             cls.addClassResourceCleanup(
                 waiters.wait_for_not_found,
-                cls.lb_mem_subnet_client.delete_subnet,
+                cls._logging_delete_subnet,
                 cls.lb_mem_subnet_client.show_subnet,
                 cls.lb_member_2_ipv6_subnet['id'])
 

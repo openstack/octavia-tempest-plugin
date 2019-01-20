@@ -115,7 +115,7 @@ class L7PolicyScenarioTest(test_base.LoadBalancerBaseTest):
         }
 
         l7policy = self.mem_l7policy_client.create_l7policy(**l7policy_kwargs)
-        self.addClassResourceCleanup(
+        self.addCleanup(
             self.mem_l7policy_client.cleanup_l7policy,
             l7policy[const.ID],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
