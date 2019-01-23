@@ -414,6 +414,13 @@ class BaseLBaaSClient(rest_client.RestClient):
                                     const.ACTIVE,
                                     self.build_interval,
                                     self.timeout)
+        else:
+            LOG.info("Waiting for %s %s to be DELETED...",
+                     wait_client.root_tag, wait_id)
+            waiters.wait_for_deleted_status_or_not_found(
+                wait_func, wait_id, const.PROVISIONING_STATUS,
+                CONF.load_balancer.check_interval,
+                CONF.load_balancer.check_timeout)
 
         LOG.info("Cleanup complete for %s %s...", self.root_tag, obj_id)
         return return_status
