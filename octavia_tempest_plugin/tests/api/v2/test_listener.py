@@ -764,3 +764,76 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.ACTIVE,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)
+
+    @decorators.idempotent_id('6f14a6c1-945e-43bc-8215-410c8a5edb25')
+    def test_listener_show_stats(self):
+        """Tests listener show statistics API.
+
+        * Create a listener.
+        * Validates that other accounts cannot see the stats for the
+        *   listener.
+        * Show listener statistics.
+        * Validate the show reflects the expected values.
+        """
+        listener_name = data_utils.rand_name("lb_member_listener1-stats")
+        listener_description = data_utils.arbitrary_string(size=255)
+
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.DESCRIPTION: listener_description,
+            const.ADMIN_STATE_UP: True,
+            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL_PORT: 84,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.CONNECTION_LIMIT: 200,
+        }
+
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        listener = waiters.wait_for_status(
+            self.mem_listener_client.show_listener,
+            listener[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        if not CONF.load_balancer.test_with_noop:
+            listener = waiters.wait_for_status(
+                self.mem_listener_client.show_listener,
+                listener[const.ID], const.OPERATING_STATUS,
+                const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
+
+        # Test that a user, without the load balancer member role, cannot
+        # use this command
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.listener_client.get_listener_stats,
+                listener[const.ID])
+
+        # Test that a different user, with the load balancer role, cannot see
+        # the listener stats
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.listener_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.get_listener_stats,
+                              listener[const.ID])
+
+        stats = self.mem_listener_client.get_listener_stats(listener[const.ID])
+
+        self.assertEqual(5, len(stats))
+        self.assertEqual(0, stats[const.ACTIVE_CONNECTIONS])
+        self.assertEqual(0, stats[const.BYTES_IN])
+        self.assertEqual(0, stats[const.BYTES_OUT])
+        self.assertEqual(0, stats[const.REQUEST_ERRORS])
+        self.assertEqual(0, stats[const.TOTAL_CONNECTIONS])
