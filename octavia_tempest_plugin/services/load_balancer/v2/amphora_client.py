@@ -157,3 +157,73 @@ class AmphoraClient(base_client.BaseLBaaSClient):
             return jsonutils.loads(body.decode('utf-8'))[self.stats_root_tag]
         else:
             return jsonutils.loads(body.decode('utf-8'))
+
+    def update_amphora_config(self, amphora_id):
+        """Update the amphora agent configuration.
+
+        :param amphora_id: The ID of the amphora to update.
+        :raises AssertionError: if the expected_code isn't a valid http success
+                                response code
+        :raises BadRequest: If a 400 response code is received
+        :raises Conflict: If a 409 response code is received
+        :raises Forbidden: If a 403 response code is received
+        :raises Gone: If a 410 response code is received
+        :raises InvalidContentType: If a 415 response code is received
+        :raises InvalidHTTPResponseBody: The response body wasn't valid JSON
+        :raises InvalidHttpSuccessCode: if the read code isn't an expected
+                                        http success code
+        :raises NotFound: If a 404 response code is received
+        :raises NotImplemented: If a 501 response code is received
+        :raises OverLimit: If a 413 response code is received and over_limit is
+                           not in the response body
+        :raises RateLimitExceeded: If a 413 response code is received and
+                                   over_limit is in the response body
+        :raises ServerFault: If a 500 response code is received
+        :raises Unauthorized: If a 401 response code is received
+        :raises UnexpectedContentType: If the content-type of the response
+                                       isn't an expect type
+        :raises UnexpectedResponseCode: If a response code above 400 is
+                                        received and it doesn't fall into any
+                                        of the handled checks
+        :raises UnprocessableEntity: If a 422 response code is received and
+                                     couldn't be parsed
+        :returns: None
+        """
+        uri = '{0}/{1}/config'.format(self.uri, amphora_id)
+        response, body = self.put(uri, '')
+        self.expected_success(202, response.status)
+
+    def amphora_failover(self, amphora_id):
+        """Failover an amphora.
+
+        :param amphora_id: The ID of the amphora to failover.
+        :raises AssertionError: if the expected_code isn't a valid http success
+                                response code
+        :raises BadRequest: If a 400 response code is received
+        :raises Conflict: If a 409 response code is received
+        :raises Forbidden: If a 403 response code is received
+        :raises Gone: If a 410 response code is received
+        :raises InvalidContentType: If a 415 response code is received
+        :raises InvalidHTTPResponseBody: The response body wasn't valid JSON
+        :raises InvalidHttpSuccessCode: if the read code isn't an expected
+                                        http success code
+        :raises NotFound: If a 404 response code is received
+        :raises NotImplemented: If a 501 response code is received
+        :raises OverLimit: If a 413 response code is received and over_limit is
+                           not in the response body
+        :raises RateLimitExceeded: If a 413 response code is received and
+                                   over_limit is in the response body
+        :raises ServerFault: If a 500 response code is received
+        :raises Unauthorized: If a 401 response code is received
+        :raises UnexpectedContentType: If the content-type of the response
+                                       isn't an expect type
+        :raises UnexpectedResponseCode: If a response code above 400 is
+                                        received and it doesn't fall into any
+                                        of the handled checks
+        :raises UnprocessableEntity: If a 422 response code is received and
+                                     couldn't be parsed
+        :returns: None
+        """
+        uri = '{0}/{1}/failover'.format(self.uri, amphora_id)
+        response, body = self.put(uri, '')
+        self.expected_success(202, response.status)
