@@ -13,8 +13,12 @@
 #   under the License.
 #
 
+from oslo_log import log as logging
+from tempest.lib import exceptions
+
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
+LOG = logging.getLogger(__name__)
 Unset = base_client.Unset
 
 
@@ -216,3 +220,44 @@ class FlavorClient(base_client.BaseLBaaSClient):
                   if not.
         """
         return self._delete_obj(obj_id=flavor_id, ignore_errors=ignore_errors)
+
+    def cleanup_a_flavor(self, flavor_id):
+        """Delete a flavor for tempest cleanup.
+
+           We cannot use the cleanup_flavor method as flavors
+           do not have a provisioning_status.
+
+        :param flavor_id: The flavor ID to delete.
+        :raises AssertionError: if the expected_code isn't a valid http success
+                                response code
+        :raises BadRequest: If a 400 response code is received
+        :raises Conflict: If a 409 response code is received
+        :raises Forbidden: If a 403 response code is received
+        :raises Gone: If a 410 response code is received
+        :raises InvalidContentType: If a 415 response code is received
+        :raises InvalidHTTPResponseBody: The response body wasn't valid JSON
+        :raises InvalidHttpSuccessCode: if the read code isn't an expected
+                                        http success code
+        :raises NotImplemented: If a 501 response code is received
+        :raises OverLimit: If a 413 response code is received and over_limit is
+                           not in the response body
+        :raises RateLimitExceeded: If a 413 response code is received and
+                                   over_limit is in the response body
+        :raises ServerFault: If a 500 response code is received
+        :raises Unauthorized: If a 401 response code is received
+        :raises UnexpectedContentType: If the content-type of the response
+                                       isn't an expect type
+        :raises UnexpectedResponseCode: If a response code above 400 is
+                                        received and it doesn't fall into any
+                                        of the handled checks
+        :raises UnprocessableEntity: If a 422 response code is received and
+                                     couldn't be parsed
+        :returns: None if ignore_errors is True, the response status code
+                  if not.
+        """
+        try:
+            self._delete_obj(obj_id=flavor_id)
+        except exceptions.NotFound:
+            # Already gone, cleanup complete
+            LOG.info("Flavor %s is already gone. "
+                     "Cleanup considered complete.", flavor_id)
