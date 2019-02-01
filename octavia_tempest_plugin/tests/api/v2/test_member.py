@@ -99,6 +99,14 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
 
+    def _create_member_and_get_monitor_status(self, **member_kwargs):
+        monitor = CONF.loadbalancer_feature_enabled.health_monitor_enabled
+        if not monitor:
+            del member_kwargs[const.MONITOR_ADDRESS]
+            del member_kwargs[const.MONITOR_PORT]
+        member = self.mem_member_client.create_member(**member_kwargs)
+        return member, monitor
+
     # Note: This test also covers basic member show API
     @decorators.idempotent_id('0623aa1f-753d-44e7-afa1-017d274eace7')
     def test_member_ipv4_create(self):
@@ -117,6 +125,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         * Tests that users without the loadbalancer member role cannot
           create members.
         * Create a fully populated member.
+        * If driver doesnt support Monitors, allow to create without monitor
         * Show member details.
         * Validate the show reflects the requested values.
         """
@@ -156,7 +165,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 self.os_primary.member_client.create_member,
                 **member_kwargs)
 
-        member = self.mem_member_client.create_member(**member_kwargs)
+        member, monitor = self._create_member_and_get_monitor_status(
+            **member_kwargs)
+
         self.addClassResourceCleanup(
             self.mem_member_client.cleanup_member,
             member[const.ID], pool_id=self.pool_id,
@@ -181,13 +192,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT,
-                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
-
+                       const.PROTOCOL_PORT, const.WEIGHT]
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
 
+        if monitor:
+            equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
         if const.SUBNET_ID in member_kwargs:
             equal_items.append(const.SUBNET_ID)
         else:
@@ -451,7 +462,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
 
-        member = self.mem_member_client.create_member(**member_kwargs)
+        member, monitor = self._create_member_and_get_monitor_status(
+            **member_kwargs)
+
         self.addClassResourceCleanup(
             self.mem_member_client.cleanup_member,
             member[const.ID], pool_id=self.pool_id,
@@ -476,13 +489,14 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT,
-                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
+                       const.PROTOCOL_PORT, const.WEIGHT]
 
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
 
+        if monitor:
+            equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
         if const.SUBNET_ID in member_kwargs:
             equal_items.append(const.SUBNET_ID)
         else:
@@ -553,7 +567,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
 
-        member = self.mem_member_client.create_member(**member_kwargs)
+        member, monitor = self._create_member_and_get_monitor_status(
+            **member_kwargs)
+
         self.addClassResourceCleanup(
             self.mem_member_client.cleanup_member,
             member[const.ID], pool_id=self.pool_id,
@@ -571,27 +587,30 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
             pool_id=self.pool_id)
-        if not CONF.load_balancer.test_with_noop:
-            member = waiters.wait_for_status(
-                self.mem_member_client.show_member,
-                member[const.ID], const.OPERATING_STATUS,
-                const.OFFLINE,
-                CONF.load_balancer.build_interval,
-                CONF.load_balancer.build_timeout,
-                pool_id=self.pool_id)
+        status = const.OFFLINE
+        if not monitor or CONF.load_balancer.test_with_noop:
+            status = const.NO_MONITOR
+        member = waiters.wait_for_status(
+            self.mem_member_client.show_member,
+            member[const.ID], const.OPERATING_STATUS,
+            status,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout,
+            pool_id=self.pool_id)
 
         parser.parse(member[const.CREATED_AT])
         parser.parse(member[const.UPDATED_AT])
         UUID(member[const.ID])
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT,
-                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
+                       const.PROTOCOL_PORT, const.WEIGHT]
 
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
 
+        if monitor:
+            equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
         if const.SUBNET_ID in member_kwargs:
             equal_items.append(const.SUBNET_ID)
         else:
@@ -600,8 +619,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         for item in equal_items:
             self.assertEqual(member_kwargs[item], member[item])
 
-        if CONF.load_balancer.test_with_noop:
-            # Operating status with noop will stay in NO_MONITOR
+        if CONF.load_balancer.test_with_noop or not monitor:
+            # Operating status with noop or Driver not supporting Monitors
+            # will stay in NO_MONITOR
             self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
         else:
             # Operating status will be OFFLINE while admin_state_up = False
@@ -646,18 +666,18 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: new_name,
             const.ADMIN_STATE_UP: not member[const.ADMIN_STATE_UP],
             const.WEIGHT: member[const.WEIGHT] + 1,
-            const.MONITOR_ADDRESS: '192.0.2.3',
-            const.MONITOR_PORT: member[const.MONITOR_PORT] + 1,
         }
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             member_update_kwargs.update({
                 const.BACKUP: not member[const.BACKUP]
             })
-
+        if monitor:
+            member_update_kwargs[const.MONITOR_ADDRESS] = '192.0.2.3'
+            member_update_kwargs[const.MONITOR_PORT] = member[
+                const.MONITOR_PORT] + 1
         member = self.mem_member_client.update_member(
             member[const.ID], **member_update_kwargs)
-
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -683,13 +703,14 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.NO_MONITOR, member[const.OPERATING_STATUS])
 
         # Test changed items
-        equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT,
-                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
+        equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT]
 
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
 
+        if monitor:
+            equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
         for item in equal_items:
             self.assertEqual(member_update_kwargs[item], member[item])
 
@@ -748,8 +769,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         if self.lb_member_vip_subnet:
             member1_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
+        member1, monitor = self._create_member_and_get_monitor_status(
+            **member1_kwargs)
 
-        member1 = self.mem_member_client.create_member(**member1_kwargs)
         self.addClassResourceCleanup(
             self.mem_member_client.cleanup_member,
             member1[const.ID], pool_id=pool_id,
@@ -770,8 +792,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.3',
             const.PROTOCOL_PORT: 81,
             const.WEIGHT: 51,
-            const.MONITOR_ADDRESS: '192.0.2.4',
-            const.MONITOR_PORT: 8081,
         }
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
@@ -779,6 +799,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 const.BACKUP: True,
             })
 
+        if monitor:
+            member2_kwargs[const.MONITOR_ADDRESS] = '192.0.2.4'
+            member2_kwargs[const.MONITOR_PORT] = 8081
         if self.lb_member_vip_subnet:
             member2_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -803,8 +826,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.5',
             const.PROTOCOL_PORT: 82,
             const.WEIGHT: 52,
-            const.MONITOR_ADDRESS: '192.0.2.6',
-            const.MONITOR_PORT: 8082,
         }
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
@@ -812,6 +833,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 const.BACKUP: True,
             })
 
+        if monitor:
+            member2_kwargs[const.MONITOR_ADDRESS] = '192.0.2.6'
+            member2_kwargs[const.MONITOR_PORT] = 8082
         if self.lb_member_vip_subnet:
             member3_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
