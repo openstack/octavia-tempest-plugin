@@ -33,6 +33,16 @@
             voting: false
         - octavia-v2-dsvm-tls-barbican-stable-queens:
             voting: false
+        - octavia-v2-dsvm-spare-pool:
+            voting: false
+        - octavia-v2-dsvm-py2-spare-pool:
+            voting: false
+        - octavia-v2-dsvm-spare-pool-stable-stein:
+            voting: false
+        - octavia-v2-dsvm-py2-spare-pool-stable-rocky:
+            voting: false
+        - octavia-v2-dsvm-py2-spare-pool-stable-queens:
+            voting: false
     gate:
       queue: octavia
       jobs:
