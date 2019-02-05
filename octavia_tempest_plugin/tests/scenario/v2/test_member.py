@@ -53,7 +53,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         protocol = const.HTTP
         lb_feature_enabled = CONF.loadbalancer_feature_enabled
         if not lb_feature_enabled.l7_protocol_enabled:
-            cls.protocol = lb_feature_enabled.l4_protocol
+            protocol = lb_feature_enabled.l4_protocol
 
         listener_name = data_utils.rand_name("lb_member_listener1_member")
         listener_kwargs = {
@@ -125,7 +125,10 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         if self.lb_member_vip_subnet:
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
-
+        hm_enabled = CONF.loadbalancer_feature_enabled.health_monitor_enabled
+        if not hm_enabled:
+            del member_kwargs[const.MONITOR_ADDRESS]
+            del member_kwargs[const.MONITOR_PORT]
         member = self.mem_member_client.create_member(**member_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
@@ -161,8 +164,9 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             pool_id=self.pool_id)
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
-                       const.PROTOCOL_PORT, const.WEIGHT,
-                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
+                       const.PROTOCOL_PORT, const.WEIGHT]
+        if hm_enabled:
+            equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
@@ -182,8 +186,6 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.NAME: new_name,
             const.ADMIN_STATE_UP: not member[const.ADMIN_STATE_UP],
             const.WEIGHT: member[const.WEIGHT] + 1,
-            const.MONITOR_ADDRESS: '192.0.2.3',
-            const.MONITOR_PORT: member[const.MONITOR_PORT] + 1,
         }
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
@@ -191,6 +193,10 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
                 const.BACKUP: not member[const.BACKUP],
             })
 
+        if hm_enabled:
+            member_update_kwargs[const.MONITOR_ADDRESS] = '192.0.2.3'
+            member_update_kwargs[const.MONITOR_PORT] = member[
+                const.MONITOR_PORT] + 1
         member = self.mem_member_client.update_member(
             member[const.ID], **member_update_kwargs)
 
@@ -208,8 +214,9 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             pool_id=self.pool_id)
 
         # Test changed items
-        equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT,
-                       const.MONITOR_ADDRESS, const.MONITOR_PORT]
+        equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT]
+        if hm_enabled:
+            equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
