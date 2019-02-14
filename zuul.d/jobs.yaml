@@ -91,6 +91,13 @@
     vars:
       devstack_localrc:
         DIB_LOCAL_ELEMENTS: openstack-ci-mirrors
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            haproxy_amphora:
+              # Set these higher for non-nested virt nodepool instances
+              connection_max_retries: 300
+              build_active_retries: 300
       devstack_services:
         neutron-qos: true
       devstack_plugins:
