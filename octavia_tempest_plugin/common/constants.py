@@ -84,6 +84,7 @@ FLAVOR_PROFILE_ID = 'flavor_profile_id'
 
 # Other constants
 ACTIVE = 'ACTIVE'
+PENDING_UPDATE = 'PENDING_UPDATE'
 ADMIN_STATE_UP_TRUE = 'true'
 ASC = 'asc'
 DELETED = 'DELETED'

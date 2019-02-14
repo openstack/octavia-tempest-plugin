@@ -151,8 +151,15 @@ OctaviaGroup = [
     cfg.StrOpt('member_2_ipv6_subnet_cidr',
                default='fd77:1457:4cf0:26a8::/64',
                help='CIDR format subnet to use for the member 1 ipv6 subnet.'),
+    # Amphora specific options
+    cfg.StrOpt('amphora_ssh_user',
+               default='ubuntu',
+               help='The amphora SSH user.'),
+    cfg.StrOpt('amphora_ssh_key',
+               default='/tmp/octavia_ssh_key',
+               help='The amphora SSH key file.'),
     # Environment specific options
-    # These are used to accomidate clouds with specific limitations
+    # These are used to accomodate clouds with specific limitations
     cfg.IntOpt('random_server_name_length',
                default=0,
                help='If non-zero, generate a random name of the length '
