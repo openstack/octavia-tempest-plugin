@@ -56,6 +56,8 @@
             voting: false
         - octavia-v2-dsvm-py2-spare-pool-stable-queens:
             voting: false
+        - octavia-v2-dsvm-cinder-amphora:
+            voting: false
     gate:
       queue: octavia
       jobs:
