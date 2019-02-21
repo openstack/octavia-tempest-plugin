@@ -12,7 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 
-import json
+from oslo_serialization import jsonutils
 
 from tempest import config
 
@@ -154,6 +154,6 @@ class AmphoraClient(base_client.BaseLBaaSClient):
         response, body = self.get(request_uri)
         self.expected_success(200, response.status)
         if return_object_only:
-            return json.loads(body.decode('utf-8'))[self.stats_root_tag]
+            return jsonutils.loads(body.decode('utf-8'))[self.stats_root_tag]
         else:
-            return json.loads(body.decode('utf-8'))
+            return jsonutils.loads(body.decode('utf-8'))

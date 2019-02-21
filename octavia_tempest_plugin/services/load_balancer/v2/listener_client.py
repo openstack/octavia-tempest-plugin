@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-import json
+from oslo_serialization import jsonutils
 
 from tempest import config
 
@@ -340,6 +340,6 @@ class ListenerClient(base_client.BaseLBaaSClient):
         response, body = self.get(request_uri)
         self.expected_success(200, response.status)
         if return_object_only:
-            return json.loads(body.decode('utf-8'))['stats']
+            return jsonutils.loads(body.decode('utf-8'))['stats']
         else:
-            return json.loads(body.decode('utf-8'))
+            return jsonutils.loads(body.decode('utf-8'))

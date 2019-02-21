@@ -12,9 +12,8 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 
-import json
-
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from tempest import config
 
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
@@ -269,7 +268,7 @@ class MemberClient(base_client.BaseLBaaSClient):
         obj_dict = {self.list_root_tag: members_list}
         request_uri = self.uri.format(parent=pool_id)
 
-        response, body = self.put(request_uri, json.dumps(obj_dict))
+        response, body = self.put(request_uri, jsonutils.dumps(obj_dict))
         self.expected_success(202, response.status)
         return
 

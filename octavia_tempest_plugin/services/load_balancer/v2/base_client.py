@@ -13,9 +13,8 @@
 #   under the License.
 #
 
-import json
-
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from tempest import config
 from tempest.lib.common import rest_client
 from tempest.lib.common.utils import test_utils
@@ -99,12 +98,12 @@ class BaseLBaaSClient(rest_client.RestClient):
         else:
             request_uri = self.uri
 
-        response, body = self.post(request_uri, json.dumps(obj_dict))
+        response, body = self.post(request_uri, jsonutils.dumps(obj_dict))
         self.expected_success(201, response.status)
         if return_object_only:
-            return json.loads(body.decode('utf-8'))[self.root_tag]
+            return jsonutils.loads(body.decode('utf-8'))[self.root_tag]
         else:
-            return json.loads(body.decode('utf-8'))
+            return jsonutils.loads(body.decode('utf-8'))
 
     def _show_object(self, obj_id, parent_id=None, query_params=None,
                      return_object_only=True):
@@ -156,9 +155,9 @@ class BaseLBaaSClient(rest_client.RestClient):
         response, body = self.get(request_uri)
         self.expected_success(200, response.status)
         if return_object_only:
-            return json.loads(body.decode('utf-8'))[self.root_tag]
+            return jsonutils.loads(body.decode('utf-8'))[self.root_tag]
         else:
-            return json.loads(body.decode('utf-8'))
+            return jsonutils.loads(body.decode('utf-8'))
 
     def _list_objects(self, parent_id=None, query_params=None,
                       return_object_only=True):
@@ -208,9 +207,9 @@ class BaseLBaaSClient(rest_client.RestClient):
         response, body = self.get(request_uri)
         self.expected_success(200, response.status)
         if return_object_only:
-            return json.loads(body.decode('utf-8'))[self.list_root_tag]
+            return jsonutils.loads(body.decode('utf-8'))[self.list_root_tag]
         else:
-            return json.loads(body.decode('utf-8'))
+            return jsonutils.loads(body.decode('utf-8'))
 
     def _update_object(self, obj_id, parent_id=None, return_object_only=True,
                        **kwargs):
@@ -258,12 +257,12 @@ class BaseLBaaSClient(rest_client.RestClient):
             uri = self.uri
 
         request_uri = '{0}/{1}'.format(uri, obj_id)
-        response, body = self.put(request_uri, json.dumps(obj_dict))
+        response, body = self.put(request_uri, jsonutils.dumps(obj_dict))
         self.expected_success(200, response.status)
         if return_object_only:
-            return json.loads(body.decode('utf-8'))[self.root_tag]
+            return jsonutils.loads(body.decode('utf-8'))[self.root_tag]
         else:
-            return json.loads(body.decode('utf-8'))
+            return jsonutils.loads(body.decode('utf-8'))
 
     def _delete_obj(self, obj_id, parent_id=None, ignore_errors=False,
                     cascade=False):
@@ -365,7 +364,7 @@ class BaseLBaaSClient(rest_client.RestClient):
         try:
             request_uri = '{0}/{1}'.format(uri, obj_id)
             response, body = self.get(request_uri)
-            resp_obj = json.loads(body.decode('utf-8'))[self.root_tag]
+            resp_obj = jsonutils.loads(body.decode('utf-8'))[self.root_tag]
             if (response.status == 404 or
                     resp_obj['provisioning_status'] == const.DELETED):
                 raise exceptions.NotFound()
@@ -447,7 +446,7 @@ class BaseLBaaSClient(rest_client.RestClient):
         response, body = self.get('/')
         self.expected_success(200, response.status)
 
-        versions_list = json.loads(body.decode('utf-8'))['versions']
+        versions_list = jsonutils.loads(body.decode('utf-8'))['versions']
         current_versions = (version for version in versions_list if
                             version['status'] == 'CURRENT')
         max_version = '0.0'
