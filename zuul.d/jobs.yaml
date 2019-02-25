@@ -369,12 +369,15 @@
       - openstack/barbican
       - openstack/diskimage-builder
       - openstack/python-barbicanclient
+      - openstack/barbican-tempest-plugin
     vars:
       tempest_test_regex: ^octavia_tempest_plugin.tests.barbican_scenario.v2
       devstack_services:
         barbican: true
       devstack_plugins:
         barbican: https://git.openstack.org/openstack/barbican.git
+      devstack_localrc:
+        TEMPEST_PLUGINS: '"/opt/stack/octavia-tempest-plugin /opt/stack/barbican-tempest-plugin"'
 
 # Temporary transitional aliases for gates used in other repos
 # Remove once octavia has transitioned job names

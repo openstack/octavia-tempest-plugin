@@ -50,7 +50,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if not CONF.validation.run_validation:
             raise cls.skipException('Traffic tests will not work without '
                                     'run_validation enabled.')
-        if not CONF.service_available.barbican:
+        if not getattr(CONF.service_available, 'barbican', False):
             raise cls.skipException('TLS with Barbican tests require the '
                                     'barbican service.')
 
