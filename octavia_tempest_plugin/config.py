@@ -31,19 +31,6 @@ ServiceAvailableGroup = [
                      "to be available."),
 ]
 
-# Pull in the service_available for barbican if it is not defined.
-# If the barbican tempest plugin isn't loaded, this won't load from
-# tempest.conf.
-try:
-    if cfg.CONF.service_available.barbican is not None:
-        LOG.info('Barbican service_available state: {}'.format(
-            cfg.CONF.service_available.barbican))
-except cfg.NoSuchOptError:
-    ServiceAvailableGroup.append(
-        cfg.BoolOpt('barbican', default=False,
-                    help="Whether or not the barbican service is expected to "
-                         "be available."))
-
 octavia_group = cfg.OptGroup(name='load_balancer',
                              title='load-balancer service options')
 
