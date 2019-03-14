@@ -73,10 +73,15 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
 
+        protocol = const.HTTP
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not lb_feature_enabled.l7_protocol_enabled:
+            protocol = lb_feature_enabled.l4_protocol
+
         listener_name = data_utils.rand_name("lb_member_listener1_operations")
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: protocol,
             const.PROTOCOL_PORT: '80',
             const.LOADBALANCER_ID: cls.lb_id,
         }
@@ -96,7 +101,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         pool_name = data_utils.rand_name("lb_member_pool1_operations")
         pool_kwargs = {
             const.NAME: pool_name,
-            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL: protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.LISTENER_ID: cls.listener_id,
         }
@@ -173,6 +178,9 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Send some traffic
         self.check_members_balanced(self.lb_vip_address)
 
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.health_monitor_enabled,
+        'Health monitor testing is disabled')
     @decorators.idempotent_id('a16f8eb4-a77c-4b0e-8b1b-91c237039713')
     def test_healthmonitor_traffic(self):
         """Tests traffic is correctly routed based on healthmonitor status
@@ -385,6 +393,9 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Send some traffic and verify it is balanced again
         self.check_members_balanced(self.lb_vip_address)
 
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.l7_protocol_enabled,
+        'L7 protocol testing is disabled')
     @decorators.idempotent_id('3558186d-6dcd-4d9d-b7f7-adc190b66149')
     def test_l7policies_and_l7rules(self):
         """Tests sending traffic through a loadbalancer with l7rules
