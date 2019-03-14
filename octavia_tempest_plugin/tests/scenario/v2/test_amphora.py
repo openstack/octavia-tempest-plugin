@@ -31,6 +31,15 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
     """Test the amphora object API."""
 
     @classmethod
+    def skip_checks(cls):
+        super(AmphoraScenarioTest, cls).skip_checks()
+
+        if CONF.load_balancer.provider not in ['amphora', 'octavia']:
+            raise cls.skipException("Amphora tests require provider 'amphora' "
+                                    "or 'octavia' (alias to 'amphora', "
+                                    " deprecated) set")
+
+    @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
         super(AmphoraScenarioTest, cls).resource_setup()
