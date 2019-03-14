@@ -51,9 +51,9 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
         cls.protocol = const.HTTP
-        lb_feature_enabled = CONF.loadbalancer_feature_enabled
-        if not lb_feature_enabled.l7_protocol_enabled:
-            cls.protocol = lb_feature_enabled.l4_protocol
+        cls.lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not cls.lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = cls.lb_feature_enabled.l4_protocol
 
         listener_name = data_utils.rand_name("lb_member_listener1_pool")
         listener_kwargs = {
@@ -161,8 +161,12 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             const.NAME: new_name,
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_LEAST_CONNECTIONS,
         }
+
+        if self.lb_feature_enabled.pool_algorithms_enabled:
+            pool_update_kwargs[const.LB_ALGORITHM] = \
+                const.LB_ALGORITHM_LEAST_CONNECTIONS
+
         if self.protocol == const.HTTP:
             pool_update_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_HTTP_COOKIE}
@@ -184,8 +188,9 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         self.assertEqual(new_name, pool[const.NAME])
         self.assertEqual(new_description, pool[const.DESCRIPTION])
         self.assertTrue(pool[const.ADMIN_STATE_UP])
-        self.assertEqual(const.LB_ALGORITHM_LEAST_CONNECTIONS,
-                         pool[const.LB_ALGORITHM])
+        if self.lb_feature_enabled.pool_algorithms_enabled:
+            self.assertEqual(const.LB_ALGORITHM_LEAST_CONNECTIONS,
+                             pool[const.LB_ALGORITHM])
         self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
         if self.protocol == const.HTTP:
             self.assertEqual(const.SESSION_PERSISTENCE_HTTP_COOKIE,
