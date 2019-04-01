@@ -5,6 +5,7 @@
       - check-requirements
       - publish-openstack-docs-pti
       - tempest-plugin-jobs
+      - release-notes-jobs-python3
     check:
       jobs:
         - octavia-v2-dsvm-noop-api

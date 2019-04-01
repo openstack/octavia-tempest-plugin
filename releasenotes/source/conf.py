@@ -38,9 +38,13 @@
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'oslosphinx',
+    'openstackdocstheme',
     'reno.sphinxext',
 ]
+
+# openstackdocstheme options
+repository_name = 'openstack/octavia-tempest-plugin'
+use_storyboard = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -111,7 +115,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'openstackdocs'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -189,28 +193,29 @@ html_static_path = ['_static']
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'GlanceReleaseNotesdoc'
+htmlhelp_basename = 'OctaviaTempestPluginReleaseNotesdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
 
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    # 'preamble': '',
-}
+# latex_elements = {
+#    # The paper size ('letterpaper' or 'a4paper').
+#    # 'papersize': 'letterpaper',
+#
+#    # The font size ('10pt', '11pt' or '12pt').
+#    # 'pointsize': '10pt',
+#
+#    # Additional stuff for the LaTeX preamble.
+#    # 'preamble': '',
+# }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'GlanceReleaseNotes.tex', u'Glance Release Notes Documentation',
-     u'Glance Developers', 'manual'),
+    ('index', 'OctaviaTempestPluginReleaseNotes.tex',
+     u'Octavia Tempest Plugin Release Notes Documentation',
+     u'Octavia Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -239,8 +244,9 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'glancereleasenotes', u'Glance Release Notes Documentation',
-     [u'Glance Developers'], 1)
+    ('index', 'octaviatempestpluginreleasenotes',
+     u'Octavia Tempest Plugin Release Notes Documentation',
+     [u'Octavia Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -253,9 +259,10 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'GlanceReleaseNotes', u'Glance Release Notes Documentation',
-     u'Glance Developers', 'GlanceReleaseNotes',
-     'One line description of project.',
+    ('index', 'OctaviaTempestPluginReleaseNotes',
+     u'Octavia Tempest Plugin Release Notes Documentation',
+     u'Octavia Developers', 'OctaviaTempestPluginReleaseNotes',
+     'Octavia Load Balancing as a Service for OpenStack.',
      'Miscellaneous'),
 ]
 
