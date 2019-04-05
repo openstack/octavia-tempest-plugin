@@ -287,6 +287,11 @@
         USE_PYTHON3: False
 
 - job:
+    name: octavia-v2-dsvm-noop-api-stable-stein
+    parent: octavia-v2-dsvm-noop-api
+    override-checkout: stable/stein
+
+- job:
     name: octavia-v2-dsvm-noop-py2-api-stable-rocky
     parent: octavia-v2-dsvm-noop-py2-api
     override-checkout: stable/rocky
@@ -315,6 +320,11 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+
+- job:
+    name: octavia-v2-dsvm-scenario-stable-stein
+    parent: octavia-v2-dsvm-scenario
+    override-checkout: stable/stein
 
 - job:
     name: octavia-v2-dsvm-py2-scenario-stable-rocky
