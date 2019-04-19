@@ -81,7 +81,7 @@
         s-proxy: false
         tempest: true
       devstack_plugins:
-        octavia: https://git.openstack.org/openstack/octavia.git
+        octavia: https://opendev.org/openstack/octavia.git
 
 - job:
     name: octavia-dsvm-live-base
@@ -102,7 +102,7 @@
       devstack_services:
         neutron-qos: true
       devstack_plugins:
-        neutron: https://git.openstack.org/openstack/neutron.git
+        neutron: https://opendev.org/openstack/neutron.git
       zuul_copy_output:
         '/var/log/dib-build' : logs
 
@@ -145,8 +145,8 @@
           OCTAVIA_NODES: "main:{{ hostvars['controller']['nodepool']['private_ipv4'] }},second:{{ hostvars['controller2']['nodepool']['private_ipv4'] }}"
           OCTAVIA_USE_PREGENERATED_CERTS: true
         devstack_plugins:
-          neutron: https://git.openstack.org/openstack/neutron.git
-          octavia: https://git.openstack.org/openstack/octavia.git
+          neutron: https://opendev.org/openstack/neutron.git
+          octavia: https://opendev.org/openstack/octavia.git
       controller2:
         devstack_localrc:
           # From devstack "vars:"
@@ -180,7 +180,7 @@
           OCTAVIA_USE_PREGENERATED_CERTS: true
           OCTAVIA_MGMT_PORT_IP: 192.168.0.4
         devstack_plugins:
-          octavia: https://git.openstack.org/openstack/octavia.git
+          octavia: https://opendev.org/openstack/octavia.git
     group-vars:
       controller:
         devstack_local_conf:
@@ -386,7 +386,7 @@
       devstack_services:
         barbican: true
       devstack_plugins:
-        barbican: https://git.openstack.org/openstack/barbican.git
+        barbican: https://opendev.org/openstack/barbican.git
       devstack_localrc:
         TEMPEST_PLUGINS: '"/opt/stack/octavia-tempest-plugin /opt/stack/barbican-tempest-plugin"'
 
