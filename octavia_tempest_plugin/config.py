@@ -167,18 +167,22 @@ lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',
 LBFeatureEnabledGroup = [
     cfg.BoolOpt('health_monitor_enabled',
                 default=True,
-                help="Whether Health Monitor is available with provider"
-                     " driver or not."),
+                help="Whether Health Monitor is available with provider "
+                     "driver or not."),
     cfg.BoolOpt('terminated_tls_enabled',
                 default=True,
                 help="Whether TLS termination is available with provider "
                      "driver or not."),
     cfg.BoolOpt('l7_protocol_enabled',
                 default=True,
-                help="Whether L7 Protocols are available with the provider"
-                     " driver or not."),
+                help="Whether L7 Protocols are available with the provider "
+                     "driver or not."),
+    cfg.BoolOpt('pool_algorithms_enabled',
+                default=True,
+                help="Whether pool algorithms are available with provider"
+                     "driver or not."),
     cfg.StrOpt('l4_protocol',
                default="TCP",
-               help="The type of L4 Protocol which is supported with the"
-                    " provider driver."),
+               help="The type of L4 Protocol which is supported with the "
+                    "provider driver."),
 ]
