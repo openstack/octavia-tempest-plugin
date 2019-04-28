@@ -18,6 +18,8 @@ from tempest import config
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     amphora_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
+    flavor_capabilities_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
     flavor_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     flavor_profile_client)
@@ -69,3 +71,6 @@ class ManagerV2(clients.Manager):
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
         self.provider_client = provider_client.ProviderClient(
             self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+        self.flavor_capabilities_client = (
+            flavor_capabilities_client.FlavorCapabilitiesClient(
+                self.auth_provider, SERVICE_TYPE, CONF.identity.region))
