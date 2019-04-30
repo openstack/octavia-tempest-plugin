@@ -322,6 +322,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
     # fixed
     @decorators.skip_because(
         bug='2003329',
+        bug_type='storyboard',
         condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
     def test_mixed_udp_member_create(self):
         """Test the member creation with mixed IP protocol members/VIP."""
