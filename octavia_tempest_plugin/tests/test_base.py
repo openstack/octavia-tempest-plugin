@@ -298,14 +298,14 @@ class LoadBalancerBaseTest(test.BaseTestCase):
 
         # Create tenant VIP IPv6 subnet
         if CONF.load_balancer.test_with_ipv6:
-            # See if ipv6-public-subnet exists and use it if so.
-            pub_ipv6_subnet = cls.os_admin.subnets_client.list_subnets(
-                name='ipv6-public-subnet')['subnets']
+            # See if ipv6-private-subnet exists and use it if so.
+            priv_ipv6_subnet = cls.os_admin.subnets_client.list_subnets(
+                name='ipv6-private-subnet')['subnets']
 
-            if len(pub_ipv6_subnet) == 1:
-                cls.lb_member_vip_ipv6_subnet = pub_ipv6_subnet[0]
+            if len(priv_ipv6_subnet) == 1:
+                cls.lb_member_vip_ipv6_subnet = priv_ipv6_subnet[0]
                 cls.lb_member_vip_ipv6_net = {
-                    'id': pub_ipv6_subnet[0]['network_id']}
+                    'id': priv_ipv6_subnet[0]['network_id']}
             else:
                 subnet_kwargs = {
                     'name': data_utils.rand_name("lb_member_vip_ipv6_subnet"),
