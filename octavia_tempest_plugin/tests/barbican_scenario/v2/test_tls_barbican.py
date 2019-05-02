@@ -25,8 +25,6 @@ from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 
-from octavia_lib.common import constants as lib_consts
-
 from octavia_tempest_plugin.common import barbican_client_mgr
 from octavia_tempest_plugin.common import cert_utils
 from octavia_tempest_plugin.common import constants as const
@@ -222,7 +220,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         listener_name = data_utils.rand_name("lb_member_listener1-tls")
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: lib_consts.PROTOCOL_TERMINATED_HTTPS,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
             const.PROTOCOL_PORT: '443',
             const.LOADBALANCER_ID: self.lb_id,
             const.DEFAULT_POOL_ID: self.pool_id,
