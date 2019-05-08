@@ -390,6 +390,21 @@
       devstack_localrc:
         TEMPEST_PLUGINS: '"/opt/stack/octavia-tempest-plugin /opt/stack/barbican-tempest-plugin"'
 
+- job:
+    name: octavia-v2-dsvm-tls-barbican-stable-stein
+    parent: octavia-v2-dsvm-tls-barbican
+    override-checkout: stable/stein
+
+- job:
+    name: octavia-v2-dsvm-tls-barbican-stable-rocky
+    parent: octavia-v2-dsvm-tls-barbican
+    override-checkout: stable/rocky
+
+- job:
+    name: octavia-v2-dsvm-tls-barbican-stable-queens
+    parent: octavia-v2-dsvm-tls-barbican
+    override-checkout: stable/queens
+
 # Temporary transitional aliases for gates used in other repos
 # Remove once octavia has transitioned job names
 - job:
