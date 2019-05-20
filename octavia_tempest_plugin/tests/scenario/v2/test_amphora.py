@@ -78,7 +78,7 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
         """
         lb_name = data_utils.rand_name("lb_member_lb2_amphora-list")
         lb = self.mem_lb_client.create_loadbalancer(
-            name=lb_name,
+            name=lb_name, provider=CONF.load_balancer.provider,
             vip_network_id=self.lb_member_vip_net[const.ID])
         lb_id = lb[const.ID]
         self.addCleanup(
