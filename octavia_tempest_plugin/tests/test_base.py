@@ -314,6 +314,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                     'ip_version': 6}
                 result = cls.lb_mem_subnet_client.create_subnet(
                     **subnet_kwargs)
+                cls.lb_member_vip_ipv6_net = cls.lb_member_vip_net
                 cls.lb_member_vip_ipv6_subnet = result['subnet']
                 cls.addClassResourceCleanup(
                     waiters.wait_for_not_found,
