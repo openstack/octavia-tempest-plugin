@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed the service clients to use the tempest default service client
+    configuration settings.
