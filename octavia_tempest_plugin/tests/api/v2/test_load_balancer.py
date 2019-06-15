@@ -149,7 +149,8 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         """
         lb_name = data_utils.rand_name("lb_member_lb1-delete")
         lb = self.mem_lb_client.create_loadbalancer(
-            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+            name=lb_name, provider=CONF.load_balancer.provider,
+            vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
@@ -195,7 +196,8 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         """
         lb_name = data_utils.rand_name("lb_member_lb1-cascade_delete")
         lb = self.mem_lb_client.create_loadbalancer(
-            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+            name=lb_name, provider=CONF.load_balancer.provider,
+            vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
@@ -299,6 +301,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(
             admin_state_up=True,
             description=lb_description,
+            provider=CONF.load_balancer.provider,
             name=lb_name,
             vip_network_id=self.lb_member_vip_net[const.ID])
         self.addCleanup(
@@ -329,6 +332,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.create_loadbalancer(
             admin_state_up=False,
             description=lb_description,
+            provider=CONF.load_balancer.provider,
             name=lb_name,
             vip_network_id=self.lb_member_vip_net[const.ID])
         self.addCleanup(
@@ -663,7 +667,8 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         """
         lb_name = data_utils.rand_name("lb_member_lb1-show_stats")
         lb = self.mem_lb_client.create_loadbalancer(
-            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+            name=lb_name, provider=CONF.load_balancer.provider,
+            vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
@@ -724,7 +729,8 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         """
         lb_name = data_utils.rand_name("lb_member_lb1-status")
         lb = self.mem_lb_client.create_loadbalancer(
-            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+            name=lb_name, provider=CONF.load_balancer.provider,
+            vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
@@ -797,7 +803,8 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         """
         lb_name = data_utils.rand_name("lb_member_lb1-failover")
         lb = self.mem_lb_client.create_loadbalancer(
-            name=lb_name, vip_network_id=self.lb_member_vip_net[const.ID])
+            name=lb_name, provider=CONF.load_balancer.provider,
+            vip_network_id=self.lb_member_vip_net[const.ID])
         self.addClassResourceCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
