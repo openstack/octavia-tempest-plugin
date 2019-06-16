@@ -1,0 +1,16 @@
+# Tempest runs under an unpriviledged user, thus the user cannot read
+# /etc/octavia/.ssh/ created by the Octavia devstack plugin. As work-around,
+# a new SSH key is generated and given read access to all users.
+# See also OCTAVIA_USE_PREGENERATED_SSH_KEY and
+# OCTAVIA_PREGENERATED_SSH_KEY_PATH set in the
+# octavia-v2-act-stdby-dsvm-scenario job definition
+- hosts: all
+  name: Octavia DSVM jobs pre-run playbook
+  tasks:
+    - name: Generate Octavia RSA key
+      shell: ssh-keygen -t rsa -f /tmp/octavia_ssh_key -q -N ""
+    - name: Allow read permissions to other users
+      file:
+        path: /tmp/octavia_ssh_key
+        state: file
+        mode: 0644
