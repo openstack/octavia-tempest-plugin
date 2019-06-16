@@ -374,6 +374,15 @@
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: bionic
 
 - job:
+    name: octavia-v2-dsvm-scenario-ubuntu-xenial
+    parent: octavia-v2-dsvm-scenario
+    nodeset: openstack-single-node-xenial
+    vars:
+      devstack_localrc:
+        OCTAVIA_AMP_BASE_OS: ubuntu
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: xenial
+
+- job:
     name: octavia-v2-dsvm-tls-barbican
     parent: octavia-v2-dsvm-scenario
     required-projects:
