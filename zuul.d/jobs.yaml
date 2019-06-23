@@ -293,6 +293,13 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.api.v2
       tox_envlist: all
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+      - ^octavia_tempest_plugin/tests/(?!api/|\w+\.py).*
 
 - job:
     name: octavia-v2-dsvm-noop-py2-api
@@ -328,6 +335,13 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
       tox_envlist: all
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+      - ^octavia_tempest_plugin/tests/(?!scenario/|\w+\.py).*
 
 - job:
     name: octavia-v2-dsvm-py2-scenario
@@ -358,6 +372,13 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
       tox_envlist: all
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+      - ^octavia_tempest_plugin/tests/(?!scenario/|\w+\.py).*
 
 - job:
     name: octavia-v2-dsvm-py2-scenario-two-node
@@ -413,6 +434,13 @@
         barbican: https://opendev.org/openstack/barbican.git
       devstack_localrc:
         TEMPEST_PLUGINS: '"/opt/stack/octavia-tempest-plugin /opt/stack/barbican-tempest-plugin"'
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+      - ^octavia_tempest_plugin/tests/(?!barbican_scenario/|\w+\.py).*
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-stein
@@ -467,6 +495,7 @@
               check_timeout: 180
       tempest_test_regex: ^octavia_tempest_plugin.tests.act_stdby_scenario.v2.test_active_standby_iptables
       tox_envlist: all
+
 
 - job:
     name: octavia-v2-act-stdby-dsvm-py2-scenario
