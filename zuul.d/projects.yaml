@@ -16,6 +16,10 @@
         - octavia-v2-dsvm-scenario-stable-ussuri
         - octavia-v2-dsvm-scenario-stable-train
         - octavia-v2-dsvm-scenario-stable-stein
+        - octavia-v2-dsvm-tls-barbican
+        - octavia-v2-dsvm-tls-barbican-stable-ussuri
+        - octavia-v2-dsvm-tls-barbican-stable-train
+        - octavia-v2-dsvm-tls-barbican-stable-stein
         - octavia-v2-dsvm-scenario-ipv6-only:
             voting: false
         - octavia-v2-dsvm-scenario-centos-8:
@@ -29,14 +33,6 @@
         - octavia-v2-act-stdby-dsvm-scenario-stable-train:
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario-stable-stein:
-            voting: false
-        - octavia-v2-dsvm-tls-barbican:
-            voting: false
-        - octavia-v2-dsvm-tls-barbican-stable-ussuri:
-            voting: false
-        - octavia-v2-dsvm-tls-barbican-stable-train:
-            voting: false
-        - octavia-v2-dsvm-tls-barbican-stable-stein:
             voting: false
         - octavia-v2-dsvm-spare-pool:
             voting: false
@@ -60,3 +56,7 @@
         - octavia-v2-dsvm-scenario-stable-ussuri
         - octavia-v2-dsvm-scenario-stable-train
         - octavia-v2-dsvm-scenario-stable-stein
+        - octavia-v2-dsvm-tls-barbican
+        - octavia-v2-dsvm-tls-barbican-stable-ussuri
+        - octavia-v2-dsvm-tls-barbican-stable-train
+        - octavia-v2-dsvm-tls-barbican-stable-stein
