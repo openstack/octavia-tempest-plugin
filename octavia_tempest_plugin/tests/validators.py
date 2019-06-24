@@ -75,7 +75,7 @@ def validate_URL_response(URL, expected_status_code=200,
                 return
             except requests.exceptions.Timeout:
                 # Don't sleep as we have already waited the interval.
-                LOG.info('Request for () timed out. Retrying.'.format(URL))
+                LOG.info('Request for {} timed out. Retrying.'.format(URL))
             except (exceptions.InvalidHttpSuccessCode,
                     exceptions.InvalidHTTPResponseBody,
                     requests.exceptions.SSLError):
