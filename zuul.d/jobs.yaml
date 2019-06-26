@@ -49,7 +49,7 @@
       - ^releasenotes/.*$
     vars:
       devstack_localrc:
-        TEMPEST_PLUGINS: "'/opt/stack/octavia-tempest-plugin'"
+        TEMPEST_PLUGINS: /opt/stack/octavia-tempest-plugin
         USE_PYTHON3: true
       devstack_local_conf:
         post-config:
@@ -140,7 +140,7 @@
           MULTI_HOST: 1
           SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           HOST_IP: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
-          TEMPEST_PLUGINS: "'/opt/stack/octavia-tempest-plugin'"
+          TEMPEST_PLUGINS: /opt/stack/octavia-tempest-plugin
           USE_PYTHON3: true
           # Octavia specific settings
           OCTAVIA_CONTROLLER_IP_PORT_LIST: 192.168.0.3:5555,192.168.0.4:5555
