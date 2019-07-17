@@ -120,8 +120,9 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(CONF.load_balancer.provider, lb[const.PROVIDER])
         self.assertIsNotNone(lb[const.VIP_PORT_ID])
         if lb_kwargs[const.VIP_SUBNET_ID]:
-            self.assertEqual(lb_kwargs[const.VIP_ADDRESS],
-                             lb[const.VIP_ADDRESS])
+            if ip_version == 4 or self.lb_member_vip_ipv6_subnet_stateful:
+                self.assertEqual(lb_kwargs[const.VIP_ADDRESS],
+                                 lb[const.VIP_ADDRESS])
             self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
                              lb[const.VIP_SUBNET_ID])
 

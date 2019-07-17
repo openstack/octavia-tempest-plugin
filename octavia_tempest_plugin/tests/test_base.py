@@ -157,6 +157,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                                                  uuidutils.generate_uuid()}
                 cls.lb_member_1_ipv6_subnet = {'id': uuidutils.generate_uuid()}
                 cls.lb_member_2_ipv6_subnet = {'id': uuidutils.generate_uuid()}
+                cls.lb_member_vip_ipv6_subnet_stateful = True
             return
         elif CONF.load_balancer.test_network_override:
             if conf_lb.test_subnet_override:
@@ -182,6 +183,10 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 cls.lb_member_vip_ipv6_subnet = override_ipv6_subnet
                 cls.lb_member_1_ipv6_subnet = override_ipv6_subnet
                 cls.lb_member_2_ipv6_subnet = override_ipv6_subnet
+                cls.lb_member_vip_ipv6_subnet_stateful = False
+                if (override_ipv6_subnet[0]['ipv6_address_mode'] ==
+                        'dhcpv6-stateful'):
+                    cls.lb_member_vip_ipv6_subnet_stateful = True
             else:
                 cls.lb_member_vip_ipv6_subnet = None
                 cls.lb_member_1_ipv6_subnet = None
@@ -303,6 +308,10 @@ class LoadBalancerBaseTest(test.BaseTestCase):
             priv_ipv6_subnet = cls.os_admin.subnets_client.list_subnets(
                 name='ipv6-private-subnet')['subnets']
 
+            cls.lb_member_vip_ipv6_subnet_stateful = False
+            if (priv_ipv6_subnet[0]['ipv6_address_mode'] ==
+                    'dhcpv6-stateful'):
+                cls.lb_member_vip_ipv6_subnet_stateful = True
             if len(priv_ipv6_subnet) == 1:
                 cls.lb_member_vip_ipv6_subnet = priv_ipv6_subnet[0]
                 cls.lb_member_vip_ipv6_net = {
@@ -457,6 +466,10 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                     subnet = cls.os_admin.subnets_client.show_subnet(subnet_id)
                     network = ipaddress.IPv6Network(subnet['subnet']['cidr'])
                     lb_vip_address = str(network[ip_index])
+                    # If the subnet is IPv6 slaac or dhcpv6-stateless
+                    # neutron does not allow a fixed IP
+                    if not cls.lb_member_vip_ipv6_subnet_stateful:
+                        use_fixed_ip = False
             lb_kwargs[const.VIP_SUBNET_ID] = subnet_id
             if use_fixed_ip:
                 lb_kwargs[const.VIP_ADDRESS] = lb_vip_address
