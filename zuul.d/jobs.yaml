@@ -429,6 +429,43 @@
     parent: octavia-v2-dsvm-tls-barbican
     override-checkout: stable/queens
 
+- job:
+    name: octavia-v2-dsvm-spare-pool
+    parent: octavia-v2-dsvm-scenario
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.spare_pool_scenario.v2
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            house_keeping:
+              spare_amphora_pool_size: 1
+        test-config:
+          "$TEMPEST_CONFIG":
+            loadbalancer-feature-enabled:
+              spare_pool_enabled: True
+
+- job:
+    name: octavia-v2-dsvm-py2-spare-pool
+    parent: octavia-v2-dsvm-spare-pool
+    vars:
+      devstack_localrc:
+        USE_PYTHON3: False
+
+- job:
+    name: octavia-v2-dsvm-spare-pool-stable-stein
+    parent: octavia-v2-dsvm-spare-pool
+    override-checkout: stable/stein
+
+- job:
+    name: octavia-v2-dsvm-py2-spare-pool-stable-rocky
+    parent: octavia-v2-dsvm-py2-spare-pool
+    override-checkout: stable/rocky
+
+- job:
+    name: octavia-v2-dsvm-py2-spare-pool-stable-queens
+    parent: octavia-v2-dsvm-py2-spare-pool
+    override-checkout: stable/queens
+
 # Temporary transitional aliases for gates used in other repos
 # Remove once octavia has transitioned job names
 - job:

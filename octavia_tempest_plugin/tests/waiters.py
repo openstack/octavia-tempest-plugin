@@ -180,3 +180,31 @@ def wait_for_deleted_status_or_not_found(
             raise exceptions.TimeoutException(message)
 
         time.sleep(check_interval)
+
+
+def wait_for_spare_amps(list_func, check_interval, check_timeout):
+    """Waits for amphorae in spare pool.
+
+    :param list_func: The tempest service client amphora list method.
+                        Ex. cls.os_admin.amphora_client.list_amphorae
+    :check_interval: How often to check the status, in seconds.
+    :check_timeout: The maximum time, in seconds, to check the status.
+    :raises TimeoutException: No amphora available in spare pool in the
+                              check_timeout period.
+    :returns: A list of amphorae in spare pool.
+    """
+
+    LOG.info('Waiting for amphorae in spare pool')
+    start = int(time.time())
+    while True:
+        spare_amps = list_func(
+            query_params='{status}={status_ready}'.format(
+                status=const.STATUS, status_ready=const.STATUS_READY))
+        if len(spare_amps) >= 1:
+            return spare_amps
+        if int(time.time()) - start >= check_timeout:
+            message = ("No available amphorae in spare pool within the "
+                       "required time {timeout}.".format(
+                           timeout=check_timeout))
+            raise exceptions.TimeoutException(message)
+        time.sleep(check_interval)

@@ -192,4 +192,8 @@ LBFeatureEnabledGroup = [
                default="TCP",
                help="The type of L4 Protocol which is supported with the "
                     "provider driver."),
+    cfg.StrOpt('spare_pool_enabled',
+               default=False,
+               help="Wether spare pool is available with amphora provider "
+                    "driver or not."),
 ]
