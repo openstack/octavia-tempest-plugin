@@ -46,6 +46,10 @@ class ActiveStandbyIptablesScenarioTest(
                                     "or 'octavia' (alias to 'amphora', "
                                     "deprecated) set.")
 
+        if CONF.load_balancer.loadbalancer_topology != const.ACTIVE_STANDBY:
+            raise cls.skipException("Configured load balancer topology is not "
+                                    "%s." % const.ACTIVE_STANDBY)
+
     @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""

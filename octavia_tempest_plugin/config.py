@@ -111,6 +111,10 @@ OctaviaGroup = [
                 default={'amphora': 'The Octavia Amphora driver.',
                          'octavia': 'Deprecated alias of the Octavia Amphora '
                          'driver.'}),
+    cfg.StrOpt('loadbalancer_topology',
+               default=const.SINGLE,
+               choices=const.SUPPORTED_LB_TOPOLOGIES,
+               help='Load balancer topology configuration.'),
     # Networking
     cfg.BoolOpt('test_with_ipv6',
                 default=True,
