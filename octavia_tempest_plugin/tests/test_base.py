@@ -309,10 +309,10 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 name='ipv6-private-subnet')['subnets']
 
             cls.lb_member_vip_ipv6_subnet_stateful = False
-            if (priv_ipv6_subnet[0]['ipv6_address_mode'] ==
-                    'dhcpv6-stateful'):
-                cls.lb_member_vip_ipv6_subnet_stateful = True
             if len(priv_ipv6_subnet) == 1:
+                if (priv_ipv6_subnet[0]['ipv6_address_mode'] ==
+                        'dhcpv6-stateful'):
+                    cls.lb_member_vip_ipv6_subnet_stateful = True
                 cls.lb_member_vip_ipv6_subnet = priv_ipv6_subnet[0]
                 cls.lb_member_vip_ipv6_net = {
                     'id': priv_ipv6_subnet[0]['network_id']}
@@ -331,6 +331,7 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                     cls._logging_delete_subnet,
                     cls.lb_mem_subnet_client.show_subnet,
                     cls.lb_member_vip_ipv6_subnet['id'])
+
             LOG.info('lb_member_vip_ipv6_subnet: {}'.format(
                 cls.lb_member_vip_ipv6_subnet))
 
