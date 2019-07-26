@@ -41,7 +41,6 @@ from octavia_tempest_plugin.services.load_balancer.v2 import (
     provider_client)
 
 CONF = config.CONF
-SERVICE_TYPE = 'load-balancer'
 
 
 class ManagerV2(clients.Manager):
@@ -49,28 +48,29 @@ class ManagerV2(clients.Manager):
     def __init__(self, credentials):
         super(ManagerV2, self).__init__(credentials)
 
+        params = dict(self.default_params)
+        params.update({
+            'auth_provider': self.auth_provider,
+            'service': CONF.load_balancer.catalog_type,
+            'region': CONF.load_balancer.region,
+            'endpoint_type': CONF.load_balancer.endpoint_type,
+            'build_interval': CONF.load_balancer.build_interval,
+            'build_timeout': CONF.load_balancer.build_timeout
+        })
+
         self.loadbalancer_client = loadbalancer_client.LoadbalancerClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.listener_client = listener_client.ListenerClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.pool_client = pool_client.PoolClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.member_client = member_client.MemberClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+            **params)
+        self.listener_client = listener_client.ListenerClient(**params)
+        self.pool_client = pool_client.PoolClient(**params)
+        self.member_client = member_client.MemberClient(**params)
         self.healthmonitor_client = healthmonitor_client.HealthMonitorClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.l7policy_client = l7policy_client.L7PolicyClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.l7rule_client = l7rule_client.L7RuleClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.amphora_client = amphora_client.AmphoraClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+            **params)
+        self.l7policy_client = l7policy_client.L7PolicyClient(**params)
+        self.l7rule_client = l7rule_client.L7RuleClient(**params)
+        self.amphora_client = amphora_client.AmphoraClient(**params)
         self.flavor_profile_client = flavor_profile_client.FlavorProfileClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.flavor_client = flavor_client.FlavorClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
-        self.provider_client = provider_client.ProviderClient(
-            self.auth_provider, SERVICE_TYPE, CONF.identity.region)
+            **params)
+        self.flavor_client = flavor_client.FlavorClient(**params)
+        self.provider_client = provider_client.ProviderClient(**params)
         self.flavor_capabilities_client = (
-            flavor_capabilities_client.FlavorCapabilitiesClient(
-                self.auth_provider, SERVICE_TYPE, CONF.identity.region))
+            flavor_capabilities_client.FlavorCapabilitiesClient(**params))
