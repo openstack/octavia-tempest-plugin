@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
 import testtools
 
 from oslo_log import log as logging
@@ -49,6 +48,8 @@ class ActiveStandbyIptablesScenarioTest(
         if CONF.load_balancer.loadbalancer_topology != const.ACTIVE_STANDBY:
             raise cls.skipException("Configured load balancer topology is not "
                                     "%s." % const.ACTIVE_STANDBY)
+
+        cls._get_amphora_ssh_key()
 
     @classmethod
     def resource_setup(cls):
@@ -230,13 +231,12 @@ class ActiveStandbyIptablesScenarioTest(
     @classmethod
     def _get_amphora_ssh_key(cls):
         key_file = CONF.load_balancer.amphora_ssh_key
-        if not key_file:
-            raise Exception("SSH key file not provided.")
-        if not os.path.isfile(key_file):
-            raise Exception("Could not find amphora ssh key file {1}."
+        try:
+            with open(key_file, 'r') as f:
+                return f.read()
+        except IOError:
+            raise Exception("Could not open amphora SSH key file {0}."
                             .format(key_file))
-        with open(key_file, 'r') as f:
-            return f.read()
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Active/Standby tests will not work in noop mode.')

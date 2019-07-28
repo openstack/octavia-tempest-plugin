@@ -561,6 +561,7 @@
             load_balancer:
               check_timeout: 180
               loadbalancer_topology: 'ACTIVE_STANDBY'
+              amphora_ssh_key: '/tmp/octavia_ssh_key'
       tempest_test_regex: ^octavia_tempest_plugin.tests.act_stdby_scenario.v2.test_active_standby_iptables
       tox_envlist: all
 
