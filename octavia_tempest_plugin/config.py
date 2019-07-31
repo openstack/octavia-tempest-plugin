@@ -209,6 +209,10 @@ OctaviaGroup = [
                default='/var/log/octavia-tenant-traffic.log',
                help='File path, on the tempest system, to the tenant flow '
                     'log file.'),
+    cfg.StrOpt('amphora_admin_log_file',
+               default='/var/log/octavia-amphora.log',
+               help='File path, on the tempest system, to the amphora admin '
+                    'log file.'),
 ]
 
 lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',

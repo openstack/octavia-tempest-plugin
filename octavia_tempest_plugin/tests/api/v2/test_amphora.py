@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import testtools
+import time
 from uuid import UUID
 
 from dateutil import parser
@@ -227,3 +229,63 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
 
         for new_amp in after_amphorae:
             self.assertNotEqual(amphora_1[const.ID], new_amp[const.ID])
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Log offload tests will not work in noop mode.')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.log_offload_enabled,
+        'Skipping log offload tests because tempest configuration '
+        '[loadbalancer-feature-enabled] log_offload_enabled is False.')
+    @decorators.idempotent_id('4e3c6fcb-5f83-4da1-8296-56f209eae30d')
+    def test_admin_log(self):
+        """Tests admin log offloading
+
+        * Create a listener
+        * Validates the listener config log message is present
+        """
+        listener_name = data_utils.rand_name("lb_member_listener1_admin_log")
+        protocol_port = '8124'
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL_PORT: protocol_port,
+            const.LOADBALANCER_ID: self.lb_id,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # We need to give the log subsystem time to commit the log
+        time.sleep(CONF.load_balancer.check_interval)
+
+        # Check for an amphora agent API call and code log entry
+        # One is logged via the gunicorn logging and the other via
+        # oslo.logging.
+        agent_found = False
+        client_found = False
+        with open(CONF.load_balancer.amphora_admin_log_file) as f:
+            for line in f:
+                if 'Octavia HaProxy Rest Client' in line:
+                    client_found = True
+                if ' amphora-agent: ' in line:
+                    agent_found = True
+                if client_found and agent_found:
+                    break
+
+        self.assertTrue(
+            client_found,
+            'Octavia user agent string was not found in: {0}'.format(
+                CONF.load_balancer.amphora_admin_log_file))
+
+        self.assertTrue(
+            agent_found, 'Amphora agent string was not found in: {0}'.format(
+                CONF.load_balancer.amphora_admin_log_file))
