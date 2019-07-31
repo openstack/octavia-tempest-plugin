@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds an optional tenant flow log offload scenario test.
