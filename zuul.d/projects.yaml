@@ -22,9 +22,9 @@
             voting: false
         - octavia-v2-dsvm-scenario-ubuntu-bionic:
             voting: false
-        - octavia-v2-dsvm-scenario-two-node:
+        - octavia-v2-act-stdby-dsvm-scenario-two-node:
             voting: false
-        - octavia-v2-dsvm-py2-scenario-two-node:
+        - octavia-v2-act-stdby-dsvm-py2-scenario-two-node:
             voting: false
         - octavia-v2-act-stdby-iptables-dsvm-scenario:
             voting: false

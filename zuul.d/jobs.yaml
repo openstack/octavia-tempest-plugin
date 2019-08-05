@@ -365,6 +365,7 @@
     parent: octavia-v2-dsvm-py2-scenario
     override-checkout: stable/queens
 
+# Legacy jobs for the transition to the act-stdby two node jobs
 - job:
     name: octavia-v2-dsvm-scenario-two-node
     parent: octavia-dsvm-live-two-node-base
@@ -383,6 +384,30 @@
 - job:
     name: octavia-v2-dsvm-py2-scenario-two-node
     parent: octavia-v2-dsvm-scenario-two-node
+    host-vars:
+      controller:
+        devstack_localrc:
+          USE_PYTHON3: False
+      controller2:
+        devstack_localrc:
+          USE_PYTHON3: False
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario-two-node
+    parent: octavia-dsvm-live-two-node-base
+    vars:
+      tempest_concurrency: 2
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
+      tox_envlist: all
+      devstack_local_conf:
+        test-config:
+          "$TEMPEST_CONFIG":
+            load_balancer:
+              loadbalancer_topology: ACTIVE_STANDBY
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-py2-scenario-two-node
+    parent: octavia-v2-act-stdby-dsvm-scenario-two-node
     host-vars:
       controller:
         devstack_localrc:
