@@ -115,11 +115,11 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
 
         # Test that a user with cloud admin role can list the amphorae
         if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            adm = self.os_admin.amphora_client.list_amphorae()
+            adm = self.lb_admin_amphora_client.list_amphorae()
             self.assertTrue(len(adm) >= 2 * self._expected_amp_count(adm))
 
         # Get an actual list of the amphorae
-        amphorae = self.os_admin.amphora_client.list_amphorae()
+        amphorae = self.lb_admin_amphora_client.list_amphorae()
 
         # There should be AT LEAST 2, there may be more depending on the
         # configured topology, or if there are other LBs created besides ours
@@ -127,7 +127,7 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
             len(amphorae) >= 2 * self._expected_amp_count(amphorae))
 
         show_amphora_response_fields = const.SHOW_AMPHORA_RESPONSE_FIELDS
-        if self.mem_amphora_client.is_version_supported(
+        if self.lb_admin_amphora_client.is_version_supported(
                 self.api_version, '2.1'):
             show_amphora_response_fields.append('created_at')
             show_amphora_response_fields.append('updated_at')
@@ -140,7 +140,7 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
                 self.assertIn(field, amp)
 
             amp_id = amp[const.ID]
-            amp_obj = self.os_admin.amphora_client.show_amphora(
+            amp_obj = self.lb_admin_amphora_client.show_amphora(
                 amphora_id=amp_id)
 
             # Make sure all of the fields exist on the amp show record
@@ -148,7 +148,7 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
                 self.assertIn(field, amp_obj)
 
             # Verify a few of the fields are the right type
-            if self.mem_amphora_client.is_version_supported(
+            if self.lb_admin_amphora_client.is_version_supported(
                     self.api_version, '2.1'):
                 parser.parse(amp_obj[const.CREATED_AT])
                 parser.parse(amp_obj[const.UPDATED_AT])
@@ -175,13 +175,13 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
                 self.assertEqual(amp[field], amp_obj[field])
 
         # Test filtering by loadbalancer_id
-        amphorae = self.os_admin.amphora_client.list_amphorae(
+        amphorae = self.lb_admin_amphora_client.list_amphorae(
             query_params='{loadbalancer_id}={lb_id}'.format(
                 loadbalancer_id=const.LOADBALANCER_ID, lb_id=self.lb_id))
         self.assertEqual(self._expected_amp_count(amphorae), len(amphorae))
         self.assertEqual(self.lb_id, amphorae[0][const.LOADBALANCER_ID])
 
-        amphorae = self.os_admin.amphora_client.list_amphorae(
+        amphorae = self.lb_admin_amphora_client.list_amphorae(
             query_params='{loadbalancer_id}={lb_id}'.format(
                 loadbalancer_id=const.LOADBALANCER_ID, lb_id=lb_id))
         self.assertEqual(self._expected_amp_count(amphorae), len(amphorae))
