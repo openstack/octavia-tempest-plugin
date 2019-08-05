@@ -826,6 +826,11 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.show_loadbalancer(lb[const.ID])
         self.assertEqual(const.ACTIVE, lb[const.PROVISIONING_STATUS])
 
+        if CONF.load_balancer.provider in ['amphora', 'octavia']:
+            before_amphorae = self.lb_admin_amphora_client.list_amphorae(
+                query_params='{loadbalancer_id}={lb_id}'.format(
+                    loadbalancer_id=const.LOADBALANCER_ID, lb_id=lb[const.ID]))
+
         self.os_roles_lb_admin.loadbalancer_client.failover_loadbalancer(
             lb[const.ID])
 
@@ -834,8 +839,17 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                      const.ACTIVE,
                                      CONF.load_balancer.lb_build_interval,
                                      CONF.load_balancer.lb_build_timeout)
-        # TODO(johnsom) Assert the amphora ID has changed when amp client
-        #               is available.
+
+        if CONF.load_balancer.provider in ['amphora', 'octavia']:
+            after_amphorae = self.lb_admin_amphora_client.list_amphorae(
+                query_params='{loadbalancer_id}={lb_id}'.format(
+                    loadbalancer_id=const.LOADBALANCER_ID, lb_id=lb[const.ID]))
+
+            # Make sure all of the amphora on the load balancer have
+            # failed over
+            for amphora in before_amphorae:
+                for new_amp in after_amphorae:
+                    self.assertNotEqual(amphora[const.ID], new_amp[const.ID])
 
         # Attempt to clean up so that one full test run doesn't start 10+
         # amps before the cleanup phase fires

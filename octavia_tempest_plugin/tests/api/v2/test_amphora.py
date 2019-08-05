@@ -30,11 +30,9 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
     @classmethod
     def skip_checks(cls):
         super(AmphoraAPITest, cls).skip_checks()
-
         if CONF.load_balancer.provider not in ['amphora', 'octavia']:
-            raise cls.skipException("Amphora tests require provider 'amphora' "
-                                    "or 'octavia' (alias to 'amphora', "
-                                    " deprecated) set.")
+            raise cls.skipException('Amphora tests only run with the amphora '
+                                    'provider enabled.')
 
     @classmethod
     def resource_setup(cls):
@@ -96,3 +94,41 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
         amp = self.lb_admin_amphora_client.show_amphora(amphora_1[const.ID])
 
         self.assertEqual(const.STATUS_ALLOCATED, amp[const.STATUS])
+
+    @decorators.idempotent_id('fb772680-b2ba-4fc3-989b-95ad8492ccaf')
+    def test_amphora_failover(self):
+        """Tests the amphora failover API.
+
+        * Validates that non-admin accounts cannot failover amphora
+        * Fails over an amphora
+        * Validates that a new amphora is built
+        """
+        amphorae = self.lb_admin_amphora_client.list_amphorae(
+            query_params='{loadbalancer_id}={lb_id}'.format(
+                loadbalancer_id=const.LOADBALANCER_ID, lb_id=self.lb_id))
+        amphora_1 = amphorae[0]
+
+        # Test RBAC not authorized for non-admin role
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            self.assertRaises(exceptions.Forbidden,
+                              self.os_primary.amphora_client.amphora_failover,
+                              amphora_1[const.ID])
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_roles_lb_member.amphora_client.amphora_failover,
+                amphora_1[const.ID])
+
+        self.lb_admin_amphora_client.amphora_failover(amphora_1[const.ID])
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.lb_build_interval,
+                                CONF.load_balancer.lb_build_timeout)
+
+        after_amphorae = self.lb_admin_amphora_client.list_amphorae(
+            query_params='{loadbalancer_id}={lb_id}'.format(
+                loadbalancer_id=const.LOADBALANCER_ID, lb_id=self.lb_id))
+
+        for new_amp in after_amphorae:
+            self.assertNotEqual(amphora_1[const.ID], new_amp[const.ID])
