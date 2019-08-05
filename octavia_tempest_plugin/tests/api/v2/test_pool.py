@@ -41,9 +41,9 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                      const.NAME: lb_name}
         cls._setup_lb_network_kwargs(lb_kwargs)
         cls.protocol = const.HTTP
-        lb_feature_enabled = CONF.loadbalancer_feature_enabled
-        if not lb_feature_enabled.l7_protocol_enabled:
-            cls.protocol = lb_feature_enabled.l4_protocol
+        cls.lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if not cls.lb_feature_enabled.l7_protocol_enabled:
+            cls.protocol = cls.lb_feature_enabled.l4_protocol
 
         lb = cls.mem_lb_client.create_loadbalancer(**lb_kwargs)
         cls.lb_id = lb[const.ID]
@@ -103,11 +103,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.SESSION_PERSISTENCE: {
+        }
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
                 const.COOKIE_NAME: pool_sp_cookie_name,
-            },
-        }
+            }
+
         if has_listener:
             pool_kwargs[const.LISTENER_ID] = self.listener_id
         else:
@@ -170,11 +172,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             self.assertEmpty(pool[const.LISTENERS])
         self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
                          pool[const.LB_ALGORITHM])
-        self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
-        self.assertEqual(const.SESSION_PERSISTENCE_APP_COOKIE,
-                         pool[const.SESSION_PERSISTENCE][const.TYPE])
-        self.assertEqual(pool_sp_cookie_name,
-                         pool[const.SESSION_PERSISTENCE][const.COOKIE_NAME])
+        if self.lb_feature_enabled.session_persistence_enabled:
+            self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
+            self.assertEqual(const.SESSION_PERSISTENCE_APP_COOKIE,
+                             pool[const.SESSION_PERSISTENCE][const.TYPE])
+            self.assertEqual(pool_sp_cookie_name,
+                             pool[const.SESSION_PERSISTENCE][
+                                 const.COOKIE_NAME])
 
     @decorators.idempotent_id('6959a32e-fb34-4f3e-be68-8880c6450016')
     def test_pool_list(self):
@@ -216,12 +220,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.SESSION_PERSISTENCE: {
-                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
-                const.COOKIE_NAME: pool1_sp_cookie_name,
-            },
             const.LOADBALANCER_ID: lb_id,
         }
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool1_kwargs[const.SESSION_PERSISTENCE] = {
+                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
+                const.COOKIE_NAME: pool1_sp_cookie_name,
+            }
         pool1 = self.mem_pool_client.create_pool(
             **pool1_kwargs)
         self.addCleanup(
@@ -253,12 +258,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.SESSION_PERSISTENCE: {
-                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
-                const.COOKIE_NAME: pool2_sp_cookie_name,
-            },
             const.LOADBALANCER_ID: lb_id,
         }
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool2_kwargs[const.SESSION_PERSISTENCE] = {
+                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
+                const.COOKIE_NAME: pool2_sp_cookie_name,
+            }
         pool2 = self.mem_pool_client.create_pool(
             **pool2_kwargs)
         self.addCleanup(
@@ -430,12 +436,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.SESSION_PERSISTENCE: {
-                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
-                const.COOKIE_NAME: pool_sp_cookie_name,
-            },
             const.LOADBALANCER_ID: self.lb_id,
         }
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool_kwargs[const.SESSION_PERSISTENCE] = {
+                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
+                const.COOKIE_NAME: pool_sp_cookie_name,
+            }
 
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
         self.addClassResourceCleanup(
@@ -469,11 +476,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertEmpty(pool[const.LISTENERS])
         self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
                          pool[const.LB_ALGORITHM])
-        self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
-        self.assertEqual(const.SESSION_PERSISTENCE_APP_COOKIE,
-                         pool[const.SESSION_PERSISTENCE][const.TYPE])
-        self.assertEqual(pool_sp_cookie_name,
-                         pool[const.SESSION_PERSISTENCE][const.COOKIE_NAME])
+        if self.lb_feature_enabled.session_persistence_enabled:
+            self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
+            self.assertEqual(const.SESSION_PERSISTENCE_APP_COOKIE,
+                             pool[const.SESSION_PERSISTENCE][const.TYPE])
+            self.assertEqual(pool_sp_cookie_name,
+                             pool[const.SESSION_PERSISTENCE][
+                                 const.COOKIE_NAME])
 
         # Test that a user with lb_admin role can see the pool
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
@@ -524,13 +533,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: False,
             const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.SESSION_PERSISTENCE: {
-                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
-                const.COOKIE_NAME: pool_sp_cookie_name,
-            },
             const.LOADBALANCER_ID: self.lb_id,
         }
-
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool_kwargs[const.SESSION_PERSISTENCE] = {
+                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
+                const.COOKIE_NAME: pool_sp_cookie_name,
+            }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
         self.addClassResourceCleanup(
             self.mem_pool_client.cleanup_pool,
@@ -563,11 +572,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertEmpty(pool[const.LISTENERS])
         self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
                          pool[const.LB_ALGORITHM])
-        self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
-        self.assertEqual(const.SESSION_PERSISTENCE_APP_COOKIE,
-                         pool[const.SESSION_PERSISTENCE][const.TYPE])
-        self.assertEqual(pool_sp_cookie_name,
-                         pool[const.SESSION_PERSISTENCE][const.COOKIE_NAME])
+        if self.lb_feature_enabled.session_persistence_enabled:
+            self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
+            self.assertEqual(const.SESSION_PERSISTENCE_APP_COOKIE,
+                             pool[const.SESSION_PERSISTENCE][const.TYPE])
+            self.assertEqual(pool_sp_cookie_name,
+                             pool[const.SESSION_PERSISTENCE][
+                                 const.COOKIE_NAME])
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -607,10 +618,11 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.SESSION_PERSISTENCE: {
-                const.TYPE: const.SESSION_PERSISTENCE_HTTP_COOKIE,
-            },
         }
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool_update_kwargs[const.SESSION_PERSISTENCE] = {
+                const.TYPE: const.SESSION_PERSISTENCE_HTTP_COOKIE,
+            }
         pool = self.mem_pool_client.update_pool(
             pool[const.ID], **pool_update_kwargs)
 
@@ -631,16 +643,18 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertTrue(pool[const.ADMIN_STATE_UP])
         self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
                          pool[const.LB_ALGORITHM])
-        self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
-        self.assertEqual(const.SESSION_PERSISTENCE_HTTP_COOKIE,
-                         pool[const.SESSION_PERSISTENCE][const.TYPE])
-        self.assertIsNone(
-            pool[const.SESSION_PERSISTENCE].get(const.COOKIE_NAME))
+        if self.lb_feature_enabled.session_persistence_enabled:
+            self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
+            self.assertEqual(const.SESSION_PERSISTENCE_HTTP_COOKIE,
+                             pool[const.SESSION_PERSISTENCE][const.TYPE])
+            self.assertIsNone(
+                pool[const.SESSION_PERSISTENCE].get(const.COOKIE_NAME))
 
         # Also test removing a Session Persistence
-        pool_update_kwargs = {
-            const.SESSION_PERSISTENCE: None,
-        }
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool_update_kwargs = {
+                const.SESSION_PERSISTENCE: None,
+            }
         pool = self.mem_pool_client.update_pool(
             pool[const.ID], **pool_update_kwargs)
 
@@ -655,7 +669,8 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
-        self.assertIsNone(pool.get(const.SESSION_PERSISTENCE))
+        if self.lb_feature_enabled.session_persistence_enabled:
+            self.assertIsNone(pool.get(const.SESSION_PERSISTENCE))
 
     @decorators.idempotent_id('35ed3800-7a4a-47a6-9b94-c1033fff1112')
     def test_pool_delete(self):
@@ -672,12 +687,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: pool_name,
             const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
-            const.SESSION_PERSISTENCE: {
-                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
-                const.COOKIE_NAME: pool_sp_cookie_name,
-            },
             const.LOADBALANCER_ID: self.lb_id,
         }
+        if self.lb_feature_enabled.session_persistence_enabled:
+            pool_kwargs[const.SESSION_PERSISTENCE] = {
+                const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
+                const.COOKIE_NAME: pool_sp_cookie_name,
+            }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
         self.addClassResourceCleanup(
             self.mem_pool_client.cleanup_pool,

@@ -212,4 +212,8 @@ LBFeatureEnabledGroup = [
                default=False,
                help="Wether spare pool is available with amphora provider "
                     "driver or not."),
+    cfg.BoolOpt('session_persistence_enabled',
+                default=True,
+                help="Whether session persistence is supported with the "
+                     "provider driver."),
 ]
