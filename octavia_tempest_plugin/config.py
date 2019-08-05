@@ -115,6 +115,18 @@ OctaviaGroup = [
                default=const.SINGLE,
                choices=const.SUPPORTED_LB_TOPOLOGIES,
                help='Load balancer topology configuration.'),
+    cfg.DictOpt('expected_flavor_capability',
+                help=('Defines a provider flavor capability that is expected '
+                      'to be present in the selected provider under test. '
+                      'It is specified in a "name": "description" dict. '
+                      'Example: {"loadbalancer_topology": "The load balancer '
+                      'topology. One of: SINGLE - One amphora per load '
+                      'balancer. ACTIVE_STANDBY - Two amphora per load '
+                      'balancer."}'),
+                default={'loadbalancer_topology': 'The load balancer '
+                         'topology. One of: SINGLE - One amphora per load '
+                         'balancer. ACTIVE_STANDBY - Two amphora per load '
+                         'balancer.'}),
     # Networking
     cfg.BoolOpt('test_with_ipv6',
                 default=True,
