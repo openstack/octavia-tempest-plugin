@@ -102,12 +102,13 @@ OctaviaGroup = [
                     'default RBAC tests. "owner_or_admin" runs the legacy '
                     'owner or admin tests. "none" disables the RBAC tests.'),
     cfg.DictOpt('enabled_provider_drivers',
-                help=('List of enabled provider drivers and description '
-                      'dictionaries. Must match the driver name in the '
+                help=('A comma separated list of dictionaries of the '
+                      'enabled provider driver names and descriptions. '
+                      'Must match the driver name in the '
                       'octavia.api.drivers entrypoint. Example: '
-                      '{\'amphora\': \'The Octavia Amphora driver.\', '
-                      '\'octavia\': \'Deprecated alias of the Octavia '
-                      'Amphora driver.\'}'),
+                      'amphora:The Octavia Amphora driver.,'
+                      'octavia:Deprecated alias of the Octavia '
+                      'Amphora driver.'),
                 default={'amphora': 'The Octavia Amphora driver.',
                          'octavia': 'Deprecated alias of the Octavia Amphora '
                          'driver.'}),
