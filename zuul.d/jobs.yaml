@@ -97,10 +97,15 @@
           $OCTAVIA_CONF:
             haproxy_amphora:
               # Set these higher for non-nested virt nodepool instances
-              connection_max_retries: 300
+              connection_max_retries: 1200
               build_active_retries: 300
             amphora_agent:
               forward_all_logs: True
+        test-config:
+          "$TEMPEST_CONFIG":
+            load_balancer:
+              check_interval: 1
+              check_timeout: 180
       devstack_services:
         neutron-qos: true
       devstack_plugins:
@@ -425,12 +430,6 @@
         OCTAVIA_AMP_BASE_OS: centos
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 7
         OCTAVIA_AMP_IMAGE_SIZE: 3
-      devstack_local_conf:
-        post-config:
-          $OCTAVIA_CONF:
-            haproxy_amphora:
-              # Set these higher for non-nested virt nodepool instances
-              connection_max_retries: 480
 
 - job:
     name: octavia-v2-dsvm-scenario-ubuntu-bionic
@@ -584,11 +583,6 @@
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 7
         OCTAVIA_AMP_IMAGE_SIZE: 3
       devstack_local_conf:
-        post-config:
-          $OCTAVIA_CONF:
-            haproxy_amphora:
-              # Set these higher for non-nested virt nodepool instances
-              connection_max_retries: 480
         test-config:
           "$TEMPEST_CONFIG":
             load_balancer:
