@@ -806,6 +806,17 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             if proc.returncode != 0:
                 raise exceptions.CommandFailed(proc.returncode, cmd,
                                                stdout, stderr)
+
+        # Enabling memory overcommit allows to run golang static binaries
+        # compiled with a recent golang toolchain (>=1.11). Those binaries
+        # allocate a large amount of virtual memory at init time, and this
+        # allocation fails in tempest's nano flavor (64MB of RAM)
+        # (golang issue reported in https://github.com/golang/go/issues/28114,
+        # follow-up: https://github.com/golang/go/issues/28081)
+        # TODO(gthiemonge): Remove this call when golang issue is resolved.
+        linux_client.exec_command('sudo sh -c "echo 1 > '
+                                  '/proc/sys/vm/overcommit_memory"')
+
         linux_client.exec_command('sudo screen -d -m {0} -port 80 '
                                   '-id {1}'.format(dest_file, start_id))
         linux_client.exec_command('sudo screen -d -m {0} -port 81 '
