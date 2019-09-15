@@ -51,6 +51,12 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             cls.mem_lb_client.cleanup_loadbalancer,
             cls.lb_id)
 
+        waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
+                                cls.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.lb_build_interval,
+                                CONF.load_balancer.lb_build_timeout)
+
         if CONF.validation.connect_method == 'floating':
             port_id = lb[const.VIP_PORT_ID]
             result = cls.lb_mem_float_ip_client.create_floatingip(
@@ -66,12 +72,6 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             cls.lb_vip_address = floating_ip['floating_ip_address']
         else:
             cls.lb_vip_address = lb[const.VIP_ADDRESS]
-
-        waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
-                                cls.lb_id, const.PROVISIONING_STATUS,
-                                const.ACTIVE,
-                                CONF.load_balancer.lb_build_interval,
-                                CONF.load_balancer.lb_build_timeout)
 
         protocol = const.HTTP
         lb_feature_enabled = CONF.loadbalancer_feature_enabled
