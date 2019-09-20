@@ -52,7 +52,7 @@ class ManagerV2(clients.Manager):
         params.update({
             'auth_provider': self.auth_provider,
             'service': CONF.load_balancer.catalog_type,
-            'region': CONF.load_balancer.region,
+            'region': CONF.load_balancer.region or CONF.identity.region,
             'endpoint_type': CONF.load_balancer.endpoint_type,
             'build_interval': CONF.load_balancer.build_interval,
             'build_timeout': CONF.load_balancer.build_timeout
