@@ -1,4 +1,7 @@
-========================
+======================
+Octavia Tempest Plugin
+======================
+
 Team and repository tags
 ========================
 
@@ -7,7 +10,6 @@ Team and repository tags
 
 .. Change things from this point on
 
-==============================
 Tempest integration of Octavia
 ==============================
 

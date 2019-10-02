@@ -6,8 +6,6 @@
 Welcome to octavia-tempest-plugin's documentation!
 ==================================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
 
@@ -16,14 +14,16 @@ Contents:
    contributing
    configref
 
-Indices and tables
-==================
+.. only:: html
 
-.. toctree::
-   :hidden:
+   Indices and tables
+   ------------------
 
-   _build/modules/modules
+   .. toctree::
+      :hidden:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+      _build/modules/modules
+
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`
