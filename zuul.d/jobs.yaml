@@ -524,6 +524,49 @@
     parent: octavia-v2-dsvm-py2-spare-pool
     override-checkout: stable/queens
 
+- job:
+    name: octavia-v2-dsvm-cinder-amphora
+    parent: octavia-v2-dsvm-scenario
+    required-projects:
+      - openstack/cinder
+      - openstack/diskimage-builder
+      - openstack/octavia
+      - openstack/octavia-lib
+      - openstack/python-cinderclient
+      - openstack/python-octaviaclient
+    vars:
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            controller_worker:
+              volume_driver: volume_cinder_driver
+            cinder:
+              volume_size: 2
+      devstack_services:
+        c-bak: true
+        ceilometer-acentral: false
+        ceilometer-acompute: false
+        ceilometer-alarm-evaluator: false
+        ceilometer-alarm-notifier: false
+        ceilometer-anotification: false
+        ceilometer-api: false
+        ceilometer-collector: false
+        c-sch: true
+        c-api: true
+        c-vol: true
+        cinder: true
+        octavia: true
+        o-api: true
+        o-cw: true
+        o-hm: true
+        o-hk: true
+        swift: false
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+        tempest: true
+
 # Temporary transitional aliases for gates used in other repos
 # Remove once octavia has transitioned job names
 - job:
