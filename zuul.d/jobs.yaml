@@ -314,6 +314,11 @@
         USE_PYTHON3: False
 
 - job:
+    name: octavia-v2-dsvm-noop-api-stable-train
+    parent: octavia-v2-dsvm-noop-api
+    override-checkout: stable/train
+
+- job:
     name: octavia-v2-dsvm-noop-api-stable-stein
     parent: octavia-v2-dsvm-noop-api
     override-checkout: stable/stein
@@ -354,6 +359,11 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+
+- job:
+    name: octavia-v2-dsvm-scenario-stable-train
+    parent: octavia-v2-dsvm-scenario
+    override-checkout: stable/train
 
 - job:
     name: octavia-v2-dsvm-scenario-stable-stein
@@ -473,6 +483,11 @@
       - ^octavia_tempest_plugin/tests/(?!barbican_scenario/|\w+\.py).*
 
 - job:
+    name: octavia-v2-dsvm-tls-barbican-stable-train
+    parent: octavia-v2-dsvm-tls-barbican
+    override-checkout: stable/train
+
+- job:
     name: octavia-v2-dsvm-tls-barbican-stable-stein
     parent: octavia-v2-dsvm-tls-barbican
     override-checkout: stable/stein
@@ -508,6 +523,11 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+
+- job:
+    name: octavia-v2-dsvm-spare-pool-stable-train
+    parent: octavia-v2-dsvm-spare-pool
+    override-checkout: stable/train
 
 - job:
     name: octavia-v2-dsvm-spare-pool-stable-stein
@@ -631,6 +651,11 @@
               amphora_ssh_user: centos
 
 - job:
+    name: octavia-v2-act-stdby-iptables-dsvm-scenario-stable-train
+    parent: octavia-v2-act-stdby-iptables-dsvm-scenario
+    override-checkout: stable/train
+
+- job:
     name: octavia-v2-act-stdby-iptables-dsvm-scenario-stable-stein
     parent: octavia-v2-act-stdby-iptables-dsvm-scenario
     override-checkout: stable/stein
@@ -668,6 +693,11 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario-stable-train
+    parent: octavia-v2-act-stdby-dsvm-scenario
+    override-checkout: stable/train
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-stein
