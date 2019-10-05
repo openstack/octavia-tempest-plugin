@@ -66,7 +66,7 @@ OctaviaGroup = [
                default=5,
                help='Interval to check for status changes.'),
     cfg.IntOpt('check_timeout',
-               default=60,
+               default=120,
                help='Timeout, in seconds, to wait for a status change.'),
     cfg.BoolOpt('test_with_noop',
                 default=False,
