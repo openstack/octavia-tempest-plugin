@@ -338,6 +338,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             const.ONLINE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
+            error_ok=True,
             pool_id=self.pool_id)
         waiters.wait_for_status(
             self.mem_member_client.show_member,

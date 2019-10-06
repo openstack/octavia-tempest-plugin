@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 def wait_for_status(show_client, id, status_key, status,
                     check_interval, check_timeout, root_tag=None,
-                    **kwargs):
+                    error_ok=False, **kwargs):
     """Waits for an object to reach a specific status.
 
     :param show_client: The tempest service client show method.
@@ -40,6 +40,7 @@ def wait_for_status(show_client, id, status_key, status,
     :check_interval: How often to check the status, in seconds.
     :check_timeout: The maximum time, in seconds, to check the status.
     :root_tag: The root tag on the response to remove, if any.
+    :error_ok: When true, ERROR status will not raise an exception.
     :raises CommandFailed: Raised if the object goes into ERROR and ERROR was
                            not the desired status.
     :raises TimeoutException: The object did not achieve the status or ERROR in
@@ -75,7 +76,8 @@ def wait_for_status(show_client, id, status_key, status,
             if caller:
                 message = '({caller}) {message}'.format(caller=caller,
                                                         message=message)
-            raise exceptions.UnexpectedResponseCode(message)
+            if not error_ok:
+                raise exceptions.UnexpectedResponseCode(message)
         elif int(time.time()) - start >= check_timeout:
             message = (
                 '{name} {field} failed to update to {expected_status} within '
