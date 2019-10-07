@@ -28,16 +28,6 @@
             voting: false
         - octavia-v2-act-stdby-dsvm-py2-scenario-two-node:
             voting: false
-        - octavia-v2-act-stdby-iptables-dsvm-scenario:
-            voting: false
-        - octavia-v2-act-stdby-iptables-dsvm-py2-scenario:
-            voting: false
-        - octavia-v2-act-stdby-iptables-dsvm-py2-scenario-centos-7:
-            voting: false
-        - octavia-v2-act-stdby-iptables-dsvm-scenario-stable-train:
-            voting: false
-        - octavia-v2-act-stdby-iptables-dsvm-scenario-stable-stein:
-            voting: false
         - octavia-v2-act-stdby-iptables-dsvm-py2-scenario-stable-rocky:
             voting: false
         - octavia-v2-act-stdby-iptables-dsvm-py2-scenario-stable-queens:

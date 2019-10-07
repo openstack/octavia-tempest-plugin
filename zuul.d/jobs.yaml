@@ -651,16 +651,6 @@
               amphora_ssh_user: centos
 
 - job:
-    name: octavia-v2-act-stdby-iptables-dsvm-scenario-stable-train
-    parent: octavia-v2-act-stdby-iptables-dsvm-scenario
-    override-checkout: stable/train
-
-- job:
-    name: octavia-v2-act-stdby-iptables-dsvm-scenario-stable-stein
-    parent: octavia-v2-act-stdby-iptables-dsvm-scenario
-    override-checkout: stable/stein
-
-- job:
     name: octavia-v2-act-stdby-iptables-dsvm-py2-scenario-stable-rocky
     parent: octavia-v2-act-stdby-iptables-dsvm-py2-scenario
     override-checkout: stable/rocky
