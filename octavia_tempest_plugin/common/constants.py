@@ -196,6 +196,9 @@ AMPHORA_STATUSES = (
     STATUS_PENDING_DELETE, STATUS_DELETED, STATUS_ERROR
 )
 
+# Amphora providers list
+AMPHORA_PROVIDERS = ['amphora', 'amphorav2', 'octavia']
+
 # Flavor capabilities
 LOADBALANCER_TOPOLOGY = 'loadbalancer_topology'
 

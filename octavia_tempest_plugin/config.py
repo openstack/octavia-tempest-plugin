@@ -108,8 +108,12 @@ OctaviaGroup = [
                       'octavia.api.drivers entrypoint. Example: '
                       'amphora:The Octavia Amphora driver.,'
                       'octavia:Deprecated alias of the Octavia '
-                      'Amphora driver.'),
+                      'Amphora driver.,'
+                      'amphorav2:The Octavia Amphora driver that uses '
+                      'taskflow jobboard persistence.'),
                 default={'amphora': 'The Octavia Amphora driver.',
+                         'amphorav2': 'The Octavia Amphora driver that uses '
+                                      'taskflow jobboard persistence.',
                          'octavia': 'Deprecated alias of the Octavia Amphora '
                          'driver.'}),
     cfg.StrOpt('loadbalancer_topology',

@@ -30,7 +30,7 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
     @classmethod
     def skip_checks(cls):
         super(AmphoraAPITest, cls).skip_checks()
-        if CONF.load_balancer.provider not in ['amphora', 'octavia']:
+        if CONF.load_balancer.provider not in const.AMPHORA_PROVIDERS:
             raise cls.skipException('Amphora tests only run with the amphora '
                                     'provider enabled.')
 
