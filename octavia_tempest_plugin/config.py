@@ -173,7 +173,7 @@ OctaviaGroup = [
                default='ubuntu',
                help='The amphora SSH user.'),
     cfg.StrOpt('amphora_ssh_key',
-               default='/tmp/octavia_ssh_key',
+               default='/etc/octavia/.ssh/octavia_ssh_key',
                help='The amphora SSH key file.'),
     # Environment specific options
     # These are used to accomodate clouds with specific limitations
