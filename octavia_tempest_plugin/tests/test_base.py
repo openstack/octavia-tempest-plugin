@@ -861,7 +861,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         raise Exception()
 
     def check_members_balanced(self, vip_address, traffic_member_count=2,
-                               protocol='http', verify=True):
+                               protocol='http', verify=True, protocol_port=80):
         handler = requests
         if CONF.load_balancer.test_reuse_connection:
             handler = requests.Session()
@@ -875,7 +875,8 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         # Send a number requests to lb vip
         for i in range(20):
             try:
-                r = handler.get('{0}://{1}'.format(protocol, vip_address),
+                r = handler.get('{0}://{1}:{2}'.format(protocol, vip_address,
+                                                       protocol_port),
                                 timeout=2, verify=verify)
 
                 if r.content in response_counts:
