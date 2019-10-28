@@ -161,6 +161,140 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
             self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
 
+    @decorators.idempotent_id('cceac303-4db5-4d5a-9f6e-ff33780a5f29')
+    def test_listener_create_on_same_port(self):
+        """Tests listener creation on same port number.
+
+        * Create a first listener.
+        * Create a new listener on an existing port, but with a different
+          protocol.
+        * Create a second listener with the same parameters and ensure that
+          an error is triggered.
+        * Create a third listener with another protocol over TCP, and ensure
+          that it fails.
+        """
+
+        # Using listeners on the same port for TCP and UDP was not supported
+        # before Train. Use 2.11 API version as reference to detect previous
+        # releases and skip the test.
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.11'):
+            raise self.skipException('TCP and UDP listeners on same port fix '
+                                     'is only available on Octavia API '
+                                     'version 2.11 or newer.')
+
+        listener_name = data_utils.rand_name("lb_member_listener1-create")
+
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.ADMIN_STATE_UP: True,
+            const.PROTOCOL: self.protocol,
+            const.PROTOCOL_PORT: 8080,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.CONNECTION_LIMIT: 200
+        }
+
+        try:
+            listener = self.mem_listener_client.create_listener(
+                **listener_kwargs)
+        except exceptions.BadRequest as e:
+            faultstring = e.resp_body.get('faultstring', '')
+            if ("Invalid input for field/attribute protocol." in faultstring
+                    and "Value should be one of:" in faultstring):
+                raise self.skipException("Skipping unsupported protocol")
+            raise e
+
+        self.addClassResourceCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        if self.protocol == const.UDP:
+            protocol = const.TCP
+        else:
+            protocol = const.UDP
+
+        # Create a listener on the same port, but with a different protocol
+        listener2_name = data_utils.rand_name("lb_member_listener2-create")
+
+        listener2_kwargs = {
+            const.NAME: listener2_name,
+            const.ADMIN_STATE_UP: True,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: 8080,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.CONNECTION_LIMIT: 200,
+        }
+
+        try:
+            listener2 = self.mem_listener_client.create_listener(
+                **listener2_kwargs)
+        except exceptions.BadRequest as e:
+            faultstring = e.resp_body.get('faultstring', '')
+            if ("Invalid input for field/attribute protocol." in faultstring
+                    and "Value should be one of:" in faultstring):
+                raise self.skipException("Skipping unsupported protocol")
+            raise e
+
+        self.addClassResourceCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener2[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Create a listener on the same port, with an already used protocol
+        listener3_name = data_utils.rand_name("lb_member_listener3-create")
+
+        listener3_kwargs = {
+            const.NAME: listener3_name,
+            const.ADMIN_STATE_UP: True,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: 8080,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.CONNECTION_LIMIT: 200,
+        }
+
+        self.assertRaises(
+            exceptions.Conflict,
+            self.mem_listener_client.create_listener,
+            **listener3_kwargs)
+
+        # Create a listener on the same port, with another protocol over TCP,
+        # only if layer-7 protocols are enabled
+        lb_feature_enabled = CONF.loadbalancer_feature_enabled
+        if lb_feature_enabled.l7_protocol_enabled:
+            if self.protocol == const.HTTP:
+                protocol = const.HTTPS
+            else:
+                protocol = const.HTTP
+
+            listener4_name = data_utils.rand_name("lb_member_listener4-create")
+
+            listener4_kwargs = {
+                const.NAME: listener4_name,
+                const.ADMIN_STATE_UP: True,
+                const.PROTOCOL: protocol,
+                const.PROTOCOL_PORT: 8080,
+                const.LOADBALANCER_ID: self.lb_id,
+                const.CONNECTION_LIMIT: 200,
+            }
+
+            self.assertRaises(
+                exceptions.Conflict,
+                self.mem_listener_client.create_listener,
+                **listener4_kwargs)
+
     @decorators.idempotent_id('78ba6eb0-178c-477e-9156-b6775ca7b271')
     def test_listener_list(self):
         """Tests listener list API and field filtering.
