@@ -84,8 +84,92 @@
         octavia: https://opendev.org/openstack/octavia.git
 
 - job:
+    name: octavia-dsvm-base-ipv6-only
+    parent: devstack-tempest-ipv6
+    timeout: 7800
+    required-projects:
+      - openstack/octavia
+      - openstack/octavia-lib
+      - openstack/octavia-tempest-plugin
+      - openstack/python-octaviaclient
+    pre-run: playbooks/Octavia-DSVM/pre.yaml
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+    vars:
+      devstack_localrc:
+        TEMPEST_PLUGINS: /opt/stack/octavia-tempest-plugin
+        USE_PYTHON3: true
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            DEFAULT:
+              debug: True
+      devstack_services:
+        c-bak: false
+        ceilometer-acentral: false
+        ceilometer-acompute: false
+        ceilometer-alarm-evaluator: false
+        ceilometer-alarm-notifier: false
+        ceilometer-anotification: false
+        ceilometer-api: false
+        ceilometer-collector: false
+        c-sch: false
+        c-api: false
+        c-vol: false
+        cinder: false
+        octavia: true
+        o-api: true
+        o-cw: true
+        o-hm: true
+        o-hk: true
+        swift: false
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+        tempest: true
+      devstack_plugins:
+        octavia: https://opendev.org/openstack/octavia.git
+
+- job:
     name: octavia-dsvm-live-base
     parent: octavia-dsvm-base
+    timeout: 9000
+    required-projects:
+      - openstack/diskimage-builder
+    vars:
+      devstack_localrc:
+        DIB_LOCAL_ELEMENTS: openstack-ci-mirrors
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            haproxy_amphora:
+              # Set these higher for non-nested virt nodepool instances
+              connection_max_retries: 1200
+              build_active_retries: 300
+            amphora_agent:
+              forward_all_logs: True
+        test-config:
+          "$TEMPEST_CONFIG":
+            load_balancer:
+              check_interval: 1
+              check_timeout: 180
+      devstack_services:
+        neutron-qos: true
+      devstack_plugins:
+        neutron: https://opendev.org/openstack/neutron.git
+      zuul_copy_output:
+        '/var/log/dib-build' : logs
+        '/var/log/octavia-amphora.log': logs
+        '/var/log/octavia-tenant-traffic.log': logs
+
+- job:
+    name: octavia-dsvm-live-base-ipv6-only
+    parent: octavia-dsvm-base-ipv6-only
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -331,6 +415,26 @@
 - job:
     name: octavia-v2-dsvm-scenario
     parent: octavia-dsvm-live-base
+    vars:
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            api_settings:
+              api_v1_enabled: False
+      tempest_concurrency: 2
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
+      tox_envlist: all
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+      - ^octavia_tempest_plugin/tests/(?!scenario/|\w+\.py).*
+
+- job:
+    name: octavia-v2-dsvm-scenario-ipv6-only
+    parent: octavia-dsvm-live-base-ipv6-only
     vars:
       devstack_local_conf:
         post-config:
