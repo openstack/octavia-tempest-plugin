@@ -67,6 +67,7 @@
         - octavia-v2-dsvm-cinder-amphora:
             voting: false
     gate:
+      fail-fast: true
       queue: octavia
       jobs:
         - octavia-v2-dsvm-noop-api
