@@ -273,15 +273,15 @@ class ActiveStandbyIptablesScenarioTest(
         # Delete active amphora
         self.os_admin_servers_client.delete_server(active[const.COMPUTE_ID])
 
-        # Send some traffic
-        self.check_members_balanced(self.lb_vip_address)
-
         # Wait for the amphora failover to start
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer,
             self.lb_id, const.PROVISIONING_STATUS,
             const.PENDING_UPDATE, CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)
+
+        # Send some traffic (checks VRRP failover)
+        self.check_members_balanced(self.lb_vip_address)
 
         # Wait for the load balancer to return to ACTIVE
         waiters.wait_for_status(
