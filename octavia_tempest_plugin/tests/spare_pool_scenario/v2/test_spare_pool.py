@@ -31,7 +31,7 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
     def skip_checks(cls):
         super(SparePoolTest, cls).skip_checks()
 
-        if CONF.load_balancer.provider not in ['amphora', 'octavia']:
+        if CONF.load_balancer.provider not in const.AMPHORA_PROVIDERS:
             raise cls.skipException("Amphora tests require provider 'amphora' "
                                     "or 'octavia' (alias to 'amphora', "
                                     "deprecated) set")

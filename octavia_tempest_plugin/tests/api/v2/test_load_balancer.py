@@ -826,7 +826,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         lb = self.mem_lb_client.show_loadbalancer(lb[const.ID])
         self.assertEqual(const.ACTIVE, lb[const.PROVISIONING_STATUS])
 
-        if CONF.load_balancer.provider in ['amphora', 'octavia']:
+        if CONF.load_balancer.provider in const.AMPHORA_PROVIDERS:
             before_amphorae = self.lb_admin_amphora_client.list_amphorae(
                 query_params='{loadbalancer_id}={lb_id}'.format(
                     loadbalancer_id=const.LOADBALANCER_ID, lb_id=lb[const.ID]))
@@ -840,7 +840,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                      CONF.load_balancer.lb_build_interval,
                                      CONF.load_balancer.lb_build_timeout)
 
-        if CONF.load_balancer.provider in ['amphora', 'octavia']:
+        if CONF.load_balancer.provider in const.AMPHORA_PROVIDERS:
             after_amphorae = self.lb_admin_amphora_client.list_amphorae(
                 query_params='{loadbalancer_id}={lb_id}'.format(
                     loadbalancer_id=const.LOADBALANCER_ID, lb_id=lb[const.ID]))
