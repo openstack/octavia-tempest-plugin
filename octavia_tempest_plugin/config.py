@@ -188,6 +188,9 @@ OctaviaGroup = [
     cfg.StrOpt('availability_zone',
                default=None,
                help='Availability zone to use for creating servers.'),
+    cfg.BoolOpt('test_reuse_connection', default=True,
+                help='Reuse TCP connections while testing LB with '
+                     'HTTP members (keep-alive).'),
 ]
 
 lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',
