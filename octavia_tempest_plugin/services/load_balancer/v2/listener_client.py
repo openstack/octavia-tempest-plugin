@@ -35,7 +35,10 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         timeout_member_data=Unset, timeout_tcp_inspect=Unset,
                         insert_headers=Unset, default_pool_id=Unset,
                         default_tls_container_ref=Unset,
-                        sni_container_refs=Unset, return_object_only=True):
+                        sni_container_refs=Unset, client_authentication=Unset,
+                        client_ca_tls_container_ref=Unset,
+                        client_crl_container_ref=Unset,
+                        return_object_only=True):
         """Create a listener.
 
         :param protocol: The protocol for the resource.
@@ -70,6 +73,17 @@ class ListenerClient(base_client.BaseLBaaSClient):
                                    secrets containing PKCS12 format
                                    certificate/key bundles for TERMINATED_TLS
                                    listeners.
+        :param client_authentication: The TLS client authentication mode. One
+                                      of the options NONE, OPTIONAL or
+                                      MANDATORY.
+        :param client_ca_tls_container_ref: The ref of the key manager service
+                                            secret containing a PEM format
+                                            client CA certificate bundle for
+                                            TERMINATED_HTTPS listeners.
+        :param client_crl_container_ref: The URI of the key manager service
+                                         secret containing a PEM format CA
+                                         revocation list file for
+                                         TERMINATED_HTTPS listeners.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -190,7 +204,10 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         timeout_member_data=Unset, timeout_tcp_inspect=Unset,
                         insert_headers=Unset, default_pool_id=Unset,
                         default_tls_container_ref=Unset,
-                        sni_container_refs=Unset, return_object_only=True):
+                        sni_container_refs=Unset, client_authentication=Unset,
+                        client_ca_tls_container_ref=Unset,
+                        client_crl_container_ref=Unset,
+                        return_object_only=True):
         """Update a listener.
 
         :param listener_id: The listener ID to update.
@@ -223,6 +240,17 @@ class ListenerClient(base_client.BaseLBaaSClient):
                                    secrets containing PKCS12 format
                                    certificate/key bundles for TERMINATED_TLS
                                    listeners.
+        :param client_authentication: The TLS client authentication mode. One
+                                      of the options NONE, OPTIONAL or
+                                      MANDATORY.
+        :param client_ca_tls_container_ref: The ref of the key manager service
+                                            secret containing a PEM format
+                                            client CA certificate bundle for
+                                            TERMINATED_HTTPS listeners.
+        :param client_crl_container_ref: The URI of the key manager service
+                                         secret containing a PEM format CA
+                                         revocation list file for
+                                         TERMINATED_HTTPS listeners.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
