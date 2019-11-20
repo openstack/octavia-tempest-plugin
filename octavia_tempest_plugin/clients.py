@@ -18,6 +18,12 @@ from tempest import config
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     amphora_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
+    availability_zone_capabilities_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
+    availability_zone_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
+    availability_zone_profile_client)
+from octavia_tempest_plugin.services.load_balancer.v2 import (
     flavor_capabilities_client)
 from octavia_tempest_plugin.services.load_balancer.v2 import (
     flavor_client)
@@ -74,3 +80,11 @@ class ManagerV2(clients.Manager):
         self.provider_client = provider_client.ProviderClient(**params)
         self.flavor_capabilities_client = (
             flavor_capabilities_client.FlavorCapabilitiesClient(**params))
+        self.availability_zone_capabilities_client = (
+            availability_zone_capabilities_client
+            .AvailabilityZoneCapabilitiesClient(**params))
+        self.availability_zone_profile_client = (
+            availability_zone_profile_client.AvailabilityZoneProfileClient(
+                **params))
+        self.availability_zone_client = (
+            availability_zone_client.AvailabilityZoneClient(**params))

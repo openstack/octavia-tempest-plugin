@@ -132,6 +132,13 @@ OctaviaGroup = [
                          'topology. One of: SINGLE - One amphora per load '
                          'balancer. ACTIVE_STANDBY - Two amphora per load '
                          'balancer.'}),
+    cfg.DictOpt('expected_availability_zone_capability',
+                help=('Defines a provider availability zone capability that '
+                      'is expected to be present in the selected provider '
+                      'under test. It is specified in a "name": "description" '
+                      'dict. Example: {"compute_zone": "The compute '
+                      'availability zone."}'),
+                default={'compute_zone': 'The compute availability zone.'}),
     # Networking
     cfg.BoolOpt('test_with_ipv6',
                 default=True,

@@ -14,12 +14,17 @@
 
 # API field names
 ACTIVE_CONNECTIONS = 'active_connections'
+AVAILABILITY_ZONE = 'availability_zone'
+AVAILABILITY_ZONE_DATA = 'availability_zone_data'
+AVAILABILITY_ZONE_PROFILE_ID = 'availability_zone_profile_id'
 ADMIN_STATE_UP = 'admin_state_up'
 BYTES_IN = 'bytes_in'
 BYTES_OUT = 'bytes_out'
 CREATED_AT = 'created_at'
 DESCRIPTION = 'description'
+FLAVOR_DATA = 'flavor_data'
 FLAVOR_ID = 'flavor_id'
+FLAVOR_PROFILE_ID = 'flavor_profile_id'
 ID = 'id'
 LISTENERS = 'listeners'
 LOADBALANCER = 'loadbalancer'
@@ -78,9 +83,7 @@ HTTP_METHOD = 'http_method'
 URL_PATH = 'url_path'
 EXPECTED_CODES = 'expected_codes'
 
-FLAVOR_DATA = 'flavor_data'
 ENABLED = 'enabled'
-FLAVOR_PROFILE_ID = 'flavor_profile_id'
 
 # Other constants
 ACTIVE = 'ACTIVE'
@@ -202,6 +205,10 @@ AMPHORA_PROVIDERS = ['amphora', 'amphorav2', 'octavia']
 # Flavor capabilities
 LOADBALANCER_TOPOLOGY = 'loadbalancer_topology'
 
+# Availability zone capabilities
+COMPUTE_ZONE = 'compute_zone'
+MANAGEMENT_NETWORK = 'management_network'
+
 # API valid fields
 SHOW_LOAD_BALANCER_RESPONSE_FIELDS = (
     ADMIN_STATE_UP, CREATED_AT, DESCRIPTION, FLAVOR_ID, ID, LISTENERS, NAME,
@@ -253,3 +260,9 @@ SHOW_AMPHORA_RESPONSE_FIELDS = [
 SHOW_FLAVOR_PROFILE_FIELDS = [ID, NAME, PROVIDER_NAME, FLAVOR_DATA]
 
 SHOW_FLAVOR_FIELDS = [ID, NAME, DESCRIPTION, ENABLED, FLAVOR_PROFILE_ID]
+
+SHOW_AVAILABILITY_ZONE_PROFILE_FIELDS = [
+    ID, NAME, PROVIDER_NAME, AVAILABILITY_ZONE_DATA]
+
+SHOW_AVAILABILITY_ZONE_FIELDS = [
+    NAME, DESCRIPTION, ENABLED, AVAILABILITY_ZONE_PROFILE_ID]
