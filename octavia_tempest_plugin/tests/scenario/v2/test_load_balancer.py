@@ -17,15 +17,18 @@ from uuid import UUID
 
 from dateutil import parser
 
+from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
+from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
 from octavia_tempest_plugin.tests import waiters
 
+LOG = logging.getLogger(__name__)
 CONF = config.CONF
 
 
@@ -51,28 +54,35 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
                 const.FLAVOR_DATA: flavor_data_json
             }
 
-            cls.flavor_profile = (
-                cls.lb_admin_flavor_profile_client.create_flavor_profile(
-                    **flavor_profile_kwargs))
-            cls.addClassResourceCleanup(
-                cls.lb_admin_flavor_profile_client.cleanup_flavor_profile,
-                cls.flavor_profile[const.ID])
+            try:
+                cls.flavor_profile = (
+                    cls.lb_admin_flavor_profile_client.create_flavor_profile(
+                        **flavor_profile_kwargs))
+                cls.addClassResourceCleanup(
+                    cls.lb_admin_flavor_profile_client.cleanup_flavor_profile,
+                    cls.flavor_profile[const.ID])
 
-            flavor_name = data_utils.rand_name("lb_scenario-setup")
-            flavor_description = data_utils.arbitrary_string(size=255)
+                flavor_name = data_utils.rand_name("lb_scenario-setup")
+                flavor_description = data_utils.arbitrary_string(size=255)
 
-            flavor_kwargs = {
-                const.NAME: flavor_name,
-                const.DESCRIPTION: flavor_description,
-                const.ENABLED: True,
-                const.FLAVOR_PROFILE_ID: cls.flavor_profile[const.ID]}
+                flavor_kwargs = {
+                    const.NAME: flavor_name,
+                    const.DESCRIPTION: flavor_description,
+                    const.ENABLED: True,
+                    const.FLAVOR_PROFILE_ID: cls.flavor_profile[const.ID]}
 
-            cls.flavor = cls.lb_admin_flavor_client.create_flavor(
-                **flavor_kwargs)
-            cls.addClassResourceCleanup(
-                cls.lb_admin_flavor_client.cleanup_a_flavor,
-                cls.flavor[const.ID])
-            cls.flavor_id = cls.flavor[const.ID]
+                cls.flavor = cls.lb_admin_flavor_client.create_flavor(
+                    **flavor_kwargs)
+                cls.addClassResourceCleanup(
+                    cls.lb_admin_flavor_client.cleanup_a_flavor,
+                    cls.flavor[const.ID])
+                cls.flavor_id = cls.flavor[const.ID]
+            except exceptions.NotImplemented:
+                LOG.debug("Provider driver %s doesn't support flavors.",
+                          CONF.load_balancer.provider)
+                cls.flavor_profile = None
+                cls.flavor_id = None
+                cls.flavor = None
 
     @decorators.idempotent_id('a5e2e120-4f7e-4c8b-8aac-cf09cb56711c')
     def test_load_balancer_ipv4_CRUD(self):
@@ -101,7 +111,7 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
                      const.NAME: lb_name}
 
         if self.lb_admin_flavor_profile_client.is_version_supported(
-                self.api_version, '2.6'):
+                self.api_version, '2.6') and self.flavor_id:
             lb_kwargs[const.FLAVOR_ID] = self.flavor_id
 
         self._setup_lb_network_kwargs(lb_kwargs, ip_version)
