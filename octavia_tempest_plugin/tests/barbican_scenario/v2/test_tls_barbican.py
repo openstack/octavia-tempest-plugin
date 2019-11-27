@@ -38,15 +38,19 @@ LOG = logging.getLogger(__name__)
 
 
 class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
-
     @classmethod
     def skip_checks(cls):
         super(TLSWithBarbicanTest, cls).skip_checks()
+        if not CONF.loadbalancer_feature_enabled.l7_protocol_enabled:
+            raise cls.skipException(
+                '[loadbalancer_feature_enabled] "l7_protocol_enabled" is '
+                'False in the tempest configuration. TLS tests will be '
+                'skipped.')
         if not CONF.loadbalancer_feature_enabled.terminated_tls_enabled:
-            raise cls.skipException('[loadbalancer-feature-enabled] '
-                                    '"terminated_tls_enabled" is False in '
-                                    'the tempest configuration. TLS tests '
-                                    'will be skipped.')
+            raise cls.skipException(
+                '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+                'False in the tempest configuration. TLS tests will be '
+                'skipped.')
         if not CONF.validation.run_validation:
             raise cls.skipException('Traffic tests will not work without '
                                     'run_validation enabled.')
@@ -341,6 +345,60 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         sock.connect((self.lb_vip_address, 443))
         # Validate the certificate is signed by the ca_cert we created
         sock.do_handshake()
+
+    @decorators.idempotent_id('dcf11f78-7af3-4832-b716-9a01648f439c')
+    def test_mixed_http_https_traffic(self):
+
+        listener_name = data_utils.rand_name("lb_member_listener1-tls")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: '443',
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        listener_name = data_utils.rand_name("lb_member_listener2-http-tls")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL_PORT: '80',
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener2_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener2_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Test HTTPS listener load balancing.
+        # Note: certificate validation tests will follow this test
+        self.check_members_balanced(self.lb_vip_address, protocol='https',
+                                    verify=False, protocol_port=443)
+
+        # Test HTTP listener load balancing.
+        self.check_members_balanced(self.lb_vip_address)
 
     @decorators.idempotent_id('08405802-4411-4454-b008-8607408f424a')
     def test_basic_tls_SNI_traffic(self):
