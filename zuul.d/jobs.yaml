@@ -525,17 +525,6 @@
               loadbalancer_topology: ACTIVE_STANDBY
 
 - job:
-    name: octavia-v2-act-stdby-dsvm-py2-scenario-two-node
-    parent: octavia-v2-act-stdby-dsvm-scenario-two-node
-    host-vars:
-      controller:
-        devstack_localrc:
-          USE_PYTHON3: False
-      controller2:
-        devstack_localrc:
-          USE_PYTHON3: False
-
-- job:
     name: octavia-v2-dsvm-py2-scenario-centos-7
     parent: octavia-v2-dsvm-py2-scenario
     nodeset: devstack-single-node-centos-7
@@ -781,13 +770,6 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.act_stdby_scenario.v2.test_active_standby\.
       tox_envlist: all
-
-- job:
-    name: octavia-v2-act-stdby-dsvm-py2-scenario
-    parent: octavia-v2-act-stdby-dsvm-scenario
-    vars:
-      devstack_localrc:
-        USE_PYTHON3: False
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-train
