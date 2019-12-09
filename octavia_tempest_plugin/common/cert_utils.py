@@ -58,6 +58,13 @@ def generate_ca_cert_and_key():
     ).add_extension(
         x509.BasicConstraints(ca=True, path_length=None),
         critical=True,
+    ).add_extension(
+        # KeyUsage(digital_signature, content_commitment, key_encipherment,
+        #          data_encipherment, key_agreement, key_cert_sign, crl_sign,
+        #          encipher_only, decipher_only)
+        x509.KeyUsage(True, False, False, False, False,
+                      True, True, False, False),
+        critical=True,
     ).sign(ca_key, hashes.SHA256(), default_backend())
 
     return ca_cert, ca_key
@@ -104,9 +111,64 @@ def generate_server_cert_and_key(ca_cert, ca_key, server_uuid):
     ).add_extension(
         x509.BasicConstraints(ca=False, path_length=None),
         critical=True,
+    ).add_extension(
+        # KeyUsage(digital_signature, content_commitment, key_encipherment,
+        #          data_encipherment, key_agreement, key_cert_sign, crl_sign,
+        #          encipher_only, decipher_only)
+        x509.KeyUsage(True, False, True, False, False,
+                      False, False, False, False),
+        critical=True,
     ).sign(ca_key, hashes.SHA256(), default_backend())
 
     return server_cert, server_key
+
+
+def generate_client_cert_and_key(ca_cert, ca_key, client_uuid):
+    """Creates a client cert and key for testing.
+
+    :param ca_cert: A cryptography CA certificate (x509) object.
+    :param ca_key: A cryptography CA key (x509) object.
+    :param client_uuid: A UUID identifying the client.
+    :returns: The cryptography server cert and key objects.
+    """
+
+    client_key = rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend())
+
+    subject = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Denial"),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, u"Corvallis"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"OpenStack"),
+        x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, u"Octavia"),
+        x509.NameAttribute(NameOID.COMMON_NAME, u"{}".format(client_uuid)),
+    ])
+
+    client_cert = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        ca_cert.subject
+    ).public_key(
+        client_key.public_key()
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.datetime.utcnow()
+    ).not_valid_after(
+        datetime.datetime.utcnow() + datetime.timedelta(days=10)
+    ).add_extension(
+        x509.BasicConstraints(ca=False, path_length=None),
+        critical=True,
+    ).add_extension(
+        # KeyUsage(digital_signature, content_commitment, key_encipherment,
+        #          data_encipherment, key_agreement, key_cert_sign, crl_sign,
+        #          encipher_only, decipher_only)
+        x509.KeyUsage(True, True, True, False, False, False,
+                      False, False, False),
+        critical=True,
+    ).sign(ca_key, hashes.SHA256(), default_backend())
+
+    return client_cert, client_key
 
 
 def generate_pkcs12_bundle(server_cert, server_key):
@@ -128,3 +190,28 @@ def generate_pkcs12_bundle(server_cert, server_key):
         OpenSSL.crypto.PKey.from_cryptography_key(server_key))
     pkcs12.set_certificate(OpenSSL.crypto.X509.from_cryptography(server_cert))
     return pkcs12.export()
+
+
+def generate_certificate_revocation_list(ca_cert, ca_key, cert_to_revoke):
+    """Create a certificate revocation list with a revoked certificate.
+
+    :param ca_cert: A cryptography CA certificate (x509) object.
+    :param ca_key: A cryptography CA key (x509) object.
+    :param cert_to_revoke: A cryptography CA certificate (x509) object.
+    :returns: A signed certificate revocation list.
+    """
+    crl_builder = x509.CertificateRevocationListBuilder()
+    crl_builder = crl_builder.issuer_name(ca_cert.subject)
+    crl_builder = crl_builder.last_update(datetime.datetime.today())
+    crl_builder = crl_builder.next_update(datetime.datetime.today() +
+                                          datetime.timedelta(1, 0, 0))
+
+    revoked_cert = x509.RevokedCertificateBuilder().serial_number(
+        cert_to_revoke.serial_number
+    ).revocation_date(
+        datetime.datetime.today()
+    ).build(default_backend())
+
+    crl_builder = crl_builder.add_revoked_certificate(revoked_cert)
+    return crl_builder.sign(private_key=ca_key, algorithm=hashes.SHA256(),
+                            backend=default_backend())

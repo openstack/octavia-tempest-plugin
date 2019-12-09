@@ -63,15 +63,15 @@ class BarbicanClientManager(object):
         # Setup the barbican client
         self.barbican = client.Client(session=id_session)
 
-    def store_secret(self, pkcs12_secret):
+    def store_secret(self, secret):
         """Store a secret in barbican.
 
-        :param pkcs12_secret: A pkcs12 secret.
+        :param secret: A pkcs12 secret.
         :returns: The barbican secret_ref.
         """
         p12_secret = self.barbican.secrets.create()
-        p12_secret.name = data_utils.rand_name("lb_member_barbican_pkcs12")
-        p12_secret.payload = pkcs12_secret
+        p12_secret.name = data_utils.rand_name("lb_member_barbican")
+        p12_secret.payload = secret
         secret_ref = p12_secret.store()
         LOG.debug('Secret {0} has ref {1}'.format(p12_secret.name, secret_ref))
         return secret_ref

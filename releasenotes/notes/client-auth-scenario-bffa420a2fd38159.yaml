@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds scenario tests for listener client authentication.

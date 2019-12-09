@@ -13,7 +13,9 @@
 #    under the License.
 
 import base64
+import requests
 import socket
+import tempfile
 
 from cryptography.hazmat.primitives import serialization
 from OpenSSL.crypto import X509
@@ -53,6 +55,25 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                                     'barbican service.')
 
     @classmethod
+    def _store_secret(cls, barbican_mgr, secret):
+        new_secret_ref = barbican_mgr.store_secret(secret)
+        cls.addClassResourceCleanup(barbican_mgr.delete_secret,
+                                    new_secret_ref)
+
+        # Set the barbican ACL if the Octavia API version doesn't do it
+        # automatically.
+        if not cls.mem_lb_client.is_version_supported(
+                cls.api_version, '2.1'):
+            user_list = cls.os_admin.users_v3_client.list_users(
+                name=CONF.load_balancer.octavia_svc_username)
+            msg = 'Only one user named "{0}" should exist, {1} found.'.format(
+                CONF.load_balancer.octavia_svc_username,
+                len(user_list['users']))
+            assert 1 == len(user_list['users']), msg
+            barbican_mgr.add_acl(new_secret_ref, user_list['users'][0]['id'])
+        return new_secret_ref
+
+    @classmethod
     def _generate_load_certificate(cls, barbican_mgr, ca_cert, ca_key, name):
         new_cert, new_key = cert_utils.generate_server_cert_and_key(
             ca_cert, ca_key, name)
@@ -72,20 +93,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         pkcs12 = cert_utils.generate_pkcs12_bundle(new_cert, new_key)
         LOG.debug('%s PKCS12 bundle: %s', name, base64.b64encode(pkcs12))
 
-        new_secret_ref = barbican_mgr.store_secret(pkcs12)
-        cls.addClassResourceCleanup(barbican_mgr.delete_secret, new_secret_ref)
+        new_secret_ref = cls._store_secret(barbican_mgr, pkcs12)
 
-        # Set the barbican ACL if the Octavia API version doesn't do it
-        # automatically.
-        if not cls.mem_lb_client.is_version_supported(
-                cls.api_version, '2.1'):
-            user_list = cls.os_admin.users_v3_client.list_users(
-                name=CONF.load_balancer.octavia_svc_username)
-            msg = 'Only one user named "{0}" should exist, {1} found.'.format(
-                CONF.load_balancer.octavia_svc_username,
-                len(user_list['users']))
-            assert 1 == len(user_list['users']), msg
-            barbican_mgr.add_acl(new_secret_ref, user_list['users'][0]['id'])
         return new_cert, new_key, new_secret_ref
 
     @classmethod
@@ -108,7 +117,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Load the secret into the barbican service under the
         # os_roles_lb_member tenant
-        barbican_mgr = barbican_client_mgr.BarbicanClientManager(
+        cls.barbican_mgr = barbican_client_mgr.BarbicanClientManager(
             cls.os_roles_lb_member)
 
         # Create a server cert and key
@@ -117,7 +126,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         LOG.debug('Server (default) UUID: %s' % cls.server_uuid)
 
         server_cert, server_key, cls.server_secret_ref = (
-            cls._generate_load_certificate(barbican_mgr, cls.ca_cert,
+            cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
                                            ca_key, cls.server_uuid))
 
         # Create the SNI1 cert and key
@@ -125,7 +134,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         LOG.debug('SNI1 UUID: %s' % cls.SNI1_uuid)
 
         SNI1_cert, SNI1_key, cls.SNI1_secret_ref = (
-            cls._generate_load_certificate(barbican_mgr, cls.ca_cert,
+            cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
                                            ca_key, cls.SNI1_uuid))
 
         # Create the SNI2 cert and key
@@ -133,8 +142,36 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         LOG.debug('SNI2 UUID: %s' % cls.SNI2_uuid)
 
         SNI2_cert, SNI2_key, cls.SNI2_secret_ref = (
-            cls._generate_load_certificate(barbican_mgr, cls.ca_cert,
+            cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
                                            ca_key, cls.SNI2_uuid))
+
+        # Create the client authentication CA
+        cls.client_ca_cert, client_ca_key = (
+            cert_utils.generate_ca_cert_and_key())
+
+        cls.client_ca_cert_ref = cls._store_secret(
+            cls.barbican_mgr,
+            cls.client_ca_cert.public_bytes(serialization.Encoding.PEM))
+
+        # Create client cert and key
+        cls.client_cn = uuidutils.generate_uuid()
+        cls.client_cert, cls.client_key = (
+            cert_utils.generate_client_cert_and_key(
+                cls.client_ca_cert, client_ca_key, cls.client_cn))
+
+        # Create revoked client cert and key
+        cls.revoked_client_cn = uuidutils.generate_uuid()
+        cls.revoked_client_cert, cls.revoked_client_key = (
+            cert_utils.generate_client_cert_and_key(
+                cls.client_ca_cert, client_ca_key, cls.revoked_client_cn))
+
+        # Create certificate revocation list and revoke cert
+        cls.client_crl = cert_utils.generate_certificate_revocation_list(
+            cls.client_ca_cert, client_ca_key, cls.revoked_client_cert)
+
+        cls.client_crl_ref = cls._store_secret(
+            cls.barbican_mgr,
+            cls.client_crl.public_bytes(serialization.Encoding.PEM))
 
         # Setup a load balancer for the tests to use
         lb_name = data_utils.rand_name("lb_member_lb1-tls")
@@ -618,3 +655,384 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         sock.connect((self.lb_vip_address, 8443))
         # Validate the certificate is signed by the ca_cert we created
         sock.do_handshake()
+
+    @decorators.idempotent_id('af6bb7d2-acbb-4f6e-861f-39a2a3f02331')
+    def test_tls_client_auth_mandatory(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.8'):
+            raise self.skipException('TLS client authentication '
+                                     'is only available on Octavia API '
+                                     'version 2.8 or newer.')
+        LISTENER1_TCP_PORT = '443'
+        listener_name = data_utils.rand_name(
+            "lb_member_listener1-client-auth-mand")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: LISTENER1_TCP_PORT,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+            const.CLIENT_AUTHENTICATION: const.CLIENT_AUTH_MANDATORY,
+            const.CLIENT_CA_TLS_CONTAINER_REF: self.client_ca_cert_ref,
+            const.CLIENT_CRL_CONTAINER_REF: self.client_crl_ref,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Test that no client certificate fails to connect
+        self.assertRaisesRegex(
+            requests.exceptions.SSLError, ".*certificate required.*",
+            requests.get,
+            'https://{0}:{1}'.format(self.lb_vip_address, LISTENER1_TCP_PORT),
+            timeout=12, verify=False)
+
+        # Test that a revoked client certificate fails to connect
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.revoked_client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.revoked_client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+
+        # Test that a valid client certificate can connect
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                response = requests.get(
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+                self.assertEqual(200, response.status_code)
+
+    @decorators.idempotent_id('42d696bf-e7f5-44f0-9331-4a5e01d69ef3')
+    def test_tls_client_auth_optional(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.8'):
+            raise self.skipException('TLS client authentication '
+                                     'is only available on Octavia API '
+                                     'version 2.8 or newer.')
+        LISTENER1_TCP_PORT = '443'
+        listener_name = data_utils.rand_name(
+            "lb_member_listener1-client-auth-optional")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: LISTENER1_TCP_PORT,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+            const.CLIENT_AUTHENTICATION: const.CLIENT_AUTH_OPTIONAL,
+            const.CLIENT_CA_TLS_CONTAINER_REF: self.client_ca_cert_ref,
+            const.CLIENT_CRL_CONTAINER_REF: self.client_crl_ref,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Test that no client certificate connects
+        response = requests.get(
+            'https://{0}:{1}'.format(self.lb_vip_address, LISTENER1_TCP_PORT),
+            timeout=12, verify=False)
+        self.assertEqual(200, response.status_code)
+
+        # Test that a revoked client certificate fails to connect
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.revoked_client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.revoked_client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+
+        # Test that a valid client certificate can connect
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                response = requests.get(
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+                self.assertEqual(200, response.status_code)
+
+    @decorators.idempotent_id('13271ce6-f9f7-4017-a017-c2fc390b9438')
+    def test_tls_multi_listener_client_auth(self):
+        """Test client authentication in a multi-listener LB.
+
+        Validates that certificates and CRLs don't get cross configured
+        between multiple listeners on the same load balancer.
+        """
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.8'):
+            raise self.skipException('TLS client authentication '
+                                     'is only available on Octavia API '
+                                     'version 2.8 or newer.')
+        # Create the client2 authentication CA
+        client2_ca_cert, client2_ca_key = (
+            cert_utils.generate_ca_cert_and_key())
+
+        client2_ca_cert_ref = self._store_secret(
+            self.barbican_mgr,
+            client2_ca_cert.public_bytes(serialization.Encoding.PEM))
+
+        # Create client2 cert and key
+        client2_cn = uuidutils.generate_uuid()
+        client2_cert, client2_key = (
+            cert_utils.generate_client_cert_and_key(
+                client2_ca_cert, client2_ca_key, client2_cn))
+
+        # Create revoked client2 cert and key
+        revoked_client2_cn = uuidutils.generate_uuid()
+        revoked_client2_cert, revoked_client2_key = (
+            cert_utils.generate_client_cert_and_key(
+                client2_ca_cert, client2_ca_key, revoked_client2_cn))
+
+        # Create certificate revocation list and revoke cert
+        client2_crl = cert_utils.generate_certificate_revocation_list(
+            client2_ca_cert, client2_ca_key, revoked_client2_cert)
+
+        client2_crl_ref = self._store_secret(
+            self.barbican_mgr,
+            client2_crl.public_bytes(serialization.Encoding.PEM))
+
+        LISTENER1_TCP_PORT = '443'
+        listener_name = data_utils.rand_name(
+            "lb_member_listener1-multi-list-client-auth")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: LISTENER1_TCP_PORT,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+            const.CLIENT_AUTHENTICATION: const.CLIENT_AUTH_MANDATORY,
+            const.CLIENT_CA_TLS_CONTAINER_REF: self.client_ca_cert_ref,
+            const.CLIENT_CRL_CONTAINER_REF: self.client_crl_ref,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        LISTENER2_TCP_PORT = '8443'
+        listener_name = data_utils.rand_name(
+            "lb_member_listener2-multi-list-client-auth")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: LISTENER2_TCP_PORT,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+            const.CLIENT_AUTHENTICATION: const.CLIENT_AUTH_MANDATORY,
+            const.CLIENT_CA_TLS_CONTAINER_REF: client2_ca_cert_ref,
+            const.CLIENT_CRL_CONTAINER_REF: client2_crl_ref,
+        }
+        listener2 = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener2_id = listener2[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener2_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Test that no client certificate fails to connect to listener1
+        self.assertRaisesRegex(
+            requests.exceptions.SSLError, ".*certificate required.*",
+            requests.get,
+            'https://{0}:{1}'.format(self.lb_vip_address, LISTENER1_TCP_PORT),
+            timeout=12, verify=False)
+
+        # Test that no client certificate fails to connect to listener2
+        self.assertRaisesRegex(
+            requests.exceptions.SSLError, ".*certificate required.*",
+            requests.get,
+            'https://{0}:{1}'.format(self.lb_vip_address, LISTENER2_TCP_PORT),
+            timeout=12, verify=False)
+
+        # Test that a revoked client certificate fails to connect
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.revoked_client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.revoked_client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+
+        # Test that a revoked client2 certificate fails to connect
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(revoked_client2_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(revoked_client2_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER2_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+
+        # Test that a valid client certificate can connect to listener1
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                response = requests.get(
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+                self.assertEqual(200, response.status_code)
+
+        # Test that a valid client2 certificate can connect to listener2
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(client2_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(client2_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                response = requests.get(
+                    'https://{0}:{1}'.format(self.lb_vip_address,
+                                             LISTENER2_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+                self.assertEqual(200, response.status_code)
+
+        # Test that a valid client1 certificate can not connect to listener2
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*decrypt error.*",
+                    requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
+                                                           LISTENER2_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+
+        # Test that a valid client2 certificate can not connect to listener1
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(client2_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(client2_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*decrypt error.*",
+                    requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
+                                                           LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+
+        # Test that a revoked client1 certificate can not connect to listener2
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(self.revoked_client_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(self.revoked_client_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*decrypt error.*",
+                    requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
+                                                           LISTENER2_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
+
+        # Test that a revoked client2 certificate can not connect to listener1
+        with tempfile.NamedTemporaryFile(buffering=0) as cert_file:
+            cert_file.write(revoked_client2_cert.public_bytes(
+                serialization.Encoding.PEM))
+            with tempfile.NamedTemporaryFile(buffering=0) as key_file:
+                key_file.write(revoked_client2_key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.TraditionalOpenSSL,
+                    serialization.NoEncryption()))
+                self.assertRaisesRegex(
+                    requests.exceptions.SSLError, ".*decrypt error.*",
+                    requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
+                                                           LISTENER1_TCP_PORT),
+                    timeout=12, verify=False, cert=(cert_file.name,
+                                                    key_file.name))
