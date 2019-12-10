@@ -129,7 +129,7 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LISTENER_ID: self.listener_id,
         }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)

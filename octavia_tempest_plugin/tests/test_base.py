@@ -145,6 +145,15 @@ class LoadBalancerBaseTest(test.BaseTestCase):
                 "Configuration value test_network_override must be "
                 "specified if test_subnet_override is used.")
 
+        # Get loadbalancing algorithms supported by provider driver.
+        try:
+            algorithms = const.SUPPORTED_LB_ALGORITHMS[
+                CONF.load_balancer.provider]
+        except KeyError:
+            algorithms = const.SUPPORTED_LB_ALGORITHMS['default']
+        # Set default algorithm as first from the list.
+        cls.lb_algorithm = algorithms[0]
+
         show_subnet = cls.lb_mem_subnet_client.show_subnet
         if CONF.load_balancer.test_with_noop:
             cls.lb_member_vip_net = {'id': uuidutils.generate_uuid()}
@@ -860,40 +869,74 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                   'period. Failing test.')
         raise Exception()
 
-    def check_members_balanced(self, vip_address, traffic_member_count=2,
-                               protocol='http', verify=True, protocol_port=80):
-        handler = requests
-        if CONF.load_balancer.test_reuse_connection:
-            handler = requests.Session()
+    def _send_lb_request(self, handler, protocol, vip_address,
+                         verify, protocol_port, num=20):
         response_counts = {}
-
-        if ipaddress.ip_address(vip_address).version == 6:
-            vip_address = '[{}]'.format(vip_address)
-
-        self._wait_for_lb_functional(vip_address, protocol, verify)
-
         # Send a number requests to lb vip
-        for i in range(20):
+        for i in range(num):
             try:
                 r = handler.get('{0}://{1}:{2}'.format(protocol, vip_address,
                                                        protocol_port),
                                 timeout=2, verify=verify)
-
                 if r.content in response_counts:
                     response_counts[r.content] += 1
                 else:
                     response_counts[r.content] = 1
-
             except Exception:
                 LOG.exception('Failed to send request to loadbalancer vip')
                 raise Exception('Failed to connect to lb')
-
         LOG.debug('Loadbalancer response totals: %s', response_counts)
+        return response_counts
+
+    def _check_members_balanced_round_robin(
+            self, vip_address, traffic_member_count=2, protocol='http',
+            verify=True, protocol_port=80):
+
+        handler = requests.Session()
+        response_counts = self._send_lb_request(
+            handler, protocol, vip_address,
+            verify, protocol_port)
+
         # Ensure the correct number of members
         self.assertEqual(traffic_member_count, len(response_counts))
 
         # Ensure both members got the same number of responses
         self.assertEqual(1, len(set(response_counts.values())))
+
+    def _check_members_balanced_source_ip_port(
+            self, vip_address, traffic_member_count=2, protocol='http',
+            verify=True, protocol_port=80):
+
+        handler = requests
+        response_counts = self._send_lb_request(
+            handler, protocol, vip_address,
+            verify, protocol_port)
+        # Ensure the correct number of members
+        self.assertEqual(traffic_member_count, len(response_counts))
+
+        if CONF.load_balancer.test_reuse_connection:
+            handler = requests.Session()
+            response_counts = self._send_lb_request(
+                handler, protocol, vip_address,
+                verify, protocol_port)
+            # Ensure only one member answered
+            self.assertEqual(1, len(response_counts))
+
+    def check_members_balanced(self, vip_address, traffic_member_count=2,
+                               protocol='http', verify=True, protocol_port=80):
+
+        if ipaddress.ip_address(vip_address).version == 6:
+            vip_address = '[{}]'.format(vip_address)
+        self._wait_for_lb_functional(vip_address, protocol, verify)
+
+        validate_func = '_check_members_balanced_%s' % self.lb_algorithm
+        validate_func = getattr(self, validate_func.lower())
+        validate_func(
+            vip_address=vip_address,
+            traffic_member_count=traffic_member_count,
+            protocol=protocol,
+            verify=verify,
+            protocol_port=protocol_port)
 
     def assertConsistentResponse(self, response, url, method='GET', repeat=10,
                                  redirect=False, timeout=2, **kwargs):

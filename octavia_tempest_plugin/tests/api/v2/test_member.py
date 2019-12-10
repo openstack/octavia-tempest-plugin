@@ -82,7 +82,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: cls.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: cls.lb_algorithm,
             const.LISTENER_ID: cls.listener_id,
         }
 
@@ -226,7 +226,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         pool = self.mem_pool_client.create_pool(
             name=pool_name, loadbalancer_id=self.lb_id,
             protocol=self.protocol,
-            lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN)
+            lb_algorithm=self.lb_algorithm)
         pool_id = pool[const.ID]
         self.addCleanup(
             self.mem_pool_client.cleanup_pool, pool_id,
@@ -736,7 +736,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         pool = self.mem_pool_client.create_pool(
             name=pool_name, loadbalancer_id=self.lb_id,
             protocol=self.protocol,
-            lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN)
+            lb_algorithm=self.lb_algorithm)
         pool_id = pool[const.ID]
         self.addClassResourceCleanup(
             self.mem_pool_client.cleanup_pool, pool_id,

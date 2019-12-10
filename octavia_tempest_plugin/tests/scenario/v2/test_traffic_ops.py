@@ -102,7 +102,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: cls.lb_algorithm,
             const.LISTENER_ID: cls.listener_id,
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
@@ -413,7 +413,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)

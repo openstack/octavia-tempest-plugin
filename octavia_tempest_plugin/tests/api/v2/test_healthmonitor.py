@@ -77,7 +77,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
 
@@ -180,7 +180,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         pool1_kwargs = {
             const.NAME: pool1_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
 
@@ -200,7 +200,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         pool2_kwargs = {
             const.NAME: pool2_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
 
@@ -220,7 +220,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         pool3_kwargs = {
             const.NAME: pool3_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
 
@@ -469,7 +469,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
 
@@ -577,7 +577,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
 
@@ -734,7 +734,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
 

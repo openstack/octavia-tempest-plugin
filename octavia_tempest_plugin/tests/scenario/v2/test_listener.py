@@ -60,7 +60,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         pool1_kwargs = {
             const.NAME: pool1_name,
             const.PROTOCOL: cls.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: cls.lb_algorithm,
             const.LOADBALANCER_ID: cls.lb_id,
         }
         pool1 = cls.mem_pool_client.create_pool(**pool1_kwargs)
@@ -80,7 +80,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         pool2_kwargs = {
             const.NAME: pool2_name,
             const.PROTOCOL: cls.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: cls.lb_algorithm,
             const.LOADBALANCER_ID: cls.lb_id,
         }
         pool2 = cls.mem_pool_client.create_pool(**pool2_kwargs)
