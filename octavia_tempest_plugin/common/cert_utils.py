@@ -202,14 +202,14 @@ def generate_certificate_revocation_list(ca_cert, ca_key, cert_to_revoke):
     """
     crl_builder = x509.CertificateRevocationListBuilder()
     crl_builder = crl_builder.issuer_name(ca_cert.subject)
-    crl_builder = crl_builder.last_update(datetime.datetime.today())
-    crl_builder = crl_builder.next_update(datetime.datetime.today() +
+    crl_builder = crl_builder.last_update(datetime.datetime.utcnow())
+    crl_builder = crl_builder.next_update(datetime.datetime.utcnow() +
                                           datetime.timedelta(1, 0, 0))
 
     revoked_cert = x509.RevokedCertificateBuilder().serial_number(
         cert_to_revoke.serial_number
     ).revocation_date(
-        datetime.datetime.today()
+        datetime.datetime.utcnow()
     ).build(default_backend())
 
     crl_builder = crl_builder.add_revoked_certificate(revoked_cert)
