@@ -535,6 +535,15 @@
         OCTAVIA_AMP_IMAGE_SIZE: 3
 
 - job:
+    name: octavia-v2-dsvm-scenario-centos-8
+    parent: octavia-v2-dsvm-scenario
+    vars:
+      devstack_localrc:
+        OCTAVIA_AMP_BASE_OS: centos
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 8
+        OCTAVIA_AMP_IMAGE_SIZE: 3
+
+- job:
     name: octavia-v2-dsvm-scenario-ubuntu-bionic
     parent: octavia-v2-dsvm-scenario
     vars:
