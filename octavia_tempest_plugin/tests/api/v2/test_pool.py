@@ -102,7 +102,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
         }
         if self.lb_feature_enabled.session_persistence_enabled:
             pool_kwargs[const.SESSION_PERSISTENCE] = {
@@ -170,7 +170,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                              pool[const.LISTENERS][0][const.ID])
         else:
             self.assertEmpty(pool[const.LISTENERS])
-        self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
+        self.assertEqual(self.lb_algorithm,
                          pool[const.LB_ALGORITHM])
         if self.lb_feature_enabled.session_persistence_enabled:
             self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
@@ -219,7 +219,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: pool1_desc,
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: lb_id,
         }
         if self.lb_feature_enabled.session_persistence_enabled:
@@ -257,7 +257,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: pool2_desc,
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: lb_id,
         }
         if self.lb_feature_enabled.session_persistence_enabled:
@@ -294,7 +294,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: pool3_desc,
             const.ADMIN_STATE_UP: False,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             # No session persistence, just so there's one test for that
             const.LOADBALANCER_ID: lb_id,
         }
@@ -435,7 +435,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: True,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
         if self.lb_feature_enabled.session_persistence_enabled:
@@ -474,7 +474,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(1, len(pool[const.LOADBALANCERS]))
         self.assertEqual(self.lb_id, pool[const.LOADBALANCERS][0][const.ID])
         self.assertEmpty(pool[const.LISTENERS])
-        self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
+        self.assertEqual(self.lb_algorithm,
                          pool[const.LB_ALGORITHM])
         if self.lb_feature_enabled.session_persistence_enabled:
             self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
@@ -532,7 +532,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: False,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
         if self.lb_feature_enabled.session_persistence_enabled:
@@ -570,7 +570,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(1, len(pool[const.LOADBALANCERS]))
         self.assertEqual(self.lb_id, pool[const.LOADBALANCERS][0][const.ID])
         self.assertEmpty(pool[const.LISTENERS])
-        self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
+        self.assertEqual(self.lb_algorithm,
                          pool[const.LB_ALGORITHM])
         if self.lb_feature_enabled.session_persistence_enabled:
             self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
@@ -617,7 +617,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: new_name,
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
         }
         if self.lb_feature_enabled.session_persistence_enabled:
             pool_update_kwargs[const.SESSION_PERSISTENCE] = {
@@ -641,7 +641,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(new_name, pool[const.NAME])
         self.assertEqual(new_description, pool[const.DESCRIPTION])
         self.assertTrue(pool[const.ADMIN_STATE_UP])
-        self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
+        self.assertEqual(self.lb_algorithm,
                          pool[const.LB_ALGORITHM])
         if self.lb_feature_enabled.session_persistence_enabled:
             self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))
@@ -686,7 +686,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
         if self.lb_feature_enabled.session_persistence_enabled:

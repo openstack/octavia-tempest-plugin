@@ -100,7 +100,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: pool_description,
             const.ADMIN_STATE_UP: False,
             const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: self.lb_algorithm,
         }
         if self.lb_feature_enabled.session_persistence_enabled:
             pool_kwargs[const.SESSION_PERSISTENCE] = {
@@ -146,7 +146,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
                              pool[const.LISTENERS][0][const.ID])
         else:
             self.assertEmpty(pool[const.LISTENERS])
-        self.assertEqual(const.LB_ALGORITHM_ROUND_ROBIN,
+        self.assertEqual(self.lb_algorithm,
                          pool[const.LB_ALGORITHM])
         if self.lb_feature_enabled.session_persistence_enabled:
             self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))

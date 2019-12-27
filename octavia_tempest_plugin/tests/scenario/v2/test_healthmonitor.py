@@ -61,7 +61,7 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LB_ALGORITHM: cls.lb_algorithm,
             const.LOADBALANCER_ID: cls.lb_id,
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
