@@ -14,6 +14,7 @@
 
 # API field names
 ACTIVE_CONNECTIONS = 'active_connections'
+ALLOWED_CIDRS = 'allowed_cidrs'
 AVAILABILITY_ZONE = 'availability_zone'
 AVAILABILITY_ZONE_DATA = 'availability_zone_data'
 AVAILABILITY_ZONE_PROFILE_ID = 'availability_zone_profile_id'

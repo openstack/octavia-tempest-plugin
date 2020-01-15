@@ -210,3 +210,26 @@ def wait_for_spare_amps(list_func, check_interval, check_timeout):
                            timeout=check_timeout))
             raise exceptions.TimeoutException(message)
         time.sleep(check_interval)
+
+
+def wait_until_true(func, timeout=60, sleep=1, **kwargs):
+    """Wait until callable predicate is evaluated as True
+
+    :param func: Callable deciding whether waiting should continue.
+    :param timeout: Timeout in seconds how long should function wait.
+    :param sleep: Polling interval for results in seconds.
+    """
+    start = int(time.time())
+    while True:
+        try:
+            ret = func(**kwargs)
+            if ret:
+                return
+        except Exception as e:
+            LOG.error(e)
+
+        if int(time.time()) - start >= timeout:
+            message = "Timed out after {timeout} seconds waiting".format(
+                timeout=timeout)
+            raise exceptions.TimeoutException(message)
+        time.sleep(sleep)

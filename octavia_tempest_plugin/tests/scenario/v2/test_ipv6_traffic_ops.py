@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import requests
+
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
@@ -290,3 +292,144 @@ class IPv6TrafficOperationsScenarioTest(
                                      'in Octavia API version 2.1 or newer')
 
         self._test_ipv6_vip_ipv6_members_traffic(const.UDP, 8080)
+
+    @decorators.idempotent_id('84b23f68-4bc3-49e5-8372-60c25fe69613')
+    def test_listener_with_allowed_cidrs(self):
+        """Tests traffic through a loadbalancer with allowed CIDRs set.
+
+        * Set up listener with allowed CIDRS (allow all) on a loadbalancer.
+        * Set up pool on a loadbalancer
+        * Set up members on a loadbalancer.
+        * Test traffic to ensure it is balanced properly.
+        * Update allowed CIDRs to restrict traffic to a small subnet.
+        * Assert loadbalancer does not respond to client requests.
+        """
+
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            raise self.skipException('Allowed CIDRS in listeners is only '
+                                     'available on Octavia API version 2.12 '
+                                     'or newer.')
+
+        listener_name = data_utils.rand_name("lb_member_listener2_cidrs")
+        listener_port = 8080
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: self.protocol,
+            const.PROTOCOL_PORT: listener_port,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.ALLOWED_CIDRS: ['::/0']
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        pool_name = data_utils.rand_name("lb_member_pool3_cidrs")
+        pool_kwargs = {
+            const.NAME: pool_name,
+            const.PROTOCOL: self.protocol,
+            const.LB_ALGORITHM: self.lb_algorithm,
+            const.LISTENER_ID: listener_id,
+        }
+        pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        pool_id = pool[const.ID]
+        self.addCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Set up Member 1 for Webserver 1
+        member1_name = data_utils.rand_name("lb_member_member1-cidrs-traffic")
+        member1_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member1_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_1_subnet:
+            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        member1 = self.mem_member_client.create_member(
+            **member1_kwargs)
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member1[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 2 for Webserver 2
+        member2_name = data_utils.rand_name("lb_member_member2-cidrs-traffic")
+        member2_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member2_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver2_ip,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_2_subnet:
+            member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
+
+        member2 = self.mem_member_client.create_member(**member2_kwargs)
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member2[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Send some traffic
+        self.check_members_balanced(
+            self.lb_vip_address, protocol_port=listener_port)
+
+        listener_kwargs = {
+            const.LISTENER_ID: listener_id,
+            const.ALLOWED_CIDRS: ['2001:db8:a0b:12f0::/128']
+        }
+        self.mem_listener_client.update_listener(**listener_kwargs)
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        url_for_vip = 'http://[{}]:{}/'.format(self.lb_vip_address,
+                                               listener_port)
+
+        # NOTE: Before we start with the consistent response check, we must
+        # wait until Neutron completes the SG update.
+        # See https://bugs.launchpad.net/neutron/+bug/1866353.
+        def expect_conn_error(url):
+            try:
+                requests.Session().get(url)
+            except requests.exceptions.ConnectionError:
+                return True
+            return False
+
+        waiters.wait_until_true(expect_conn_error, url=url_for_vip)
+
+        # Assert that the server is consistently unavailable
+        self.assertConsistentResponse(
+            (None, None), url_for_vip, repeat=3, conn_error=True)

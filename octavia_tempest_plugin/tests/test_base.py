@@ -503,6 +503,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
             if CONF.load_balancer.test_with_noop:
                 lb_kwargs[const.VIP_NETWORK_ID] = (
                     cls.lb_member_vip_net[const.ID])
+                if ip_version == 6:
+                    lb_kwargs[const.VIP_ADDRESS] = lb_vip_address
         else:
             lb_kwargs[const.VIP_NETWORK_ID] = cls.lb_member_vip_net[const.ID]
             lb_kwargs[const.VIP_SUBNET_ID] = None
@@ -1099,7 +1101,8 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             protocol_port=protocol_port)
 
     def assertConsistentResponse(self, response, url, method='GET', repeat=10,
-                                 redirect=False, timeout=2, **kwargs):
+                                 redirect=False, timeout=2,
+                                 conn_error=False, **kwargs):
         """Assert that a request to URL gets the expected response.
 
         :param response: Expected response in format (status_code, content).
@@ -1112,6 +1115,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         :param redirect: Is the request a redirect? If true, assume the passed
                          content should be the next URL in the chain.
         :param timeout: Optional seconds to wait for the server to send data.
+        :param conn_error: Optional Expect a connection error?
 
         :return: boolean success status
 
@@ -1121,6 +1125,13 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         response_code, response_content = response
 
         for i in range(0, repeat):
+            if conn_error:
+                self.assertRaises(
+                    requests.exceptions.ConnectionError, session.request,
+                    method, url, allow_redirects=not redirect, timeout=timeout,
+                    **kwargs)
+                continue
+
             req = session.request(method, url, allow_redirects=not redirect,
                                   timeout=timeout, **kwargs)
             if response_code:

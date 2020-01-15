@@ -59,6 +59,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
 
+        cls.allowed_cidrs = ['192.0.1.0/24']
+        if CONF.load_balancer.test_with_ipv6:
+            cls.allowed_cidrs = ['2001:db8:a0b:12f0::/64']
+
     @decorators.idempotent_id('88d0ec83-7b08-48d9-96e2-0df1d2f8cd98')
     def test_listener_create(self):
         """Tests listener create and basic show APIs.
@@ -108,6 +112,18 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener_kwargs.update({
                 const.TAGS: listener_tags
             })
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            # Test that CIDR IP version matches VIP IP version
+            bad_cidrs = ['192.0.1.0/24', '2001:db8:a0b:12f0::/64']
+            listener_kwargs.update({const.ALLOWED_CIDRS: bad_cidrs})
+            self.assertRaises(
+                exceptions.BadRequest,
+                self.mem_listener_client.create_listener,
+                **listener_kwargs)
+
+            listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
 
         # Test that a user without the load balancer role cannot
         # create a listener
@@ -176,6 +192,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 self.api_version, '2.5'):
             self.assertCountEqual(listener_kwargs[const.TAGS],
                                   listener[const.TAGS])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
     @decorators.idempotent_id('cceac303-4db5-4d5a-9f6e-ff33780a5f29')
     def test_listener_create_on_same_port(self):
@@ -521,6 +541,9 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             show_listener_response_fields.append('timeout_member_connect')
             show_listener_response_fields.append('timeout_member_data')
             show_listener_response_fields.append('timeout_tcp_inspect')
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            show_listener_response_fields.append('allowed_cidrs')
         for field in show_listener_response_fields:
             if field in (const.DEFAULT_POOL_ID, const.L7_POLICIES):
                 continue
@@ -644,6 +667,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.TAGS: listener_tags
             })
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
+
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addClassResourceCleanup(
             self.mem_listener_client.cleanup_listener,
@@ -702,6 +729,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
         # Test that a user with lb_admin role can see the listener
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
@@ -779,6 +810,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.TAGS: listener_tags
             })
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
+
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addClassResourceCleanup(
             self.mem_listener_client.cleanup_listener,
@@ -824,6 +859,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 self.api_version, '2.5'):
             self.assertCountEqual(listener_kwargs[const.TAGS],
                                   listener[const.TAGS])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -888,6 +927,21 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.TAGS: listener_updated_tags
             })
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            # Test that CIDR IP version matches VIP IP version
+            bad_cidrs = ['192.0.2.0/24', '2001:db8::/6']
+            listener_update_kwargs.update({const.ALLOWED_CIDRS: bad_cidrs})
+            self.assertRaises(
+                exceptions.BadRequest,
+                self.mem_listener_client.update_listener,
+                listener[const.ID], **listener_update_kwargs)
+
+            new_cidrs = ['192.0.2.0/24']
+            if CONF.load_balancer.test_with_ipv6:
+                new_cidrs = ['2001:db8::/64']
+            listener_update_kwargs.update({const.ALLOWED_CIDRS: new_cidrs})
+
         listener = self.mem_listener_client.update_listener(
             listener[const.ID], **listener_update_kwargs)
 
@@ -935,6 +989,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 self.api_version, '2.5'):
             self.assertCountEqual(listener_update_kwargs[const.TAGS],
                                   listener[const.TAGS])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            expected_cidrs = ['192.0.2.0/24']
+            if CONF.load_balancer.test_with_ipv6:
+                expected_cidrs = ['2001:db8::/64']
+            self.assertEqual(expected_cidrs, listener[const.ALLOWED_CIDRS])
 
     @decorators.idempotent_id('16f11c82-f069-4592-8954-81b35a98e3b7')
     def test_listener_delete(self):
