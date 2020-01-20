@@ -2,9 +2,9 @@
     name: octavia-two-node
     nodes:
       - name: controller
-        label: ubuntu-xenial
+        label: ubuntu-bionic
       - name: controller2
-        label: ubuntu-xenial
+        label: ubuntu-bionic
     groups:
       - name: controller
         nodes:
