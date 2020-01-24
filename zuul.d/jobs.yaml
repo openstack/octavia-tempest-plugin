@@ -299,6 +299,7 @@
           g-api: true
           g-reg: true
           key: true
+          memory_tracker: false
           mysql: true
           n-api: true
           n-api-meta: true
@@ -314,7 +315,6 @@
           o-cw: true
           o-hm: true
           o-hk: true
-          peakmem_tracker: true
           placement-api: true
           q-agt: true
           q-dhcp: true
