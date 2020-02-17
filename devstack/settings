@@ -1,0 +1,3 @@
+GITREPO["octavia-tempest-plugin"]=${OCTAVIA_TEMPEST_REPO:-${GIT_BASE}/openstack/octavia-tempest-plugin.git}
+GITDIR["octavia-tempest-plugin"]=$DEST/octavia-tempest-plugin
+GITBRANCH["octavia-tempest-plugin"]=${OCTAVIA_TEMPEST_REF:-master}
