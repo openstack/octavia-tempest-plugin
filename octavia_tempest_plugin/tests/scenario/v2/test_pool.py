@@ -216,3 +216,10 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             const.PROVISIONING_STATUS,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer,
+            self.lb_id, const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
