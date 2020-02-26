@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import testtools
 from uuid import UUID
 
 from dateutil import parser
@@ -28,16 +29,19 @@ CONF = config.CONF
 
 class MemberScenarioTest(test_base.LoadBalancerBaseTest):
 
+    member_address = '2001:db8:0:0:0:0:0:1'
+
     @classmethod
     def resource_setup(cls):
-        """Setup resources needed by the tests."""
+        """Setup shared resources needed by the tests."""
         super(MemberScenarioTest, cls).resource_setup()
 
         lb_name = data_utils.rand_name("lb_member_lb1_member")
         lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
                      const.NAME: lb_name}
 
-        cls._setup_lb_network_kwargs(lb_kwargs)
+        cls._setup_lb_network_kwargs(lb_kwargs,
+                                     ip_version=4)
 
         lb = cls.mem_lb_client.create_loadbalancer(**lb_kwargs)
         cls.lb_id = lb[const.ID]
@@ -50,23 +54,46 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
-        protocol = const.HTTP
+
+        # Per protocol listeners and pools IDs
+        cls.listener_ids = {}
+        cls.pool_ids = {}
+
+        cls.protocol = const.HTTP
         lb_feature_enabled = CONF.loadbalancer_feature_enabled
         if not lb_feature_enabled.l7_protocol_enabled:
-            protocol = lb_feature_enabled.l4_protocol
+            cls.protocol = lb_feature_enabled.l4_protocol
+
+        # Don't use same ports for HTTP/l4_protocol and UDP since some previous
+        # releases (<=train) don't support it
+        cls._listener_pool_create(cls.protocol, 80)
+
+        cls._listener_pool_create(const.UDP, 8080)
+
+    @classmethod
+    def _listener_pool_create(cls, protocol, protocol_port):
+        """Setup resources needed by the tests."""
+
+        if (protocol == const.UDP and
+                not cls.mem_listener_client.is_version_supported(
+                    cls.api_version, '2.1')):
+            return
 
         listener_name = data_utils.rand_name("lb_member_listener1_member")
         listener_kwargs = {
             const.NAME: listener_name,
             const.PROTOCOL: protocol,
-            const.PROTOCOL_PORT: '80',
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: cls.lb_id,
+            # For branches that don't support multiple listeners in single
+            # haproxy process and use haproxy>=1.8:
+            const.CONNECTION_LIMIT: 200,
         }
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
-        cls.listener_id = listener[const.ID]
+        cls.listener_ids[protocol] = listener[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_listener_client.cleanup_listener,
-            cls.listener_id,
+            cls.listener_ids[protocol],
             lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
@@ -80,13 +107,13 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.NAME: pool_name,
             const.PROTOCOL: protocol,
             const.LB_ALGORITHM: cls.lb_algorithm,
-            const.LISTENER_ID: cls.listener_id,
+            const.LISTENER_ID: cls.listener_ids[protocol],
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
-        cls.pool_id = pool[const.ID]
+        cls.pool_ids[protocol] = pool[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_pool_client.cleanup_pool,
-            cls.pool_id,
+            cls.pool_ids[protocol],
             lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
@@ -104,12 +131,13 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         * Update the member.
         * Delete the member.
         """
+
         # Member create
         member_name = data_utils.rand_name("lb_member_member1-CRUD")
         member_kwargs = {
             const.NAME: member_name,
             const.ADMIN_STATE_UP: True,
-            const.POOL_ID: self.pool_id,
+            const.POOL_ID: self.pool_ids[self.protocol],
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 80,
             const.WEIGHT: 50,
@@ -132,7 +160,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         member = self.mem_member_client.create_member(**member_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member[const.ID], pool_id=self.pool_id,
+            member[const.ID], pool_id=self.pool_ids[self.protocol],
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
@@ -146,7 +174,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_id)
+            pool_id=self.pool_ids[self.protocol])
 
         parser.parse(member[const.CREATED_AT])
         parser.parse(member[const.UPDATED_AT])
@@ -161,7 +189,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.NO_MONITOR,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout,
-            pool_id=self.pool_id)
+            pool_id=self.pool_ids[self.protocol])
 
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.ADDRESS,
                        const.PROTOCOL_PORT, const.WEIGHT]
@@ -211,7 +239,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.ACTIVE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_id)
+            pool_id=self.pool_ids[self.protocol])
 
         # Test changed items
         equal_items = [const.NAME, const.ADMIN_STATE_UP, const.WEIGHT]
@@ -241,12 +269,73 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.ACTIVE,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)
-        self.mem_member_client.delete_member(member[const.ID],
-                                             pool_id=self.pool_id)
+        self.mem_member_client.delete_member(
+            member[const.ID],
+            pool_id=self.pool_ids[self.protocol])
 
         waiters.wait_for_deleted_status_or_not_found(
             self.mem_member_client.show_member, member[const.ID],
             const.PROVISIONING_STATUS,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout,
-            pool_id=self.pool_id)
+            pool_id=self.pool_ids[self.protocol])
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer,
+            self.lb_id, const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+    def _test_mixed_member_create(self, protocol):
+        member_name = data_utils.rand_name("lb_member_member1-create")
+        member_kwargs = {
+            const.NAME: member_name,
+            const.ADMIN_STATE_UP: True,
+            const.POOL_ID: self.pool_ids[protocol],
+            const.ADDRESS: self.member_address,
+            const.PROTOCOL_PORT: 80,
+            const.WEIGHT: 50,
+        }
+
+        if self.lb_member_vip_subnet:
+            member_kwargs[const.SUBNET_ID] = (
+                self.lb_member_vip_subnet[const.ID])
+
+        member = self.mem_member_client.create_member(
+            **member_kwargs)
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member[const.ID], pool_id=self.pool_ids[protocol],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+    @decorators.idempotent_id('0623aa1f-753d-44e7-afa1-017d274eace7')
+    @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
+                          'IPv6 testing is disabled')
+    # Skipping test for amphora driver until "UDP load balancers cannot mix
+    # protocol versions" (https://storyboard.openstack.org/#!/story/2003329) is
+    # fixed
+    @decorators.skip_because(
+        bug='2003329',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_mixed_udp_member_create(self):
+        """Test the member creation with mixed IP protocol members/VIP."""
+
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            raise self.skipException('UDP listener support is only available '
+                                     'in Octavia API version 2.1 or newer')
+
+        self._test_mixed_member_create(const.UDP)
+
+    @decorators.idempotent_id('b8afb91d-9b85-4569-85c7-03453df8990b')
+    @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
+                          'IPv6 testing is disabled')
+    def test_mixed_member_create(self):
+        """Test the member creation with mixed IP protocol members/VIP."""
+        self._test_mixed_member_create(self.protocol)
