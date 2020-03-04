@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from uuid import UUID
+
+from dateutil import parser
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
@@ -56,6 +59,98 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
+
+    def _expected_amp_count(self, amp_list):
+        self.assertNotEmpty(amp_list)
+        if amp_list[0][const.ROLE] in (const.ROLE_MASTER, const.ROLE_BACKUP):
+            return 2
+        return 1
+
+    @decorators.idempotent_id('a0e9ff99-2c4f-45d5-81c9-78d3107c236f')
+    def test_amphora_list_and_show(self):
+        """Tests amphora show API.
+
+        * Show amphora details.
+        * Validate the show reflects the requested values.
+        * Validates that other accounts cannot see the amphora.
+        """
+        lb_name = data_utils.rand_name("lb_member_lb2_amphora-list")
+        lb = self.mem_lb_client.create_loadbalancer(
+            name=lb_name, provider=CONF.load_balancer.provider,
+            vip_network_id=self.lb_member_vip_net[const.ID])
+        lb_id = lb[const.ID]
+        self.addCleanup(self.mem_lb_client.cleanup_loadbalancer, lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                lb_id,
+                                const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.lb_build_interval,
+                                CONF.load_balancer.lb_build_timeout)
+
+        # Test that a user, without the load balancer member role, cannot
+        # list amphorae
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            self.assertRaises(
+                exceptions.Forbidden,
+                self.os_primary.amphora_client.list_amphorae)
+
+        # Get an actual list of the amphorae
+        amphorae = self.lb_admin_amphora_client.list_amphorae()
+
+        # There should be AT LEAST 2, there may be more depending on the
+        # configured topology
+        self.assertGreaterEqual(
+            len(amphorae), 2 * self._expected_amp_count(amphorae))
+
+        # Test filtering by loadbalancer_id
+        amphorae = self.lb_admin_amphora_client.list_amphorae(
+            query_params='{loadbalancer_id}={lb_id}'.format(
+                loadbalancer_id=const.LOADBALANCER_ID, lb_id=self.lb_id))
+        self.assertEqual(self._expected_amp_count(amphorae), len(amphorae))
+        self.assertEqual(self.lb_id, amphorae[0][const.LOADBALANCER_ID])
+
+        # Test that a different user, with load balancer member role, cannot
+        # see this amphora
+        if not CONF.load_balancer.RBAC_test_type == const.NONE:
+            member2_client = self.os_roles_lb_member2.amphora_client
+            self.assertRaises(exceptions.Forbidden,
+                              member2_client.show_amphora,
+                              amphora_id=amphorae[0][const.ID])
+
+        show_amphora_response_fields = const.SHOW_AMPHORA_RESPONSE_FIELDS
+        if self.lb_admin_amphora_client.is_version_supported(
+                self.api_version, '2.1'):
+            show_amphora_response_fields.append('created_at')
+            show_amphora_response_fields.append('updated_at')
+            show_amphora_response_fields.append('image_id')
+
+        for amp in amphorae:
+
+            # Make sure all of the fields exist on the amp list records
+            for field in show_amphora_response_fields:
+                self.assertIn(field, amp)
+
+            # Verify a few of the fields are the right type
+            if self.lb_admin_amphora_client.is_version_supported(
+                    self.api_version, '2.1'):
+                parser.parse(amp[const.CREATED_AT])
+                parser.parse(amp[const.UPDATED_AT])
+
+            UUID(amp[const.ID])
+            UUID(amp[const.HA_PORT_ID])
+            UUID(amp[const.LOADBALANCER_ID])
+            UUID(amp[const.COMPUTE_ID])
+            UUID(amp[const.VRRP_PORT_ID])
+            self.assertEqual(amp[const.STATUS], const.STATUS_ALLOCATED)
+            self.assertIn(amp[const.ROLE], const.AMPHORA_ROLES)
+
+            # Test that all of the fields from the amp list match those
+            # from a show for the LB we created.
+            amp_obj = self.lb_admin_amphora_client.show_amphora(
+                amphora_id=amp[const.ID])
+            for field in show_amphora_response_fields:
+                self.assertEqual(amp[field], amp_obj[field])
 
     @decorators.idempotent_id('b7fc231b-dcfa-47a5-99f3-ec5ddcc48f30')
     def test_amphora_update(self):
