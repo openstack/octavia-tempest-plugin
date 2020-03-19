@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import testtools
 from uuid import UUID
 
 from dateutil import parser
@@ -19,6 +20,7 @@ from oslo_utils import strutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
+from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
@@ -51,23 +53,30 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.lb_build_interval,
                                 CONF.load_balancer.lb_build_timeout)
-        cls.protocol = const.HTTP
-        lb_feature_enabled = CONF.loadbalancer_feature_enabled
-        if not lb_feature_enabled.l7_protocol_enabled:
-            cls.protocol = lb_feature_enabled.l4_protocol
+
+        cls.allowed_cidrs = ['192.0.1.0/24']
+        if CONF.load_balancer.test_with_ipv6:
+            cls.allowed_cidrs = ['2001:db8:a0b:12f0::/64']
+
+    def _create_pools(cls, protocol, algorithm):
+        if (algorithm == const.LB_ALGORITHM_SOURCE_IP_PORT and not
+            cls.mem_listener_client.is_version_supported(
+                cls.api_version, '2.13')):
+            raise testtools.TestCase.skipException(
+                'Skipping this test as load balancing algorithm '
+                'SOURCE_IP_PORT requires API version 2.13 or newer.')
 
         pool1_name = data_utils.rand_name("lb_member_pool1_listener")
         pool1_kwargs = {
             const.NAME: pool1_name,
-            const.PROTOCOL: cls.protocol,
-            const.LB_ALGORITHM: cls.lb_algorithm,
+            const.PROTOCOL: protocol,
+            const.LB_ALGORITHM: algorithm,
             const.LOADBALANCER_ID: cls.lb_id,
         }
         pool1 = cls.mem_pool_client.create_pool(**pool1_kwargs)
-        cls.pool1_id = pool1[const.ID]
+        pool1_id = pool1[const.ID]
         cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool,
-            cls.pool1_id,
+            cls.mem_pool_client.cleanup_pool, pool1_id,
             lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
@@ -79,15 +88,14 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         pool2_name = data_utils.rand_name("lb_member_pool2_listener")
         pool2_kwargs = {
             const.NAME: pool2_name,
-            const.PROTOCOL: cls.protocol,
-            const.LB_ALGORITHM: cls.lb_algorithm,
+            const.PROTOCOL: protocol,
+            const.LB_ALGORITHM: algorithm,
             const.LOADBALANCER_ID: cls.lb_id,
         }
         pool2 = cls.mem_pool_client.create_pool(**pool2_kwargs)
-        cls.pool2_id = pool2[const.ID]
+        pool2_id = pool2[const.ID]
         cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool,
-            cls.pool2_id,
+            cls.mem_pool_client.cleanup_pool, pool2_id,
             lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
@@ -95,13 +103,128 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+        return pool1_id, pool2_id
 
-        cls.allowed_cidrs = ['192.0.1.0/24']
-        if CONF.load_balancer.test_with_ipv6:
-            cls.allowed_cidrs = ['2001:db8:a0b:12f0::/64']
+    # Note: TERMINATED_HTTPS listeners are covered in a different
+    #       tempest scenario suite due to the need for key-manager services
+
+    @decorators.idempotent_id('ecdd65b0-cf8f-48ee-972b-2f09425472f1')
+    def test_http_least_connections_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.HTTP,
+                                          const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_listener_CRUD(const.HTTP, pool1, pool2)
+
+    @decorators.idempotent_id('0681b2ac-8301-4e6c-bf29-b35244864af3')
+    def test_tcp_least_connections_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.TCP,
+                                          const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_listener_CRUD(const.TCP, pool1, pool2)
+
+    @decorators.idempotent_id('27a2ba7d-6147-46e4-886a-47c1ba63bf89')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_least_connections_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.UDP,
+                                          const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_listener_CRUD(const.UDP, pool1, pool2)
 
     @decorators.idempotent_id('4a874014-b7d1-49a4-ac9a-2400b3434700')
-    def test_listener_CRUD(self):
+    def test_http_round_robin_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.HTTP,
+                                          const.LB_ALGORITHM_ROUND_ROBIN)
+        self._test_listener_CRUD(const.HTTP, pool1, pool2)
+
+    @decorators.idempotent_id('2b888812-d916-44f0-b620-8d83dbb45975')
+    def test_tcp_round_robin_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.TCP,
+                                          const.LB_ALGORITHM_ROUND_ROBIN)
+        self._test_listener_CRUD(const.TCP, pool1, pool2)
+
+    @decorators.idempotent_id('dd913f74-c6a6-4998-9bed-095babb9cb47')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_round_robin_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.UDP,
+                                          const.LB_ALGORITHM_ROUND_ROBIN)
+        self._test_listener_CRUD(const.UDP, pool1, pool2)
+
+    @decorators.idempotent_id('b2ae8604-7a4f-477c-9658-fac27734671a')
+    def test_http_source_ip_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.HTTP,
+                                          const.LB_ALGORITHM_SOURCE_IP)
+        self._test_listener_CRUD(const.HTTP, pool1, pool2)
+
+    @decorators.idempotent_id('0ad3fdee-e8c2-4c44-9690-b8a838fbc7a5')
+    def test_tcp_source_ip_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.TCP,
+                                          const.LB_ALGORITHM_SOURCE_IP)
+        self._test_listener_CRUD(const.TCP, pool1, pool2)
+
+    @decorators.idempotent_id('7830aba8-12ca-40d9-9d9b-a63f7a43b287')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_source_ip_listener_CRUD(self):
+        pool1, pool2 = self._create_pools(const.UDP,
+                                          const.LB_ALGORITHM_SOURCE_IP)
+        self._test_listener_CRUD(const.UDP, pool1, pool2)
+
+    @decorators.idempotent_id('807a421e-5e99-4556-b0eb-512d39b25eac')
+    def test_http_source_ip_port_listener_CRUD(self):
+        try:
+            pool1, pool2 = self._create_pools(
+                const.HTTP, const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_listener_CRUD(const.HTTP, pool1, pool2)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
+    @decorators.idempotent_id('6211f8ad-622d-404d-b199-8c2eb55ab340')
+    def test_tcp_source_ip_port_listener_CRUD(self):
+        try:
+            pool1, pool2 = self._create_pools(
+                const.TCP, const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_listener_CRUD(const.TCP, pool1, pool2)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
+    @decorators.idempotent_id('3f9a2de9-5012-437d-a907-a25e1f68ccfb')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_source_ip_port_listener_CRUD(self):
+        try:
+            pool1, pool2 = self._create_pools(
+                const.UDP, const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_listener_CRUD(const.UDP, pool1, pool2)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
+    def _test_listener_CRUD(self, protocol, pool1_id, pool2_id):
         """Tests listener create, read, update, delete
 
         * Create a fully populated listener.
@@ -117,19 +240,23 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: self.protocol,
+            const.PROTOCOL: protocol,
             const.PROTOCOL_PORT: 80,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.INSERT_HEADERS: {
-                const.X_FORWARDED_FOR: "true",
-                const.X_FORWARDED_PORT: "true"
-            },
-            const.DEFAULT_POOL_ID: self.pool1_id,
+            const.DEFAULT_POOL_ID: pool1_id,
             # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+
+        if protocol in [const.HTTP, const.TERMINATED_HTTPS]:
+            listener_kwargs.update({
+                const.INSERT_HEADERS: {
+                    const.X_FORWARDED_FOR: "true",
+                    const.X_FORWARDED_PORT: "true"
+                },
+            })
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             listener_kwargs.update({
@@ -168,15 +295,16 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         UUID(listener[const.ID])
         # Operating status will be OFFLINE while admin_state_up = False
         self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(self.protocol, listener[const.PROTOCOL])
+        self.assertEqual(protocol, listener[const.PROTOCOL])
         self.assertEqual(80, listener[const.PROTOCOL_PORT])
         self.assertEqual(200, listener[const.CONNECTION_LIMIT])
-        insert_headers = listener[const.INSERT_HEADERS]
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(self.pool1_id, listener[const.DEFAULT_POOL_ID])
+        if protocol in [const.HTTP, const.TERMINATED_HTTPS]:
+            insert_headers = listener[const.INSERT_HEADERS]
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_FOR]))
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PORT]))
+        self.assertEqual(pool1_id, listener[const.DEFAULT_POOL_ID])
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
@@ -196,15 +324,18 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
             const.CONNECTION_LIMIT: 400,
-            const.INSERT_HEADERS: {
-                const.X_FORWARDED_FOR: "false",
-                const.X_FORWARDED_PORT: "false"
-            },
-            const.DEFAULT_POOL_ID: self.pool2_id,
+            const.DEFAULT_POOL_ID: pool2_id,
             # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if protocol in [const.HTTP, const.TERMINATED_HTTPS]:
+            listener_update_kwargs.update({
+                const.INSERT_HEADERS: {
+                    const.X_FORWARDED_FOR: "false",
+                    const.X_FORWARDED_PORT: "false"
+                },
+            })
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             listener_update_kwargs.update({
@@ -251,15 +382,16 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(self.protocol, listener[const.PROTOCOL])
+        self.assertEqual(protocol, listener[const.PROTOCOL])
         self.assertEqual(80, listener[const.PROTOCOL_PORT])
         self.assertEqual(400, listener[const.CONNECTION_LIMIT])
-        insert_headers = listener[const.INSERT_HEADERS]
-        self.assertFalse(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
-        self.assertFalse(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-        self.assertEqual(self.pool2_id, listener[const.DEFAULT_POOL_ID])
+        if protocol in [const.HTTP, const.TERMINATED_HTTPS]:
+            insert_headers = listener[const.INSERT_HEADERS]
+            self.assertFalse(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_FOR]))
+            self.assertFalse(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PORT]))
+        self.assertEqual(pool2_id, listener[const.DEFAULT_POOL_ID])
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])

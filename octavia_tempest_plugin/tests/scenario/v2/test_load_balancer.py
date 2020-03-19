@@ -22,7 +22,6 @@ from oslo_serialization import jsonutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
-from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
@@ -77,7 +76,7 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
                     cls.lb_admin_flavor_client.cleanup_a_flavor,
                     cls.flavor[const.ID])
                 cls.flavor_id = cls.flavor[const.ID]
-            except exceptions.NotImplemented:
+            except testtools.TestCase.skipException:
                 LOG.debug("Provider driver %s doesn't support flavors.",
                           CONF.load_balancer.provider)
                 cls.flavor_profile = None

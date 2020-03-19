@@ -41,11 +41,6 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
     @classmethod
     def skip_checks(cls):
         super(TLSWithBarbicanTest, cls).skip_checks()
-        if not CONF.loadbalancer_feature_enabled.l7_protocol_enabled:
-            raise cls.skipException(
-                '[loadbalancer_feature_enabled] "l7_protocol_enabled" is '
-                'False in the tempest configuration. TLS tests will be '
-                'skipped.')
         if not CONF.loadbalancer_feature_enabled.terminated_tls_enabled:
             raise cls.skipException(
                 '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
@@ -308,8 +303,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test HTTPS listener load balancing.
         # Note: certificate validation tests will follow this test
-        self.check_members_balanced(self.lb_vip_address, protocol='https',
-                                    verify=False, protocol_port=443)
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTPS,
+                                    HTTPS_verify=False, protocol_port=443)
 
         def _verify_cb(connection, x509, errno, errdepth, retcode):
             """Callback for certificate validation."""
@@ -394,8 +389,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test HTTPS listener load balancing.
         # Note: certificate validation tests will follow this test
-        self.check_members_balanced(self.lb_vip_address, protocol='https',
-                                    verify=False, protocol_port=443)
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTPS,
+                                    HTTPS_verify=False, protocol_port=443)
 
         # Test HTTP listener load balancing.
         self.check_members_balanced(self.lb_vip_address)
@@ -429,8 +424,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test HTTPS listener load balancing.
         # Note: certificate validation tests will follow this test
-        self.check_members_balanced(self.lb_vip_address, protocol='https',
-                                    verify=False, protocol_port=443)
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTPS,
+                                    HTTPS_verify=False, protocol_port=443)
 
         def _verify_server_cb(connection, x509, errno, errdepth, retcode):
             return _verify_cb(connection, x509, errno, errdepth, retcode,
@@ -562,8 +557,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test HTTPS listener load balancing.
         # Note: certificate validation tests will follow this test
-        self.check_members_balanced(self.lb_vip_address, protocol='https',
-                                    verify=False, protocol_port=443)
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTPS,
+                                    HTTPS_verify=False, protocol_port=443)
 
         listener2_name = data_utils.rand_name("lb_member_listener2-tls-sni")
         listener2_kwargs = {
@@ -590,8 +585,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test HTTPS listener load balancing.
         # Note: certificate validation tests will follow this test
-        self.check_members_balanced(self.lb_vip_address, protocol='https',
-                                    verify=False, protocol_port=8443)
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTPS,
+                                    HTTPS_verify=False, protocol_port=8443)
 
         def _verify_server_cb(connection, x509, errno, errdepth, retcode):
             return _verify_cb(connection, x509, errno, errdepth, retcode,

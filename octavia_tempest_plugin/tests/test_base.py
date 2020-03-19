@@ -12,17 +12,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import errno
 import ipaddress
 import pkg_resources
 import random
-import requests
 import shlex
-import socket
 import string
 import subprocess
 import tempfile
-import time
 
 from oslo_log import log as logging
 from oslo_utils import uuidutils
@@ -46,11 +42,8 @@ RETRY_INITIAL_DELAY = 1
 RETRY_BACKOFF = 1
 RETRY_MAX = 5
 
-SRC_PORT_NUMBER_MIN = 32768
-SRC_PORT_NUMBER_MAX = 61000
 
-
-class LoadBalancerBaseTest(test.BaseTestCase):
+class LoadBalancerBaseTest(validators.ValidatorsMixin, test.BaseTestCase):
     """Base class for load balancer tests."""
 
     # Setup cls.os_roles_lb_member. cls.os_primary, cls.os_roles_lb_member,
@@ -65,6 +58,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
     webserver2_response = 5
     used_ips = []
 
+    SRC_PORT_NUMBER_MIN = 32768
+    SRC_PORT_NUMBER_MAX = 61000
     src_port_number = SRC_PORT_NUMBER_MIN
 
     @classmethod
@@ -913,231 +908,20 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
     @classmethod
     def _validate_webserver(cls, ip_address, start_id):
         URL = 'http://{0}'.format(ip_address)
-        validators.validate_URL_response(URL, expected_body=str(start_id))
+        cls.validate_URL_response(URL, expected_body=str(start_id))
         URL = 'http://{0}:81'.format(ip_address)
-        validators.validate_URL_response(URL, expected_body=str(start_id + 1))
+        cls.validate_URL_response(URL, expected_body=str(start_id + 1))
 
     @classmethod
     def _validate_udp_server(cls, ip_address, start_id):
-        res = cls._udp_request(ip_address, 80)
+        res = cls.make_udp_request(ip_address, 80)
         if res != str(start_id):
             raise Exception("Response from test server doesn't match the "
                             "expected value ({0} != {1}).".format(
                                 res, str(start_id)))
 
-        res = cls._udp_request(ip_address, 81)
+        res = cls.make_udp_request(ip_address, 81)
         if res != str(start_id + 1):
             raise Exception("Response from test server doesn't match the "
                             "expected value ({0} != {1}).".format(
                                 res, str(start_id + 1)))
-
-    @classmethod
-    def _udp_request(cls, vip_address, port=80, timeout=None):
-        if ipaddress.ip_address(vip_address).version == 6:
-            family = socket.AF_INET6
-        else:
-            family = socket.AF_INET
-
-        sock = socket.socket(family, socket.SOCK_DGRAM)
-
-        # Force the use of an incremental port number for source to avoid
-        # re-use of a previous source port that will affect the round-robin
-        # dispatch
-        while True:
-            port_number = cls.src_port_number
-            cls.src_port_number += 1
-            if cls.src_port_number >= SRC_PORT_NUMBER_MAX:
-                cls.src_port_number = SRC_PORT_NUMBER_MIN
-
-            # catch and skip already used ports on the host
-            try:
-                sock.bind(('', port_number))
-            except OSError as e:
-                # if error is 'Address already in use', try next port number
-                if e.errno != errno.EADDRINUSE:
-                    raise e
-            else:
-                # successfully bind the socket
-                break
-
-        server_address = (vip_address, port)
-        data = b"data\n"
-
-        if timeout is not None:
-            sock.settimeout(timeout)
-
-        sock.sendto(data, server_address)
-        data, addr = sock.recvfrom(4096)
-
-        sock.close()
-
-        return data.decode('utf-8')
-
-    def _wait_for_lb_functional(self, vip_address, traffic_member_count,
-                                protocol_port, protocol, verify):
-        if protocol != const.UDP:
-            session = requests.Session()
-        start = time.time()
-
-        response_counts = {}
-
-        # Send requests to the load balancer until at least
-        # "traffic_member_count" members have replied (ensure network
-        # connectivity is functional between the load balancer and the membesr)
-        while time.time() - start < CONF.load_balancer.build_timeout:
-            try:
-                if protocol != const.UDP:
-                    url = "{0}://{1}{2}{3}".format(
-                        protocol.lower(),
-                        vip_address,
-                        ':' if protocol_port else '',
-                        protocol_port or '')
-                    r = session.get(url, timeout=2, verify=verify)
-                    data = r.content
-                else:
-                    data = self._udp_request(vip_address, port=protocol_port,
-                                             timeout=2)
-                if data in response_counts:
-                    response_counts[data] += 1
-                else:
-                    response_counts[data] = 1
-
-                if traffic_member_count == len(response_counts):
-                    LOG.debug('Loadbalancer response totals: %s',
-                              response_counts)
-                    time.sleep(1)
-                    return
-            except Exception:
-                LOG.warning('Server is not passing initial traffic. Waiting.')
-                time.sleep(1)
-
-        LOG.debug('Loadbalancer response totals: %s', response_counts)
-        LOG.error('Server did not begin passing traffic within the timeout '
-                  'period. Failing test.')
-        raise Exception()
-
-    def _send_lb_request(self, handler, protocol, vip_address,
-                         verify, protocol_port, num=20):
-        response_counts = {}
-
-        # Send a number requests to lb vip
-        for i in range(num):
-            try:
-                if protocol != const.UDP:
-                    url = "{0}://{1}{2}{3}".format(
-                        protocol.lower(),
-                        vip_address,
-                        ':' if protocol_port else '',
-                        protocol_port or '')
-                    r = handler.get(url, timeout=2, verify=verify)
-                    data = r.content
-                else:
-                    data = self._udp_request(vip_address, port=protocol_port,
-                                             timeout=2)
-
-                if data in response_counts:
-                    response_counts[data] += 1
-                else:
-                    response_counts[data] = 1
-
-            except Exception:
-                LOG.exception('Failed to send request to loadbalancer vip')
-                raise Exception('Failed to connect to lb')
-        LOG.debug('Loadbalancer response totals: %s', response_counts)
-        return response_counts
-
-    def _check_members_balanced_round_robin(
-            self, vip_address, traffic_member_count=2, protocol=const.HTTP,
-            verify=True, protocol_port=80):
-
-        handler = requests.Session()
-        response_counts = self._send_lb_request(
-            handler, protocol, vip_address,
-            verify, protocol_port)
-
-        # Ensure the correct number of members
-        self.assertEqual(traffic_member_count, len(response_counts))
-
-        # Ensure both members got the same number of responses
-        self.assertEqual(1, len(set(response_counts.values())))
-
-    def _check_members_balanced_source_ip_port(
-            self, vip_address, traffic_member_count=2, protocol=const.HTTP,
-            verify=True, protocol_port=80):
-
-        handler = requests
-        response_counts = self._send_lb_request(
-            handler, protocol, vip_address,
-            verify, protocol_port)
-        # Ensure the correct number of members
-        self.assertEqual(traffic_member_count, len(response_counts))
-
-        if CONF.load_balancer.test_reuse_connection:
-            handler = requests.Session()
-            response_counts = self._send_lb_request(
-                handler, protocol, vip_address,
-                verify, protocol_port)
-            # Ensure only one member answered
-            self.assertEqual(1, len(response_counts))
-
-    def check_members_balanced(self, vip_address, traffic_member_count=2,
-                               protocol=const.HTTP, verify=True,
-                               protocol_port=80):
-
-        if (ipaddress.ip_address(vip_address).version == 6 and
-                protocol != const.UDP):
-            vip_address = '[{}]'.format(vip_address)
-        self._wait_for_lb_functional(vip_address, traffic_member_count,
-                                     protocol_port, protocol, verify)
-
-        validate_func = '_check_members_balanced_%s' % self.lb_algorithm
-        validate_func = getattr(self, validate_func.lower())
-        validate_func(
-            vip_address=vip_address,
-            traffic_member_count=traffic_member_count,
-            protocol=protocol,
-            verify=verify,
-            protocol_port=protocol_port)
-
-    def assertConsistentResponse(self, response, url, method='GET', repeat=10,
-                                 redirect=False, timeout=2,
-                                 conn_error=False, **kwargs):
-        """Assert that a request to URL gets the expected response.
-
-        :param response: Expected response in format (status_code, content).
-        :param url: The URL to request.
-        :param method: The HTTP method to use (GET, POST, PUT, etc)
-        :param repeat: How many times to test the response.
-        :param data: Optional data to send in the request.
-        :param headers: Optional headers to send in the request.
-        :param cookies: Optional cookies to send in the request.
-        :param redirect: Is the request a redirect? If true, assume the passed
-                         content should be the next URL in the chain.
-        :param timeout: Optional seconds to wait for the server to send data.
-        :param conn_error: Optional Expect a connection error?
-
-        :return: boolean success status
-
-        :raises: testtools.matchers.MismatchError
-        """
-        session = requests.Session()
-        response_code, response_content = response
-
-        for i in range(0, repeat):
-            if conn_error:
-                self.assertRaises(
-                    requests.exceptions.ConnectionError, session.request,
-                    method, url, allow_redirects=not redirect, timeout=timeout,
-                    **kwargs)
-                continue
-
-            req = session.request(method, url, allow_redirects=not redirect,
-                                  timeout=timeout, **kwargs)
-            if response_code:
-                self.assertEqual(response_code, req.status_code)
-            if redirect:
-                self.assertTrue(req.is_redirect)
-                self.assertEqual(response_content,
-                                 session.get_redirect_target(req))
-            elif response_content:
-                self.assertEqual(str(response_content), req.text)

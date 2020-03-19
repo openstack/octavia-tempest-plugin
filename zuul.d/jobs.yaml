@@ -195,6 +195,8 @@
             load_balancer:
               check_interval: 1
               check_timeout: 180
+            loadbalancer-feature-enabled:
+              not_implemented_is_error: True
       devstack_services:
         neutron-qos: true
       devstack_plugins:
@@ -871,3 +873,33 @@
     required-projects:
       - name: openstack/diskimage-builder
         override-checkout: 2.30.0
+
+######### Third party jobs ##########
+
+- job:
+    name: neutron-ovn-provider-v2-scenario
+    parent: ovn-octavia-provider-v2-dsvm-scenario
+    description: Runs the neutron OVN provider driver for Octavia scenario test.
+    voting: false
+    timeout: 5400
+    attempts: 1
+    tags: ovn-octavia-provider
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+      - ^octavia/amphorae/.*$
+      - ^octavia/api/drivers/amphora_driver/.*$
+      - ^octavia/compute/.*$
+      - ^octavia/controller/.*$
+      - ^octavia/distributor/.*$
+      - ^octavia/volume/.*$
+      - ^octavia/tests/.*$
+    vars:
+      devstack_local_conf:
+        test-config:
+          "$TEMPEST_CONFIG":
+            loadbalancer-feature-enabled:
+              not_implemented_is_error: False

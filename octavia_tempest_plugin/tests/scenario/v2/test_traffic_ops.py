@@ -14,7 +14,6 @@
 
 import datetime
 import ipaddress
-import requests
 import shlex
 import testtools
 import time
@@ -24,20 +23,29 @@ from oslo_utils import uuidutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
+from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
-from octavia_tempest_plugin.tests import validators
 from octavia_tempest_plugin.tests import waiters
 
 CONF = config.CONF
 LOG = logging.getLogger(__name__)
 
 
-@testtools.skipUnless(
-    CONF.validation.run_validation,
-    'Traffic tests will not work without run_validation enabled.')
 class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
+
+    @classmethod
+    def skip_checks(cls):
+        super().skip_checks()
+
+        if not CONF.validation.run_validation:
+            raise cls.skipException('Traffic tests will not work without '
+                                    'run_validation enabled.')
+
+        if CONF.load_balancer.test_with_noop:
+            raise cls.skipException('Traffic tests will not work in noop '
+                                    'mode.')
 
     @classmethod
     def resource_setup(cls):
@@ -80,27 +88,19 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         else:
             cls.lb_vip_address = lb[const.VIP_ADDRESS]
 
-        # Per protocol listeners and pools IDs
-        cls.listener_ids = {}
-        cls.pool_ids = {}
-
-        cls.protocol = const.HTTP
-        lb_feature_enabled = CONF.loadbalancer_feature_enabled
-        if not lb_feature_enabled.l7_protocol_enabled:
-            cls.protocol = lb_feature_enabled.l4_protocol
-
-        # Don't use same ports for HTTP/l4_protocol and UDP because some
-        # releases (<=train) don't support it
-        cls._listener_pool_create(cls.protocol, 80)
-
-        cls._listener_pool_create(const.UDP, 8080)
-
     @classmethod
-    def _listener_pool_create(cls, protocol, protocol_port):
+    def _listener_pool_create(cls, protocol, protocol_port,
+                              pool_algorithm=const.LB_ALGORITHM_ROUND_ROBIN):
         if (protocol == const.UDP and
                 not cls.mem_listener_client.is_version_supported(
                     cls.api_version, '2.1')):
             return
+        if (pool_algorithm == const.LB_ALGORITHM_SOURCE_IP_PORT and not
+            cls.mem_listener_client.is_version_supported(
+                cls.api_version, '2.13')):
+            raise testtools.TestCase.skipException(
+                'Skipping this test as load balancing algorithm '
+                'SOURCE_IP_PORT requires API version 2.13 or newer.')
 
         listener_name = data_utils.rand_name("lb_member_listener1_operations")
         listener_kwargs = {
@@ -112,12 +112,10 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             # haproxy process and use haproxy>=1.8:
             const.CONNECTION_LIMIT: 200,
         }
-        listener = cls.mem_listener_client.create_listener(
-            **listener_kwargs)
-        cls.listener_ids[protocol] = listener[const.ID]
+        listener = cls.mem_listener_client.create_listener(**listener_kwargs)
         cls.addClassResourceCleanup(
             cls.mem_listener_client.cleanup_listener,
-            cls.listener_ids[protocol],
+            listener[const.ID],
             lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
@@ -130,14 +128,13 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: protocol,
-            const.LB_ALGORITHM: cls.lb_algorithm,
-            const.LISTENER_ID: cls.listener_ids[protocol],
+            const.LB_ALGORITHM: pool_algorithm,
+            const.LISTENER_ID: listener[const.ID],
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
-        cls.pool_ids[protocol] = pool[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_pool_client.cleanup_pool,
-            cls.pool_ids[protocol],
+            pool[const.ID],
             lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
@@ -146,7 +143,12 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
 
-    def _test_basic_traffic(self, protocol, protocol_port):
+        return listener[const.ID], pool[const.ID]
+
+    def _test_basic_traffic(
+            self, protocol, protocol_port, listener_id, pool_id,
+            persistent=True, traffic_member_count=2, source_port=None,
+            delay=None):
         """Tests sending traffic through a loadbalancer
 
         * Set up members on a loadbalancer.
@@ -155,7 +157,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 1 for Webserver 1
         member1_name = data_utils.rand_name("lb_member_member1-traffic")
         member1_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member1_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver1_ip,
@@ -164,11 +166,10 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_1_subnet:
             member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
 
-        member1 = self.mem_member_client.create_member(
-            **member1_kwargs)
+        member1 = self.mem_member_client.create_member(**member1_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member1[const.ID], pool_id=self.pool_ids[protocol],
+            member1[const.ID], pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -179,7 +180,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 2 for Webserver 2
         member2_name = data_utils.rand_name("lb_member_member2-traffic")
         member2_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member2_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver2_ip,
@@ -188,11 +189,10 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_2_subnet:
             member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
 
-        member2 = self.mem_member_client.create_member(
-            **member2_kwargs)
+        member2 = self.mem_member_client.create_member(**member2_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member2[const.ID], pool_id=self.pool_ids[protocol],
+            member2[const.ID], pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -201,16 +201,27 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             CONF.load_balancer.check_timeout)
 
         # Send some traffic
-        self.check_members_balanced(self.lb_vip_address,
-                                    protocol_port=protocol_port,
-                                    protocol=protocol)
+        self.check_members_balanced(
+            self.lb_vip_address, protocol_port=protocol_port,
+            persistent=persistent, protocol=protocol,
+            traffic_member_count=traffic_member_count, source_port=source_port,
+            delay=delay)
 
     @decorators.attr(type=['smoke', 'slow'])
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('6751135d-e15a-4e22-89f4-bfcc3408d424')
-    def test_basic_traffic(self):
-        self._test_basic_traffic(self.protocol, 80)
+    def test_basic_http_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(const.HTTP, 80)
+        self._test_basic_traffic(const.HTTP, 80, listener_id, pool_id)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('332a08e0-eff1-4c19-b46c-bf87148a6d84')
+    def test_basic_tcp_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(const.TCP, 81)
+        self._test_basic_traffic(const.TCP, 81, listener_id, pool_id,
+                                 persistent=False)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
@@ -220,10 +231,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 self.api_version, '2.1'):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
+        listener_id, pool_id = self._listener_pool_create(const.UDP, 8080)
+        self._test_basic_traffic(const.UDP, 8080, listener_id, pool_id)
 
-        self._test_basic_traffic(const.UDP, 8080)
-
-    def _test_healthmonitor_traffic(self, protocol, protocol_port):
+    def _test_healthmonitor_traffic(self, protocol, protocol_port,
+                                    listener_id, pool_id, persistent=True):
         """Tests traffic is correctly routed based on healthmonitor status
 
         * Create three members:
@@ -242,7 +254,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
 
         member1_name = data_utils.rand_name("lb_member_member1-hm-traffic")
         member1_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member1_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver1_ip,
@@ -251,12 +263,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_1_subnet:
             member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
 
-        member1 = self.mem_member_client.create_member(
-            **member1_kwargs)
+        member1 = self.mem_member_client.create_member(**member1_kwargs)
         member1_id = member1[const.ID]
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member1_id, pool_id=self.pool_ids[protocol],
+            member1_id, pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -267,7 +278,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 2 for Webserver 2
         member2_name = data_utils.rand_name("lb_member_member2-hm-traffic")
         member2_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member2_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver2_ip,
@@ -277,12 +288,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_2_subnet:
             member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
 
-        member2 = self.mem_member_client.create_member(
-            **member2_kwargs)
+        member2 = self.mem_member_client.create_member(**member2_kwargs)
         member2_id = member2[const.ID]
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member2_id, pool_id=self.pool_ids[protocol],
+            member2_id, pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -293,19 +303,18 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 3 as a non-existent disabled node
         member3_name = data_utils.rand_name("lb_member_member3-hm-traffic")
         member3_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member3_name,
             const.ADMIN_STATE_UP: False,
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 80,
         }
 
-        member3 = self.mem_member_client.create_member(
-            **member3_kwargs)
+        member3 = self.mem_member_client.create_member(**member3_kwargs)
         member3_id = member3[const.ID]
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member3_id, pool_id=self.pool_ids[protocol],
+            member3_id, pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -320,27 +329,26 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             const.NO_MONITOR,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
         waiters.wait_for_status(
             self.mem_member_client.show_member,
             member2_id, const.OPERATING_STATUS,
             const.NO_MONITOR,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
         waiters.wait_for_status(
             self.mem_member_client.show_member,
             member3_id, const.OPERATING_STATUS,
             const.OFFLINE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
 
         # Send some traffic and verify it is balanced
         self.check_members_balanced(self.lb_vip_address,
                                     protocol_port=protocol_port,
-                                    protocol=protocol,
-                                    traffic_member_count=2)
+                                    protocol=protocol, persistent=persistent)
 
         # Create the healthmonitor
         hm_name = data_utils.rand_name("lb_member_hm1-hm-traffic")
@@ -351,7 +359,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 hm_type = const.HEALTH_MONITOR_TCP
 
             hm_kwargs = {
-                const.POOL_ID: self.pool_ids[protocol],
+                const.POOL_ID: pool_id,
                 const.NAME: hm_name,
                 const.TYPE: hm_type,
                 const.DELAY: 3,
@@ -362,7 +370,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             }
         else:
             hm_kwargs = {
-                const.POOL_ID: self.pool_ids[protocol],
+                const.POOL_ID: pool_id,
                 const.NAME: hm_name,
                 const.TYPE: const.HEALTH_MONITOR_HTTP,
                 const.DELAY: 2,
@@ -400,27 +408,28 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
             error_ok=True,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
         waiters.wait_for_status(
             self.mem_member_client.show_member,
             member2_id, const.OPERATING_STATUS,
             const.ERROR,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
         waiters.wait_for_status(
             self.mem_member_client.show_member,
             member3_id, const.OPERATING_STATUS,
             const.OFFLINE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
 
         # Send some traffic and verify it is *unbalanced*, as expected
         self.check_members_balanced(self.lb_vip_address,
                                     protocol_port=protocol_port,
                                     protocol=protocol,
-                                    traffic_member_count=1)
+                                    traffic_member_count=1,
+                                    persistent=persistent)
 
         # Delete the healthmonitor
         self.mem_healthmonitor_client.delete_healthmonitor(hm[const.ID])
@@ -438,37 +447,38 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             const.NO_MONITOR,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
         waiters.wait_for_status(
             self.mem_member_client.show_member,
             member2_id, const.OPERATING_STATUS,
             const.NO_MONITOR,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
         waiters.wait_for_status(
             self.mem_member_client.show_member,
             member3_id, const.OPERATING_STATUS,
             const.OFFLINE,
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout,
-            pool_id=self.pool_ids[protocol])
+            pool_id=pool_id)
 
         # Send some traffic and verify it is balanced again
         self.check_members_balanced(self.lb_vip_address,
                                     protocol_port=protocol_port,
-                                    protocol=protocol)
+                                    protocol=protocol, persistent=persistent)
 
-    @testtools.skipUnless(
-        CONF.loadbalancer_feature_enabled.health_monitor_enabled,
-        'Health monitor testing is disabled')
     @decorators.idempotent_id('a16f8eb4-a77c-4b0e-8b1b-91c237039713')
-    def test_healthmonitor_traffic(self):
-        self._test_healthmonitor_traffic(self.protocol, 80)
+    def test_healthmonitor_http_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(const.HTTP, 82)
+        self._test_healthmonitor_traffic(const.HTTP, 82, listener_id, pool_id)
 
-    @testtools.skipUnless(
-        CONF.loadbalancer_feature_enabled.health_monitor_enabled,
-        'Health monitor testing is disabled')
+    @decorators.idempotent_id('22f00c34-343b-4aa9-90be-4567ecf85772')
+    def test_healthmonitor_tcp_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(const.TCP, 83)
+        self._test_healthmonitor_traffic(const.TCP, 83, listener_id, pool_id,
+                                         persistent=False)
+
     @decorators.idempotent_id('80b86513-1a76-4e42-91c9-cb23c879e536')
     def test_healthmonitor_udp_traffic(self):
         if not self.mem_listener_client.is_version_supported(
@@ -476,13 +486,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
 
-        self._test_healthmonitor_traffic(const.UDP, 8080)
+        listener_id, pool_id = self._listener_pool_create(const.UDP, 8081)
+        self._test_healthmonitor_traffic(const.UDP, 8081, listener_id, pool_id)
 
-    @testtools.skipUnless(
-        CONF.loadbalancer_feature_enabled.l7_protocol_enabled,
-        'L7 protocol testing is disabled')
     @decorators.idempotent_id('3558186d-6dcd-4d9d-b7f7-adc190b66149')
-    def test_l7policies_and_l7rules(self):
+    def test_http_l7policies_and_l7rules(self):
         """Tests sending traffic through a loadbalancer with l7rules
 
         * Create an extra pool.
@@ -492,6 +500,9 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         * Create a policy/rule to reject connections.
         * Test traffic to ensure it goes to the correct place.
         """
+        LISTENER_PORT = 84
+        listener_id, pool_id = self._listener_pool_create(const.HTTP,
+                                                          LISTENER_PORT)
         protocol = const.HTTP
 
         # Create a second pool
@@ -499,14 +510,14 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: protocol,
-            const.LB_ALGORITHM: self.lb_algorithm,
+            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.LOADBALANCER_ID: self.lb_id,
         }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
-        pool_id = pool[const.ID]
+        pool2_id = pool[const.ID]
         self.addCleanup(
             self.mem_pool_client.cleanup_pool,
-            pool_id,
+            pool2_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
@@ -518,7 +529,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 1 for Webserver 1 on the default pool
         member1_name = data_utils.rand_name("lb_member_member1-l7redirect")
         member1_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member1_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver1_ip,
@@ -531,7 +542,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             **member1_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member1[const.ID], pool_id=self.pool_ids[protocol],
+            member1[const.ID], pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -542,7 +553,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 2 for Webserver 2 on the alternate pool
         member2_name = data_utils.rand_name("lb_member_member2-l7redirect")
         member2_kwargs = {
-            const.POOL_ID: pool_id,
+            const.POOL_ID: pool2_id,
             const.NAME: member2_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver2_ip,
@@ -555,7 +566,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             **member2_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member2[const.ID], pool_id=self.pool_ids[protocol],
+            member2[const.ID], pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -567,13 +578,13 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         l7policy1_name = data_utils.rand_name("lb_member_l7policy1-l7redirect")
         l7policy1_description = data_utils.arbitrary_string(size=255)
         l7policy1_kwargs = {
-            const.LISTENER_ID: self.listener_ids[protocol],
+            const.LISTENER_ID: listener_id,
             const.NAME: l7policy1_name,
             const.DESCRIPTION: l7policy1_description,
             const.ADMIN_STATE_UP: True,
             const.POSITION: 1,
             const.ACTION: const.REDIRECT_TO_POOL,
-            const.REDIRECT_POOL_ID: pool_id,
+            const.REDIRECT_POOL_ID: pool2_id,
         }
         l7policy1 = self.mem_l7policy_client.create_l7policy(
             **l7policy1_kwargs)
@@ -612,7 +623,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         l7policy2_name = data_utils.rand_name("lb_member_l7policy2-l7redirect")
         l7policy2_description = data_utils.arbitrary_string(size=255)
         l7policy2_kwargs = {
-            const.LISTENER_ID: self.listener_ids[protocol],
+            const.LISTENER_ID: listener_id,
             const.NAME: l7policy2_name,
             const.DESCRIPTION: l7policy2_description,
             const.ADMIN_STATE_UP: True,
@@ -657,7 +668,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         l7policy3_name = data_utils.rand_name("lb_member_l7policy3-l7redirect")
         l7policy3_description = data_utils.arbitrary_string(size=255)
         l7policy3_kwargs = {
-            const.LISTENER_ID: self.listener_ids[protocol],
+            const.LISTENER_ID: listener_id,
             const.NAME: l7policy3_name,
             const.DESCRIPTION: l7policy3_description,
             const.ADMIN_STATE_UP: True,
@@ -699,17 +710,20 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             CONF.load_balancer.build_timeout)
 
         # Assert that normal traffic goes to pool1->member1
-        url_for_member1 = 'http://{}/'.format(self.lb_vip_address)
+        url_for_member1 = 'http://{}:{}/'.format(self.lb_vip_address,
+                                                 LISTENER_PORT)
         self.assertConsistentResponse((200, self.webserver1_response),
                                       url_for_member1)
 
         # Assert that slow traffic goes to pool2->member2
-        url_for_member2 = 'http://{}/slow?delay=1s'.format(self.lb_vip_address)
+        url_for_member2 = 'http://{}:{}/slow?delay=1s'.format(
+            self.lb_vip_address, LISTENER_PORT)
         self.assertConsistentResponse((200, self.webserver2_response),
                                       url_for_member2)
 
         # Assert that /turtles is redirected to identity
-        url_for_identity = 'http://{}/turtles'.format(self.lb_vip_address)
+        url_for_identity = 'http://{}:{}/turtles'.format(self.lb_vip_address,
+                                                         LISTENER_PORT)
         self.assertConsistentResponse((302, CONF.identity.uri_v3),
                                       url_for_identity,
                                       redirect=True)
@@ -719,7 +733,9 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                       url_for_member1,
                                       headers={'reject': 'true'})
 
-    def _test_mixed_ipv4_ipv6_members_traffic(self, protocol, protocol_port):
+    def _test_mixed_ipv4_ipv6_members_traffic(self, protocol, protocol_port,
+                                              listener_id, pool_id,
+                                              persistent=True):
         """Tests traffic through a loadbalancer with IPv4 and IPv6 members.
 
         * Set up members on a loadbalancer.
@@ -729,7 +745,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 1 for Webserver 1
         member1_name = data_utils.rand_name("lb_member_member1-traffic")
         member1_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member1_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver1_ip,
@@ -742,7 +758,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             **member1_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member1[const.ID], pool_id=self.pool_ids[protocol],
+            member1[const.ID], pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -753,7 +769,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Set up Member 2 for Webserver 2
         member2_name = data_utils.rand_name("lb_member_member2-traffic")
         member2_kwargs = {
-            const.POOL_ID: self.pool_ids[protocol],
+            const.POOL_ID: pool_id,
             const.NAME: member2_name,
             const.ADMIN_STATE_UP: True,
             const.ADDRESS: self.webserver2_ipv6,
@@ -767,7 +783,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             **member2_kwargs)
         self.addCleanup(
             self.mem_member_client.cleanup_member,
-            member2[const.ID], pool_id=self.pool_ids[protocol],
+            member2[const.ID], pool_id=pool_id,
             lb_client=self.mem_lb_client, lb_id=self.lb_id)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -778,15 +794,28 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Send some traffic
         self.check_members_balanced(self.lb_vip_address,
                                     protocol_port=protocol_port,
-                                    protocol=protocol)
+                                    protocol=protocol, persistent=persistent)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
                           'Mixed IPv4/IPv6 member test requires IPv6.')
     @decorators.idempotent_id('20b6b671-0101-4bed-a249-9af6ee3aa6d9')
-    def test_mixed_ipv4_ipv6_members_traffic(self):
-        self._test_mixed_ipv4_ipv6_members_traffic(self.protocol, 80)
+    def test_mixed_ipv4_ipv6_members_http_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(const.HTTP, 85)
+        self._test_mixed_ipv4_ipv6_members_traffic(const.HTTP, 85,
+                                                   listener_id, pool_id)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
+                          'Mixed IPv4/IPv6 member test requires IPv6.')
+    @decorators.idempotent_id('c442ae84-0abc-4470-8c7e-14a07e92a6fa')
+    def test_mixed_ipv4_ipv6_members_tcp_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(const.TCP, 86)
+        self._test_mixed_ipv4_ipv6_members_traffic(const.TCP, 86,
+                                                   listener_id, pool_id,
+                                                   persistent=False)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
@@ -805,8 +834,143 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 self.api_version, '2.1'):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
+        listener_id, pool_id = self._listener_pool_create(const.UDP, 8082)
+        self._test_mixed_ipv4_ipv6_members_traffic(const.UDP, 8082,
+                                                   listener_id, pool_id)
 
-        self._test_mixed_ipv4_ipv6_members_traffic(const.UDP, 8080)
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('a58063fb-b9e8-4cfc-8a8c-7b2e9e884e7a')
+    def test_least_connections_http_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(
+            const.HTTP, 87,
+            pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_basic_traffic(const.HTTP, 87, listener_id, pool_id)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('e1056709-6a1a-4a15-80c2-5cbb8279f924')
+    def test_least_connections_tcp_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(
+            const.TCP, 88, pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_basic_traffic(const.TCP, 88, listener_id, pool_id,
+                                 persistent=False, delay=0.2)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('b5285410-507c-4629-90d4-6161540033d9')
+    def test_least_connections_udp_traffic(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            raise self.skipException('UDP listener support is only available '
+                                     'in Octavia API version 2.1 or newer')
+        listener_id, pool_id = self._listener_pool_create(
+            const.UDP, 8083,
+            pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_basic_traffic(const.UDP, 8083, listener_id, pool_id)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('881cc3e9-a011-4043-b0e3-a6185f736053')
+    def test_source_ip_http_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(
+            const.HTTP, 89,
+            pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)
+        self._test_basic_traffic(const.HTTP, 89, listener_id, pool_id,
+                                 traffic_member_count=1, persistent=False)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('4568db0e-4243-4191-a822-9d327a55fa64')
+    def test_source_ip_tcp_traffic(self):
+        listener_id, pool_id = self._listener_pool_create(
+            const.TCP, 90, pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)
+        self._test_basic_traffic(const.TCP, 90, listener_id, pool_id,
+                                 traffic_member_count=1, persistent=False)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('be9e6ef2-7840-47d7-9315-cdb1e897b202')
+    def test_source_ip_udp_traffic(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            raise self.skipException('UDP listener support is only available '
+                                     'in Octavia API version 2.1 or newer')
+        listener_id, pool_id = self._listener_pool_create(
+            const.UDP, 8084,
+            pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)
+        self._test_basic_traffic(const.UDP, 8084, listener_id, pool_id,
+                                 traffic_member_count=1, persistent=False)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('a446585b-5651-40ce-a4db-cb2ab4d37c03')
+    def test_source_ip_port_http_traffic(self):
+        # This is a special case as the reference driver does not support
+        # this test. Since it runs with not_implemented_is_error, we must
+        # handle this test case special.
+        try:
+            listener_id, pool_id = self._listener_pool_create(
+                const.HTTP, 60091,
+                pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_basic_traffic(
+                const.HTTP, 60091, listener_id, pool_id,
+                traffic_member_count=1, persistent=False, source_port=60091)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('60108f30-d870-487c-ab96-8d8a9b587b94')
+    def test_source_ip_port_tcp_traffic(self):
+        # This is a special case as the reference driver does not support
+        # this test. Since it runs with not_implemented_is_error, we must
+        # handle this test case special.
+        try:
+            listener_id, pool_id = self._listener_pool_create(
+                const.TCP, 60092,
+                pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_basic_traffic(
+                const.TCP, 60092, listener_id, pool_id, traffic_member_count=1,
+                persistent=False, source_port=60092)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('a67dfa58-6953-4a0f-8a65-3f153b254c98')
+    def test_source_ip_port_udp_traffic(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            raise self.skipException('UDP listener support is only available '
+                                     'in Octavia API version 2.1 or newer')
+        # This is a special case as the reference driver does not support
+        # this test. Since it runs with not_implemented_is_error, we must
+        # handle this test case special.
+        try:
+            listener_id, pool_id = self._listener_pool_create(
+                const.UDP, 8085,
+                pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_basic_traffic(
+                const.UDP, 8085, listener_id, pool_id, traffic_member_count=1,
+                persistent=False, source_port=8085)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Log offload tests will not work in noop mode.')
@@ -814,9 +978,6 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         CONF.loadbalancer_feature_enabled.log_offload_enabled,
         'Skipping log offload tests because tempest configuration '
         '[loadbalancer-feature-enabled] log_offload_enabled is False.')
-    @testtools.skipUnless(
-        CONF.loadbalancer_feature_enabled.l7_protocol_enabled,
-        'Log offload tests require l7_protocol_enabled.')
     @decorators.idempotent_id('571dddd9-f5bd-404e-a799-9df7ac9e2fa9')
     def test_tenant_flow_log(self):
         """Tests tenant flow log offloading
@@ -898,7 +1059,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # Make the request
         URL = 'http://{0}:{1}/{2}'.format(
             self.lb_vip_address, protocol_port, unique_request_id)
-        validators.validate_URL_response(URL, expected_status_code=200)
+        self.validate_URL_response(URL, expected_status_code=200)
 
         # We need to give the log subsystem time to commit the log
         time.sleep(CONF.load_balancer.check_interval)
@@ -942,10 +1103,68 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         self.assertTrue(fields[14].isdigit())  # processing_time
         self.assertEqual('----', fields[15])  # term_state
 
-    @testtools.skipIf(CONF.load_balancer.test_with_noop,
-                      'Traffic tests will not work in noop mode.')
+    @decorators.idempotent_id('04399db0-04f0-4cb5-bb27-a12bf18bfe08')
+    def test_http_LC_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.HTTP, 90, const.LB_ALGORITHM_LEAST_CONNECTIONS)
+
+    @decorators.idempotent_id('3d8d95b6-55e8-4bb9-b474-4ac35abaff22')
+    def test_tcp_LC_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.TCP, 91, const.LB_ALGORITHM_LEAST_CONNECTIONS, delay=0.2)
+
+    @decorators.idempotent_id('7456b558-9add-4e0e-988e-06803f8047f7')
+    def test_udp_LC_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.UDP, 92, const.LB_ALGORITHM_LEAST_CONNECTIONS)
+
     @decorators.idempotent_id('13b0f2de-9934-457b-8be0-f1bffc6915a0')
-    def test_listener_with_allowed_cidrs(self):
+    def test_http_RR_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.HTTP, 93, const.LB_ALGORITHM_ROUND_ROBIN)
+
+    @decorators.idempotent_id('8bca1325-f894-494d-95c6-3ea4c3df6a0b')
+    def test_tcp_RR_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.TCP, 94, const.LB_ALGORITHM_ROUND_ROBIN)
+
+    @decorators.idempotent_id('93675cc3-e765-464b-9563-e0848dc75330')
+    def test_udp_RR_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.UDP, 95, const.LB_ALGORITHM_ROUND_ROBIN)
+
+    @decorators.idempotent_id('fb5f35c1-08c9-43f7-8ed1-0395a3ef4735')
+    def test_http_SI_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.HTTP, 96, const.LB_ALGORITHM_SOURCE_IP)
+
+    @decorators.idempotent_id('c0904c88-2479-42e2-974f-55041f30e6c5')
+    def test_tcp_SI_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.TCP, 97, const.LB_ALGORITHM_SOURCE_IP)
+
+    @decorators.idempotent_id('4f73bac5-2c98-45f9-8976-724c99e39979')
+    def test_udp_SI_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.UDP, 98, const.LB_ALGORITHM_SOURCE_IP)
+
+    @decorators.idempotent_id('d198ddc5-1bcb-4310-a1b0-fa1a6328c4e9')
+    def test_http_SIP_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.HTTP, 99, const.LB_ALGORITHM_SOURCE_IP_PORT)
+
+    @decorators.idempotent_id('bbb09dbb-2aad-4281-9383-4bb4ad420ee1')
+    def test_tcp_SIP_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.TCP, 100, const.LB_ALGORITHM_SOURCE_IP_PORT, delay=0.2)
+
+    @decorators.idempotent_id('70290a9d-0065-42ad-bb46-884a535d2da2')
+    def test_udp_SIP_listener_with_allowed_cidrs(self):
+        self._test_listener_with_allowed_cidrs(
+            const.UDP, 101, const.LB_ALGORITHM_SOURCE_IP_PORT, delay=0.2)
+
+    def _test_listener_with_allowed_cidrs(self, protocol, protocol_port,
+                                          algorithm, delay=None):
         """Tests traffic through a loadbalancer with allowed CIDRs set.
 
         * Set up listener with allowed CIDRS (allow all) on a loadbalancer.
@@ -963,11 +1182,10 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                      'or newer.')
 
         listener_name = data_utils.rand_name("lb_member_listener2_cidrs")
-        listener_port = 8080
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: listener_port,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.ALLOWED_CIDRS: ['0.0.0.0/0']
         }
@@ -987,11 +1205,25 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         pool_name = data_utils.rand_name("lb_member_pool3_cidrs")
         pool_kwargs = {
             const.NAME: pool_name,
-            const.PROTOCOL: self.protocol,
-            const.LB_ALGORITHM: self.lb_algorithm,
+            const.PROTOCOL: protocol,
+            const.LB_ALGORITHM: algorithm,
             const.LISTENER_ID: listener_id,
         }
-        pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        # This is a special case as the reference driver does not support
+        # SOURCE-IP-PORT. Since it runs with not_implemented_is_error, we must
+        # handle this test case special.
+        try:
+            pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        except exceptions.NotImplemented as e:
+            if algorithm != const.LB_ALGORITHM_SOURCE_IP_PORT:
+                raise
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
         pool_id = pool[const.ID]
         self.addCleanup(
             self.mem_pool_client.cleanup_pool,
@@ -1052,8 +1284,13 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             CONF.load_balancer.check_timeout)
 
         # Send some traffic
+        members = 2
+        if algorithm == const.LB_ALGORITHM_SOURCE_IP:
+            members = 1
         self.check_members_balanced(
-            self.lb_vip_address, protocol_port=listener_port)
+            self.lb_vip_address, protocol=protocol,
+            protocol_port=protocol_port, persistent=False,
+            traffic_member_count=members, delay=delay)
 
         listener_kwargs = {
             const.LISTENER_ID: listener_id,
@@ -1066,21 +1303,27 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
 
-        url_for_vip = 'http://{}:{}/'.format(
-            self.lb_vip_address, listener_port)
-
         # NOTE: Before we start with the consistent response check, we must
         # wait until Neutron completes the SG update.
         # See https://bugs.launchpad.net/neutron/+bug/1866353.
-        def expect_conn_error(url):
+        def expect_timeout_error(address, protocol, protocol_port):
             try:
-                requests.Session().get(url)
-            except requests.exceptions.ConnectionError:
+                self.make_request(address, protocol=protocol,
+                                  protocol_port=protocol_port)
+            except exceptions.TimeoutException:
                 return True
             return False
 
-        waiters.wait_until_true(expect_conn_error, url=url_for_vip)
+        waiters.wait_until_true(
+            expect_timeout_error, address=self.lb_vip_address,
+            protocol=protocol, protocol_port=protocol_port)
 
         # Assert that the server is consistently unavailable
+        if protocol == const.UDP:
+            url_for_vip = 'udp://{}:{}/'.format(self.lb_vip_address,
+                                                protocol_port)
+        else:
+            url_for_vip = 'http://{}:{}/'.format(self.lb_vip_address,
+                                                 protocol_port)
         self.assertConsistentResponse(
-            (None, None), url_for_vip, repeat=3, conn_error=True)
+            (None, None), url_for_vip, repeat=3, expect_connection_error=True)
