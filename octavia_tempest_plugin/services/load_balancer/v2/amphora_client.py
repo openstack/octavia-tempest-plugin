@@ -16,6 +16,7 @@ from oslo_serialization import jsonutils
 
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 CONF = config.CONF
@@ -28,6 +29,7 @@ class AmphoraClient(base_client.BaseLBaaSClient):
     stats_root_tag = 'amphora_stats'
     base_uri = '/v2.0/octavia/{object}'
 
+    @skip_if_not_implemented
     def show_amphora(self, amphora_id, query_params=None,
                      return_object_only=True):
         """Get amphora details.
@@ -69,6 +71,7 @@ class AmphoraClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_amphorae(self, query_params=None, return_object_only=True):
         """Get a list of amphora objects.
 
@@ -107,6 +110,7 @@ class AmphoraClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def get_amphora_stats(self, amphora_id, query_params=None,
                           return_object_only=True):
         """Get amphora statistics.
@@ -158,6 +162,7 @@ class AmphoraClient(base_client.BaseLBaaSClient):
         else:
             return jsonutils.loads(body.decode('utf-8'))
 
+    @skip_if_not_implemented
     def update_amphora_config(self, amphora_id):
         """Update the amphora agent configuration.
 
@@ -193,6 +198,7 @@ class AmphoraClient(base_client.BaseLBaaSClient):
         response, body = self.put(uri, '')
         self.expected_success(202, response.status)
 
+    @skip_if_not_implemented
     def amphora_failover(self, amphora_id):
         """Failover an amphora.
 

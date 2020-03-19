@@ -14,6 +14,7 @@
 
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 CONF = config.CONF
@@ -26,6 +27,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
     list_root_tag = 'healthmonitors'
     resource_name = 'healthmonitor'
 
+    @skip_if_not_implemented
     def create_healthmonitor(self, pool_id, type, delay, timeout, max_retries,
                              max_retries_down=Unset, name=Unset, tags=Unset,
                              http_method=Unset, url_path=Unset,
@@ -87,6 +89,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_healthmonitor(self, healthmonitor_id, query_params=None,
                            return_object_only=True):
         """Get healthmonitor details.
@@ -128,6 +131,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_healthmonitors(self, query_params=None, return_object_only=True):
         """Get a list of healthmonitor objects.
 
@@ -166,6 +170,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_healthmonitor(self, healthmonitor_id, delay=Unset,
                              timeout=Unset, max_retries=Unset,
                              max_retries_down=Unset, name=Unset, tags=Unset,
@@ -228,6 +233,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('healthmonitor_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_healthmonitor(self, healthmonitor_id, ignore_errors=False):
         """Delete a healthmonitor.
 

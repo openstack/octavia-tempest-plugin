@@ -14,6 +14,7 @@
 
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 CONF = config.CONF
@@ -26,6 +27,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
     list_root_tag = 'l7policies'
     resource_name = 'l7policy'
 
+    @skip_if_not_implemented
     def create_l7policy(self, listener_id, action, name=Unset,
                         description=Unset, tags=Unset, admin_state_up=Unset,
                         position=Unset, redirect_pool_id=Unset,
@@ -78,6 +80,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_l7policy(self, l7policy_id, query_params=None,
                       return_object_only=True):
         """Get l7policy details.
@@ -119,6 +122,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_l7policies(self, query_params=None, return_object_only=True):
         """Get a list of l7policy objects.
 
@@ -157,6 +161,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_l7policy(self, l7policy_id, action=Unset, name=Unset,
                         description=Unset, tags=Unset, admin_state_up=Unset,
                         position=Unset, redirect_pool_id=Unset,
@@ -210,6 +215,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('l7policy_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_l7policy(self, l7policy_id, ignore_errors=False):
         """Delete a l7policy.
 

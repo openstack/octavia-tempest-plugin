@@ -14,6 +14,7 @@
 
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 from octavia_tempest_plugin.services.load_balancer.v2 import l7policy_client
 
@@ -38,6 +39,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
             object=self.list_root_tag
         )
 
+    @skip_if_not_implemented
     def create_l7rule(self, l7policy_id, type, value, compare_type, tags=Unset,
                       admin_state_up=Unset, key=Unset, invert=Unset,
                       return_object_only=True):
@@ -87,6 +89,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
         kwargs['parent_id'] = kwargs.pop('l7policy_id')
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_l7rule(self, l7rule_id, l7policy_id, query_params=None,
                     return_object_only=True):
         """Get l7rule details.
@@ -130,6 +133,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_l7rules(self, l7policy_id, query_params=None,
                      return_object_only=True):
         """Get a list of l7rule objects.
@@ -171,6 +175,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
                                   query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_l7rule(self, l7rule_id, l7policy_id, type=Unset, value=Unset,
                       compare_type=Unset, tags=Unset, admin_state_up=Unset,
                       key=Unset, invert=Unset, return_object_only=True):
@@ -222,6 +227,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
         kwargs['parent_id'] = kwargs.pop('l7policy_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_l7rule(self, l7rule_id, l7policy_id, ignore_errors=False):
         """Delete a l7rule.
 

@@ -14,6 +14,7 @@
 
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 CONF = config.CONF
@@ -26,6 +27,7 @@ class PoolClient(base_client.BaseLBaaSClient):
     list_root_tag = 'pools'
     resource_name = 'pool'
 
+    @skip_if_not_implemented
     def create_pool(self, protocol, lb_algorithm, loadbalancer_id=Unset,
                     listener_id=Unset, name=Unset, description=Unset,
                     tags=Unset,
@@ -79,6 +81,7 @@ class PoolClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_pool(self, pool_id, query_params=None, return_object_only=True):
         """Get pool details.
 
@@ -119,6 +122,7 @@ class PoolClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_pools(self, query_params=None, return_object_only=True):
         """Get a list of pool objects.
 
@@ -157,6 +161,7 @@ class PoolClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_pool(self, pool_id, lb_algorithm=Unset, name=Unset,
                     description=Unset, tags=Unset, admin_state_up=Unset,
                     session_persistence=Unset, return_object_only=True):
@@ -207,6 +212,7 @@ class PoolClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('pool_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_pool(self, pool_id, ignore_errors=False):
         """Delete a pool.
 

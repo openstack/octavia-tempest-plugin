@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 from octavia_tempest_plugin.services.load_balancer.v2 import provider_client
 
@@ -34,6 +35,7 @@ class FlavorCapabilitiesClient(base_client.BaseLBaaSClient):
             object=self.list_root_tag
         )
 
+    @skip_if_not_implemented
     def list_flavor_capabilities(self, provider, query_params=None,
                                  return_object_only=True):
         """Get a list of provider flavor capability objects.

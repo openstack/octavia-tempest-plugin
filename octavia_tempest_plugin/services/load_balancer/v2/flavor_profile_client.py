@@ -16,6 +16,7 @@
 from oslo_log import log as logging
 from tempest.lib import exceptions
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 LOG = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ class FlavorProfileClient(base_client.BaseLBaaSClient):
     root_tag = 'flavorprofile'
     list_root_tag = 'flavorprofiles'
 
+    @skip_if_not_implemented
     def create_flavor_profile(self, name, provider_name, flavor_data,
                               return_object_only=True):
         """Create a flavor profile.
@@ -65,6 +67,7 @@ class FlavorProfileClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_flavor_profile(self, flavorprofile_id, query_params=None,
                             return_object_only=True):
         """Get the flavor profile details.
@@ -106,6 +109,7 @@ class FlavorProfileClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_flavor_profiles(self, query_params=None, return_object_only=True):
         """Get a list of flavor profile objects.
 
@@ -144,6 +148,7 @@ class FlavorProfileClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_flavor_profile(
             self, flavorprofile_id, name=Unset, provider_name=Unset,
             flavor_data=Unset, return_object_only=True):
@@ -185,6 +190,7 @@ class FlavorProfileClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('flavorprofile_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_flavor_profile(self, flavorprofile_id, ignore_errors=False):
         """Delete a flavor profile.
 

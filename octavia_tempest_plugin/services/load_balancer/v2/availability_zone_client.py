@@ -16,6 +16,7 @@
 from oslo_log import log as logging
 from tempest.lib import exceptions
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 LOG = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ class AvailabilityZoneClient(base_client.BaseLBaaSClient):
         super(AvailabilityZoneClient, self).__init__(*args, **kwargs)
         self.uri = self.base_uri.format(object=self.resource_path)
 
+    @skip_if_not_implemented
     def create_availability_zone(self, name, availability_zone_profile_id,
                                  description=Unset, enabled=Unset,
                                  return_object_only=True):
@@ -75,6 +77,7 @@ class AvailabilityZoneClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_availability_zone(self, availability_zone_name, query_params=None,
                                return_object_only=True):
         """Get the availability zone details.
@@ -116,6 +119,7 @@ class AvailabilityZoneClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_availability_zones(self, query_params=None,
                                 return_object_only=True):
         """Get a list of availability zone objects.
@@ -155,6 +159,7 @@ class AvailabilityZoneClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_availability_zone(self, availability_zone_name,
                                  description=Unset, enabled=Unset,
                                  return_object_only=True):
@@ -195,6 +200,7 @@ class AvailabilityZoneClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('availability_zone_name')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_availability_zone(self, availability_zone_name,
                                  ignore_errors=False):
         """Delete an availability zone.

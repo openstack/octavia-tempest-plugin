@@ -17,6 +17,7 @@ from oslo_serialization import jsonutils
 
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 CONF = config.CONF
@@ -34,6 +35,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         self.timeout = CONF.load_balancer.lb_build_timeout
         self.build_interval = CONF.load_balancer.lb_build_interval
 
+    @skip_if_not_implemented
     def create_loadbalancer(self, name=Unset, description=Unset,
                             admin_state_up=Unset, flavor_id=Unset,
                             listeners=Unset, project_id=Unset, provider=Unset,
@@ -92,6 +94,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_loadbalancer(self, lb_id, query_params=None,
                           return_object_only=True):
         """Get loadbalancer details.
@@ -133,6 +136,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_loadbalancers(self, query_params=None, return_object_only=True):
         """Get a list of loadbalancer objects.
 
@@ -171,6 +175,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_loadbalancer(self, lb_id, name=Unset, description=Unset,
                             tags=Unset, admin_state_up=Unset,
                             vip_qos_policy_id=Unset,
@@ -220,6 +225,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('lb_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_loadbalancer(self, lb_id, cascade=False, ignore_errors=False):
         """Delete a loadbalancer.
 
@@ -259,6 +265,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                 ignore_errors=ignore_errors,
                                 cascade=cascade)
 
+    @skip_if_not_implemented
     def failover_loadbalancer(self, lb_id):
         """Failover a loadbalancer.
 
@@ -295,6 +302,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         self.expected_success(202, response.status)
         return
 
+    @skip_if_not_implemented
     def get_loadbalancer_stats(self, lb_id, query_params=None,
                                return_object_only=True):
         """Get loadbalancer statistics.
@@ -345,6 +353,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         else:
             return jsonutils.loads(body.decode('utf-8'))
 
+    @skip_if_not_implemented
     def get_loadbalancer_status(self, lb_id, query_params=None,
                                 return_object_only=True):
         """Get a loadbalancer status tree.

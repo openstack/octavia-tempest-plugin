@@ -16,6 +16,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 from octavia_tempest_plugin.services.load_balancer.v2 import pool_client
 
@@ -39,6 +40,7 @@ class MemberClient(base_client.BaseLBaaSClient):
             object=self.list_root_tag
         )
 
+    @skip_if_not_implemented
     def create_member(self, pool_id, address, protocol_port,
                       name=Unset, tags=Unset, admin_state_up=Unset,
                       weight=Unset,
@@ -98,6 +100,7 @@ class MemberClient(base_client.BaseLBaaSClient):
         kwargs['parent_id'] = kwargs.pop('pool_id')
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_member(self, member_id, pool_id, query_params=None,
                     return_object_only=True):
         """Get member details.
@@ -141,6 +144,7 @@ class MemberClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_members(self, pool_id, query_params=None,
                      return_object_only=True):
         """Get a list of member objects.
@@ -182,6 +186,7 @@ class MemberClient(base_client.BaseLBaaSClient):
                                   query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_member(self, member_id, pool_id, name=Unset, tags=Unset,
                       admin_state_up=Unset, weight=Unset, backup=Unset,
                       monitor_address=Unset, monitor_port=Unset,
@@ -238,6 +243,7 @@ class MemberClient(base_client.BaseLBaaSClient):
         kwargs['parent_id'] = kwargs.pop('pool_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def update_members(self, pool_id, members_list):
         """Batch update all members on a pool.
 
@@ -277,6 +283,7 @@ class MemberClient(base_client.BaseLBaaSClient):
         self.expected_success(202, response.status)
         return
 
+    @skip_if_not_implemented
     def delete_member(self, member_id, pool_id, ignore_errors=False):
         """Delete a member.
 

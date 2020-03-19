@@ -16,6 +16,7 @@
 from oslo_log import log as logging
 from tempest.lib import exceptions
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 LOG = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ class FlavorClient(base_client.BaseLBaaSClient):
     root_tag = 'flavor'
     list_root_tag = 'flavors'
 
+    @skip_if_not_implemented
     def create_flavor(self, name, flavor_profile_id, description=Unset,
                       enabled=Unset, return_object_only=True):
         """Create a flavor.
@@ -67,6 +69,7 @@ class FlavorClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_flavor(self, flavor_id, query_params=None,
                     return_object_only=True):
         """Get the flavor details.
@@ -108,6 +111,7 @@ class FlavorClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_flavors(self, query_params=None, return_object_only=True):
         """Get a list of flavor objects.
 
@@ -146,6 +150,7 @@ class FlavorClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_flavor(self, flavor_id, name=Unset, description=Unset,
                       enabled=Unset, return_object_only=True):
         """Update a flavor.
@@ -186,6 +191,7 @@ class FlavorClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('flavor_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_flavor(self, flavor_id, ignore_errors=False):
         """Delete a flavor.
 

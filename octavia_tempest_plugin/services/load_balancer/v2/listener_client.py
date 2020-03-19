@@ -17,6 +17,7 @@ from oslo_serialization import jsonutils
 
 from tempest import config
 
+from octavia_tempest_plugin.common.decorators import skip_if_not_implemented
 from octavia_tempest_plugin.services.load_balancer.v2 import base_client
 
 CONF = config.CONF
@@ -28,6 +29,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
     root_tag = 'listener'
     list_root_tag = 'listeners'
 
+    @skip_if_not_implemented
     def create_listener(self, protocol, protocol_port, loadbalancer_id,
                         name=Unset, description=Unset, tags=Unset,
                         admin_state_up=Unset, connection_limit=Unset,
@@ -120,6 +122,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
                   if arg != 'self' and value is not Unset}
         return self._create_object(**kwargs)
 
+    @skip_if_not_implemented
     def show_listener(self, listener_id, query_params=None,
                       return_object_only=True):
         """Get listener details.
@@ -161,6 +164,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
                                  query_params=query_params,
                                  return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def list_listeners(self, query_params=None, return_object_only=True):
         """Get a list of listener objects.
 
@@ -199,6 +203,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
         return self._list_objects(query_params=query_params,
                                   return_object_only=return_object_only)
 
+    @skip_if_not_implemented
     def update_listener(self, listener_id, name=Unset, description=Unset,
                         tags=Unset, admin_state_up=Unset,
                         connection_limit=Unset, timeout_client_data=Unset,
@@ -289,6 +294,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
         kwargs['obj_id'] = kwargs.pop('listener_id')
         return self._update_object(**kwargs)
 
+    @skip_if_not_implemented
     def delete_listener(self, listener_id, ignore_errors=False):
         """Delete a listener.
 
@@ -325,6 +331,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
         return self._delete_obj(obj_id=listener_id,
                                 ignore_errors=ignore_errors)
 
+    @skip_if_not_implemented
     def get_listener_stats(self, listener_id, query_params=None,
                            return_object_only=True):
         """Get listener statistics.

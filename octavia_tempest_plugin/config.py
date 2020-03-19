@@ -209,6 +209,12 @@ OctaviaGroup = [
 lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',
                                         title='Enabled/Disabled LB features')
 LBFeatureEnabledGroup = [
+    cfg.BoolOpt('not_implemented_is_error',
+                default=True,
+                help="When True, not-implemented responses from the API are "
+                     "considered an error and test failure. This should be "
+                     "used when a driver should support all of the Octavia "
+                     "API features, such as the reference driver."),
     cfg.BoolOpt('health_monitor_enabled',
                 default=True,
                 help="Whether Health Monitor is available with provider "
