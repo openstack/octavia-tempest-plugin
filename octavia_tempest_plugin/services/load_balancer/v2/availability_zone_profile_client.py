@@ -156,8 +156,9 @@ class AvailabilityZoneProfileClient(base_client.BaseLBaaSClient):
                                   return_object_only=return_object_only)
 
     def update_availability_zone_profile(
-        self, availability_zone_profile_id, name=Unset, provider_name=Unset,
-        availability_zone_data=Unset, return_object_only=True):
+            self, availability_zone_profile_id, name=Unset,
+            provider_name=Unset, availability_zone_data=Unset,
+            return_object_only=True):
         """Update an availability zone profile.
 
         :param availability_zone_profile_id: The availability zone profile ID

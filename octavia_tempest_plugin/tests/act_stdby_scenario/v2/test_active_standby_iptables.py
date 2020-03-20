@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
     CONF.validation.run_validation,
     'Active-Standby tests will not work without run_validation enabled.')
 class ActiveStandbyIptablesScenarioTest(
-    test_base.LoadBalancerBaseTestWithCompute):
+        test_base.LoadBalancerBaseTestWithCompute):
 
     @classmethod
     def skip_checks(cls):

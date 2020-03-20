@@ -109,13 +109,13 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         # Create a CA self-signed cert and key
         cls.ca_cert, ca_key = cert_utils.generate_ca_cert_and_key()
 
-        LOG.debug('CA Cert: %s' % cls.ca_cert.public_bytes(
+        LOG.debug('CA Cert: %s', cls.ca_cert.public_bytes(
             serialization.Encoding.PEM))
-        LOG.debug('CA private Key: %s' % ca_key.private_bytes(
+        LOG.debug('CA private Key: %s', ca_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption()))
-        LOG.debug('CA public Key: %s' % ca_key.public_key().public_bytes(
+        LOG.debug('CA public Key: %s', ca_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo))
 
@@ -127,7 +127,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         # Create a server cert and key
         # This will be used as the "default certificate" in SNI tests.
         cls.server_uuid = uuidutils.generate_uuid()
-        LOG.debug('Server (default) UUID: %s' % cls.server_uuid)
+        LOG.debug('Server (default) UUID: %s', cls.server_uuid)
 
         server_cert, server_key, cls.server_secret_ref = (
             cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
@@ -135,7 +135,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Create the SNI1 cert and key
         cls.SNI1_uuid = uuidutils.generate_uuid()
-        LOG.debug('SNI1 UUID: %s' % cls.SNI1_uuid)
+        LOG.debug('SNI1 UUID: %s', cls.SNI1_uuid)
 
         SNI1_cert, SNI1_key, cls.SNI1_secret_ref = (
             cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
@@ -143,7 +143,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Create the SNI2 cert and key
         cls.SNI2_uuid = uuidutils.generate_uuid()
-        LOG.debug('SNI2 UUID: %s' % cls.SNI2_uuid)
+        LOG.debug('SNI2 UUID: %s', cls.SNI2_uuid)
 
         SNI2_cert, SNI2_key, cls.SNI2_secret_ref = (
             cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,

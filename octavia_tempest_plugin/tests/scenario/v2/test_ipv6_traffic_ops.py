@@ -24,7 +24,7 @@ CONF = config.CONF
 
 
 class IPv6TrafficOperationsScenarioTest(
-    test_base.LoadBalancerBaseTestWithCompute):
+        test_base.LoadBalancerBaseTestWithCompute):
     """Test traffic operations with an IPv6 VIP."""
 
     @classmethod

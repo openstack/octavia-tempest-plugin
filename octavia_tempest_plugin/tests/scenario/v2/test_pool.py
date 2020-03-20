@@ -171,7 +171,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
                 const.LB_ALGORITHM_LEAST_CONNECTIONS
 
         if self.protocol == const.HTTP and (
-            self.lb_feature_enabled.session_persistence_enabled):
+                self.lb_feature_enabled.session_persistence_enabled):
             pool_update_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_HTTP_COOKIE}
         pool = self.mem_pool_client.update_pool(

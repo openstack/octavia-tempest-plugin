@@ -145,8 +145,8 @@ class FlavorProfileClient(base_client.BaseLBaaSClient):
                                   return_object_only=return_object_only)
 
     def update_flavor_profile(
-        self, flavorprofile_id, name=Unset, provider_name=Unset,
-        flavor_data=Unset, return_object_only=True):
+            self, flavorprofile_id, name=Unset, provider_name=Unset,
+            flavor_data=Unset, return_object_only=True):
         """Update a flavor profile.
 
         :param flavorprofile_id: The flavor profile ID to update.
