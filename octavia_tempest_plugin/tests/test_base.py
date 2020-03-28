@@ -302,8 +302,8 @@ class LoadBalancerBaseTest(test.BaseTestCase):
         network_kwargs = {
             'name': data_utils.rand_name("lb_member_vip_network")}
         if CONF.network_feature_enabled.port_security:
-                # Note: Allowed Address Pairs requires port security
-                network_kwargs['port_security_enabled'] = True
+            # Note: Allowed Address Pairs requires port security
+            network_kwargs['port_security_enabled'] = True
         result = cls.lb_mem_net_client.create_network(**network_kwargs)
         cls.lb_member_vip_net = result['network']
         LOG.info('lb_member_vip_net: {}'.format(cls.lb_member_vip_net))

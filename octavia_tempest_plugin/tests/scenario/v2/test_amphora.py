@@ -96,8 +96,8 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
             amphora_client = self.os_roles_lb_admin.amphora_client
             amphora_adm = amphora_client.list_amphorae()
-            self.assertTrue(
-                len(amphora_adm) >= 2 * self._expected_amp_count(amphora_adm))
+            self.assertGreaterEqual(
+                len(amphora_adm), 2 * self._expected_amp_count(amphora_adm))
 
         # Test that a different user, with load balancer member role, cannot
         # see this amphora
@@ -116,15 +116,16 @@ class AmphoraScenarioTest(test_base.LoadBalancerBaseTest):
         # Test that a user with cloud admin role can list the amphorae
         if not CONF.load_balancer.RBAC_test_type == const.NONE:
             adm = self.lb_admin_amphora_client.list_amphorae()
-            self.assertTrue(len(adm) >= 2 * self._expected_amp_count(adm))
+            self.assertGreaterEqual(len(adm),
+                                    2 * self._expected_amp_count(adm))
 
         # Get an actual list of the amphorae
         amphorae = self.lb_admin_amphora_client.list_amphorae()
 
         # There should be AT LEAST 2, there may be more depending on the
         # configured topology, or if there are other LBs created besides ours
-        self.assertTrue(
-            len(amphorae) >= 2 * self._expected_amp_count(amphorae))
+        self.assertGreaterEqual(
+            len(amphorae), 2 * self._expected_amp_count(amphorae))
 
         show_amphora_response_fields = const.SHOW_AMPHORA_RESPONSE_FIELDS
         if self.lb_admin_amphora_client.is_version_supported(
