@@ -270,7 +270,7 @@ class ActiveStandbyScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         connections = 0
         for listener in amphora_stats:
             connections += listener[const.TOTAL_CONNECTIONS]
-        self.assertTrue(connections > 0)
+        self.assertGreater(connections, 0)
         LOG.info('Backup amphora is now Master.')
         # Wait for the amphora failover to start
         waiters.wait_for_status(
