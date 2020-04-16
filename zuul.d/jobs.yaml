@@ -560,6 +560,7 @@
         OCTAVIA_AMP_BASE_OS: ubuntu
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: xenial
         USE_PYTHON3: false
+        TEMPEST_BRANCH: 23.0.0
 
 - job:
     name: octavia-v2-dsvm-tls-barbican
