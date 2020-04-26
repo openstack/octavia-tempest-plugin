@@ -418,16 +418,6 @@
     override-checkout: stable/stein
 
 - job:
-    name: octavia-v2-dsvm-noop-py2-api-stable-rocky
-    parent: octavia-v2-dsvm-noop-py2-api
-    override-checkout: stable/rocky
-
-- job:
-    name: octavia-v2-dsvm-noop-py2-api-stable-queens
-    parent: octavia-v2-dsvm-noop-py2-api
-    override-checkout: stable/queens
-
-- job:
     name: octavia-v2-dsvm-scenario
     parent: octavia-dsvm-live-base
     vars:
@@ -483,16 +473,6 @@
     name: octavia-v2-dsvm-scenario-stable-stein
     parent: octavia-v2-dsvm-scenario
     override-checkout: stable/stein
-
-- job:
-    name: octavia-v2-dsvm-py2-scenario-stable-rocky
-    parent: octavia-v2-dsvm-py2-scenario
-    override-checkout: stable/rocky
-
-- job:
-    name: octavia-v2-dsvm-py2-scenario-stable-queens
-    parent: octavia-v2-dsvm-py2-scenario
-    override-checkout: stable/queens
 
 # Legacy jobs for the transition to the act-stdby two node jobs
 - job:
@@ -653,16 +633,6 @@
     override-checkout: stable/stein
 
 - job:
-    name: octavia-v2-dsvm-py2-spare-pool-stable-rocky
-    parent: octavia-v2-dsvm-py2-spare-pool
-    override-checkout: stable/rocky
-
-- job:
-    name: octavia-v2-dsvm-py2-spare-pool-stable-queens
-    parent: octavia-v2-dsvm-py2-spare-pool
-    override-checkout: stable/queens
-
-- job:
     name: octavia-v2-dsvm-cinder-amphora
     parent: octavia-v2-dsvm-scenario
     required-projects:
@@ -769,16 +739,6 @@
           "$TEMPEST_CONFIG":
             load_balancer:
               amphora_ssh_user: centos
-
-- job:
-    name: octavia-v2-act-stdby-iptables-dsvm-py2-scenario-stable-rocky
-    parent: octavia-v2-act-stdby-iptables-dsvm-py2-scenario
-    override-checkout: stable/rocky
-
-- job:
-    name: octavia-v2-act-stdby-iptables-dsvm-py2-scenario-stable-queens
-    parent: octavia-v2-act-stdby-iptables-dsvm-py2-scenario
-    override-checkout: stable/queens
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario
