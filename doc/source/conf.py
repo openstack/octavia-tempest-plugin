@@ -16,8 +16,6 @@ import datetime
 import os
 import sys
 
-import openstackdocstheme
-
 sys.path.insert(0, os.path.abspath('../..'))
 sys.path.insert(0, os.path.abspath('.'))
 
@@ -49,16 +47,6 @@ master_doc = 'index'
 project = u'octavia-tempest-plugin'
 copyright = u'2017-2019, OpenStack Foundation'
 
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-#
-# Version info
-from octavia_tempest_plugin.version import version_info as octavia_tempest_ver
-release = octavia_tempest_ver.release_string()
-# The short X.Y version.
-version = octavia_tempest_ver.version_string()
-
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
 
@@ -67,14 +55,14 @@ add_function_parentheses = True
 add_module_names = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['octavia_tempest_plugin.']
 
-repository_name = 'openstack/octavia-tempest-plugin'
-bug_project = '910'
-bug_tag = 'docs'
+openstackdocs_repo_name = 'openstack/octavia-tempest-plugin'
+openstackdocs_pdf_link = True
+openstackdocs_use_storyboard = True
 
 apidoc_output_dir = '_build/modules'
 apidoc_module_dir = '../../octavia_tempest_plugin'
@@ -90,7 +78,6 @@ apidoc_excluded_paths = []
 
 html_theme = 'openstackdocs'
 
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
