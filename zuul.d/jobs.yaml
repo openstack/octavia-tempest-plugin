@@ -463,6 +463,9 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
 
 - job:
     name: octavia-v2-dsvm-scenario-stable-train
@@ -473,6 +476,9 @@
     name: octavia-v2-dsvm-scenario-stable-stein
     parent: octavia-v2-dsvm-scenario
     override-checkout: stable/stein
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
 
 # Legacy jobs for the transition to the act-stdby two node jobs
 - job:
@@ -504,6 +510,9 @@
           USE_PYTHON3: False
           LIBVIRT_TYPE: kvm
           LIBVIRT_CPU_MODE: host-passthrough
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-two-node
@@ -589,6 +598,9 @@
     name: octavia-v2-dsvm-tls-barbican-stable-stein
     parent: octavia-v2-dsvm-tls-barbican
     override-checkout: stable/stein
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-rocky
@@ -621,6 +633,9 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
 
 - job:
     name: octavia-v2-dsvm-spare-pool-stable-train
@@ -631,6 +646,9 @@
     name: octavia-v2-dsvm-spare-pool-stable-stein
     parent: octavia-v2-dsvm-spare-pool
     override-checkout: stable/stein
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
 
 - job:
     name: octavia-v2-dsvm-cinder-amphora
@@ -723,6 +741,9 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
 
 - job:
     name: octavia-v2-act-stdby-iptables-dsvm-py2-scenario-centos-7
@@ -766,3 +787,6 @@
     name: octavia-v2-act-stdby-dsvm-scenario-stable-stein
     parent: octavia-v2-act-stdby-dsvm-scenario
     override-checkout: stable/stein
+    required-projects:
+      - name: openstack/diskimage-builder
+        override-checkout: 2.30.0
