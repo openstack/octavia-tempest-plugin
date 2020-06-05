@@ -749,8 +749,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                                 CONF.load_balancer.build_timeout)
 
         # Test that no client certificate fails to connect
-        self.assertRaisesRegex(
-            requests.exceptions.SSLError, ".*certificate required.*",
+        self.assertRaises(
+            requests.exceptions.SSLError,
             requests.get,
             'https://{0}:{1}'.format(self.lb_vip_address, LISTENER1_TCP_PORT),
             timeout=12, verify=False)
@@ -764,8 +764,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                self.assertRaises(
+                    requests.exceptions.SSLError, requests.get,
                     'https://{0}:{1}'.format(self.lb_vip_address,
                                              LISTENER1_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
@@ -836,8 +836,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                self.assertRaises(
+                    requests.exceptions.SSLError, requests.get,
                     'https://{0}:{1}'.format(self.lb_vip_address,
                                              LISTENER1_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
@@ -954,15 +954,15 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                                 CONF.load_balancer.build_timeout)
 
         # Test that no client certificate fails to connect to listener1
-        self.assertRaisesRegex(
-            requests.exceptions.SSLError, ".*certificate required.*",
+        self.assertRaises(
+            requests.exceptions.SSLError,
             requests.get,
             'https://{0}:{1}'.format(self.lb_vip_address, LISTENER1_TCP_PORT),
             timeout=12, verify=False)
 
         # Test that no client certificate fails to connect to listener2
-        self.assertRaisesRegex(
-            requests.exceptions.SSLError, ".*certificate required.*",
+        self.assertRaises(
+            requests.exceptions.SSLError,
             requests.get,
             'https://{0}:{1}'.format(self.lb_vip_address, LISTENER2_TCP_PORT),
             timeout=12, verify=False)
@@ -976,8 +976,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                self.assertRaises(
+                    requests.exceptions.SSLError, requests.get,
                     'https://{0}:{1}'.format(self.lb_vip_address,
                                              LISTENER1_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
@@ -992,8 +992,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*revoked.*", requests.get,
+                self.assertRaises(
+                    requests.exceptions.SSLError, requests.get,
                     'https://{0}:{1}'.format(self.lb_vip_address,
                                              LISTENER2_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
@@ -1040,8 +1040,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*decrypt error.*",
+                self.assertRaises(
+                    requests.exceptions.SSLError,
                     requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
                                                            LISTENER2_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
@@ -1056,8 +1056,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*decrypt error.*",
+                self.assertRaises(
+                    requests.exceptions.SSLError,
                     requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
                                                            LISTENER1_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
@@ -1072,8 +1072,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*decrypt error.*",
+                self.assertRaises(
+                    requests.exceptions.SSLError,
                     requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
                                                            LISTENER2_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
@@ -1088,8 +1088,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                     serialization.Encoding.PEM,
                     serialization.PrivateFormat.TraditionalOpenSSL,
                     serialization.NoEncryption()))
-                self.assertRaisesRegex(
-                    requests.exceptions.SSLError, ".*decrypt error.*",
+                self.assertRaises(
+                    requests.exceptions.SSLError,
                     requests.get, 'https://{0}:{1}'.format(self.lb_vip_address,
                                                            LISTENER1_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
