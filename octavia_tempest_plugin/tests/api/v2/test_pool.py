@@ -104,6 +104,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL: self.protocol,
             const.LB_ALGORITHM: self.lb_algorithm,
         }
+
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            pool_tags = ["Hello", "World"]
+            pool_kwargs.update({
+                const.TAGS: pool_tags
+            })
+
         if self.lb_feature_enabled.session_persistence_enabled:
             pool_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -179,6 +186,8 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(pool_sp_cookie_name,
                              pool[const.SESSION_PERSISTENCE][
                                  const.COOKIE_NAME])
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            self.assertEqual(pool_tags, pool[const.TAGS])
 
     @decorators.idempotent_id('6959a32e-fb34-4f3e-be68-8880c6450016')
     def test_pool_list(self):
@@ -222,6 +231,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: lb_id,
         }
+
+        if self.mem_pool_client.is_version_supported(
+                self.api_version, '2.5'):
+            pool1_tags = ["English", "Mathematics",
+                          "Marketing", "Creativity"]
+            pool1_kwargs.update({const.TAGS: pool1_tags})
+
         if self.lb_feature_enabled.session_persistence_enabled:
             pool1_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -260,6 +276,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: lb_id,
         }
+
+        if self.mem_pool_client.is_version_supported(
+                self.api_version, '2.5'):
+            pool2_tags = ["English", "Spanish",
+                          "Soft_skills", "Creativity"]
+            pool2_kwargs.update({const.TAGS: pool2_tags})
+
         if self.lb_feature_enabled.session_persistence_enabled:
             pool2_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -298,6 +321,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             # No session persistence, just so there's one test for that
             const.LOADBALANCER_ID: lb_id,
         }
+
+        if self.mem_pool_client.is_version_supported(
+                self.api_version, '2.5'):
+            pool3_tags = ["English", "Project_management",
+                          "Communication", "Creativity"]
+            pool3_kwargs.update({const.TAGS: pool3_tags})
+
         pool3 = self.mem_pool_client.create_pool(
             **pool3_kwargs)
         self.addCleanup(
@@ -418,6 +448,28 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(pool1[const.DESCRIPTION],
                          pools[0][const.DESCRIPTION])
 
+        # Creating a list of 3 pools, each one contains different tags
+        if self.mem_pool_client.is_version_supported(
+                self.api_version, '2.5'):
+            list_of_pools = [pool1, pool2, pool3]
+            test_list = []
+            for pool in list_of_pools:
+
+                # If tags "English" and "Creativity" are in the pool's tags
+                # and "Spanish" is not, add the pool to the list
+                if "English" in pool[const.TAGS] and "Creativity" in (
+                    pool[const.TAGS]) and "Spanish" not in (
+                        pool[const.TAGS]):
+                    test_list.append(pool[const.NAME])
+
+            # Tests if only the first and the third ones have those tags
+            self.assertEqual(
+                test_list, [pool1[const.NAME], pool3[const.NAME]])
+
+            # Tests that filtering by an empty tag will return an empty list
+            self.assertTrue(not any(["" in pool[const.TAGS]
+                                     for pool in list_of_pools]))
+
     @decorators.idempotent_id('b7932438-1aea-4175-a50c-984fee1c0cad')
     def test_pool_show(self):
         """Tests pool show API.
@@ -535,6 +587,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.LB_ALGORITHM: self.lb_algorithm,
             const.LOADBALANCER_ID: self.lb_id,
         }
+
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            pool_tags = ["Hello", "World"]
+            pool_kwargs.update({
+                const.TAGS: pool_tags
+            })
+
         if self.lb_feature_enabled.session_persistence_enabled:
             pool_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_APP_COOKIE,
@@ -610,6 +669,9 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                          pool_check[const.PROVISIONING_STATUS])
         self.assertFalse(pool_check[const.ADMIN_STATE_UP])
 
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            self.assertEqual(pool_tags, pool[const.TAGS])
+
         new_name = data_utils.rand_name("lb_member_pool1-UPDATED")
         new_description = data_utils.arbitrary_string(size=255,
                                                       base_text='new')
@@ -619,6 +681,13 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: True,
             const.LB_ALGORITHM: self.lb_algorithm,
         }
+
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            new_tags = ["Hola", "Mundo"]
+            pool_update_kwargs.update({
+                const.TAGS: new_tags
+            })
+
         if self.lb_feature_enabled.session_persistence_enabled:
             pool_update_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_HTTP_COOKIE,
@@ -671,6 +740,9 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_timeout)
         if self.lb_feature_enabled.session_persistence_enabled:
             self.assertIsNone(pool.get(const.SESSION_PERSISTENCE))
+
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            self.assertEqual(new_tags, pool[const.TAGS])
 
     @decorators.idempotent_id('35ed3800-7a4a-47a6-9b94-c1033fff1112')
     def test_pool_delete(self):

@@ -143,6 +143,13 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
             const.INVERT: False,
         }
 
+        if self.mem_l7policy_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7_rule_tags = ["Hello", "World"]
+            l7rule_kwargs.update({
+                const.TAGS: l7_rule_tags
+            })
+
         # Test that a user without the load balancer role cannot
         # create a l7rule
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
@@ -193,6 +200,10 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         for item in equal_items:
             self.assertEqual(l7rule_kwargs[item], l7rule[item])
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(l7_rule_tags, l7rule[const.TAGS])
+
     @decorators.idempotent_id('69095254-f106-4fb6-9f54-7a78cc14fb51')
     def test_l7rule_list(self):
         """Tests l7rule list API and field filtering.
@@ -232,6 +243,13 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
             const.COMPARE_TYPE: const.EQUAL_TO,
             const.KEY: 'mykey2-list',
         }
+
+        if self.mem_lb_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7rule1_tags = ["English", "Mathematics",
+                            "Marketing", "Creativity"]
+            l7rule1_kwargs.update({const.TAGS: l7rule1_tags})
+
         l7rule1 = self.mem_l7rule_client.create_l7rule(
             **l7rule1_kwargs)
         self.addCleanup(
@@ -263,6 +281,13 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
             const.COMPARE_TYPE: const.EQUAL_TO,
             const.KEY: 'mykey1-list',
         }
+
+        if self.mem_lb_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7rule2_tags = ["English", "Spanish",
+                            "Soft_skills", "Creativity"]
+            l7rule2_kwargs.update({const.TAGS: l7rule2_tags})
+
         l7rule2 = self.mem_l7rule_client.create_l7rule(
             **l7rule2_kwargs)
         self.addCleanup(
@@ -294,6 +319,13 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
             const.COMPARE_TYPE: const.EQUAL_TO,
             const.KEY: 'mykey3-list',
         }
+
+        if self.mem_lb_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7rule3_tags = ["English", "Project_management",
+                            "Communication", "Creativity"]
+            l7rule3_kwargs.update({const.TAGS: l7rule3_tags})
+
         l7rule3 = self.mem_l7rule_client.create_l7rule(
             **l7rule3_kwargs)
         self.addCleanup(
@@ -414,6 +446,28 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(l7rule1[const.VALUE],
                          l7rules[0][const.VALUE])
 
+        # Creating a list of 3 l7rules, each one contains different tags
+        if self.mem_l7rule_client.is_version_supported(
+                self.api_version, '2.5'):
+            list_of_l7rules = [l7rule1, l7rule2, l7rule3]
+            test_list = []
+            for l7rule in list_of_l7rules:
+
+                # If tags "English" and "Creativity" are in the l7rule's tags
+                # and "Spanish" is not, add the l7rule to the list
+                if "English" in l7rule[const.TAGS] and "Creativity" in (
+                    l7rule[const.TAGS]) and "Spanish" not in (
+                        l7rule[const.TAGS]):
+                    test_list.append(l7rule[const.VALUE])
+
+            # Tests if only the first and the third ones have those tags
+            self.assertEqual(
+                [l7rule1[const.VALUE], l7rule3[const.VALUE]], test_list)
+
+            # Tests that filtering by an empty tag will return an empty list
+            self.assertTrue(not any(["" in l7rule[const.TAGS]
+                                     for l7rule in list_of_l7rules]))
+
     @decorators.idempotent_id('b80b34c3-09fc-467b-8027-7350adb17070')
     def test_l7rule_show(self):
         """Tests l7rule show API.
@@ -526,6 +580,13 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
             const.INVERT: False,
         }
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7_rule_tags = ["Hello", "World"]
+            l7rule_kwargs.update({
+                const.TAGS: l7_rule_tags
+            })
+
         l7rule = self.mem_l7rule_client.create_l7rule(**l7rule_kwargs)
         self.addClassResourceCleanup(
             self.mem_l7rule_client.cleanup_l7rule,
@@ -556,6 +617,10 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
 
         equal_items = [const.ADMIN_STATE_UP, const.TYPE, const.VALUE,
                        const.COMPARE_TYPE, const.KEY, const.INVERT]
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            equal_items.append(const.TAGS)
 
         for item in equal_items:
             self.assertEqual(l7rule_kwargs[item], l7rule[item])
@@ -599,6 +664,13 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
             const.KEY: 'mykey-UPDATED',
             const.INVERT: True,
         }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7rule_update_kwargs.update({
+                const.TAGS: ["Hola", "Mundo"]
+            })
+
         l7rule = self.mem_l7rule_client.update_l7rule(
             l7rule[const.ID], **l7rule_update_kwargs)
 
@@ -624,6 +696,11 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         # Test changed items (which is all of them, for l7rules)
         equal_items = [const.ADMIN_STATE_UP, const.TYPE, const.VALUE,
                        const.COMPARE_TYPE, const.KEY, const.INVERT]
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            equal_items.append(const.TAGS)
+
         for item in equal_items:
             self.assertEqual(l7rule_update_kwargs[item], l7rule[item])
 

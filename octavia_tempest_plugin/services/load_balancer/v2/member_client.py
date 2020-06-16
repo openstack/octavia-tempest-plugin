@@ -40,7 +40,8 @@ class MemberClient(base_client.BaseLBaaSClient):
         )
 
     def create_member(self, pool_id, address, protocol_port,
-                      name=Unset, admin_state_up=Unset, weight=Unset,
+                      name=Unset, tags=Unset, admin_state_up=Unset,
+                      weight=Unset,
                       backup=Unset, subnet_id=Unset, monitor_address=Unset,
                       monitor_port=Unset, return_object_only=True):
         """Create a member.
@@ -49,12 +50,15 @@ class MemberClient(base_client.BaseLBaaSClient):
         :param address: The IP address of the resource.
         :param protocol_port: The protocol port number for the resource.
         :param name: Human-readable name of the resource.
+        :param tags: Human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param weight: The weight of a member determines the portion of
                        requests or connections it services compared to the
                        other members of the pool.
         :param backup: Is the member a backup?
+        :param subnet_id: The subnet ID which the member service
+                                 is accessible from
         :param monitor_address: An alternate IP address used for health
                                 monitoring a backend member.
         :param monitor_port: An alternate protocol port used for health
@@ -178,7 +182,7 @@ class MemberClient(base_client.BaseLBaaSClient):
                                   query_params=query_params,
                                   return_object_only=return_object_only)
 
-    def update_member(self, member_id, pool_id, name=Unset,
+    def update_member(self, member_id, pool_id, name=Unset, tags=Unset,
                       admin_state_up=Unset, weight=Unset, backup=Unset,
                       monitor_address=Unset, monitor_port=Unset,
                       return_object_only=True):
@@ -187,6 +191,7 @@ class MemberClient(base_client.BaseLBaaSClient):
         :param member_id: The member ID to update.
         :param pool_id: The ID of the pool where the member lives.
         :param name: Human-readable name of the resource.
+        :param tags: Human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param weight: The weight of a member determines the portion of

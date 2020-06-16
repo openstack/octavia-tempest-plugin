@@ -27,7 +27,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
     resource_name = 'l7policy'
 
     def create_l7policy(self, listener_id, action, name=Unset,
-                        description=Unset, admin_state_up=Unset,
+                        description=Unset, tags=Unset, admin_state_up=Unset,
                         position=Unset, redirect_pool_id=Unset,
                         redirect_url=Unset, return_object_only=True):
         """Create a l7policy.
@@ -36,6 +36,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
         :param action: The l7policy action.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
+        :param tags: A human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param position: The position of this policy on the listener.
@@ -157,7 +158,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
                                   return_object_only=return_object_only)
 
     def update_l7policy(self, l7policy_id, action=Unset, name=Unset,
-                        description=Unset, admin_state_up=Unset,
+                        description=Unset, tags=Unset, admin_state_up=Unset,
                         position=Unset, redirect_pool_id=Unset,
                         redirect_url=Unset, return_object_only=True):
         """Update a l7policy.
@@ -166,6 +167,7 @@ class L7PolicyClient(base_client.BaseLBaaSClient):
         :param action: The l7policy action.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
+        :param tags: A human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param position: The position of this policy on the listener.
