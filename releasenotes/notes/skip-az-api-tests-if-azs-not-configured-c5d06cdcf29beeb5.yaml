@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed availability zone API tests to skip if the required availability
+    zones are not defined in the tempest configuration file and the test run
+    is not using no-op drivers.

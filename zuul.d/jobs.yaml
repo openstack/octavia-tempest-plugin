@@ -365,6 +365,11 @@
           "$TEMPEST_CONFIG":
             load_balancer:
               test_with_noop: True
+              # AZ API tests with no-op need AZs configured but they do not
+              # need to actually exist in Nova due to the no-op driver.
+              availability_zone: bogus-az-1
+              availability_zone2: bogus-az-2
+              availability_zone3: bogus-az-3
         post-config:
           $OCTAVIA_CONF:
             controller_worker:

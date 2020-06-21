@@ -32,6 +32,16 @@ CONF = config.CONF
 class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
     """Test the availability zone profile object API."""
 
+    @classmethod
+    def skip_checks(cls):
+        super(AvailabilityZoneProfileAPITest, cls).skip_checks()
+        if (CONF.load_balancer.availability_zone is None and
+                not CONF.load_balancer.test_with_noop):
+            raise cls.skipException(
+                'Availability zone profile API tests require an availability '
+                'zone configured in the [load_balancer] availability_zone '
+                'setting in the tempest configuration file.')
+
     @decorators.idempotent_id('e512b580-ef32-44c3-bbd2-efdc27ba2ea6')
     def test_availability_zone_profile_create(self):
         """Tests availability zone profile create and basic show APIs.
@@ -53,7 +63,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
         availability_zone_profile_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile1-create")
         availability_zone_data = {
-            const.COMPUTE_ZONE: 'my_compute_zone',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data_json = jsonutils.dumps(availability_zone_data)
@@ -116,12 +126,20 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             raise self.skipException(
                 'Availability zone profiles are only available on '
                 'Octavia API version 2.14 or newer.')
+        if ((CONF.load_balancer.availability_zone2 is None or
+             CONF.load_balancer.availability_zone3 is None) and
+                not CONF.load_balancer.test_with_noop):
+            raise self.skipException(
+                'Availability zone profile list API test requires the '
+                '[load_balancer] availability_zone, availability_zone2, and '
+                'availability_zone3 settings be defined in the tempest '
+                'configuration file.')
 
         # Create availability zone profile 1
         availability_zone_profile1_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile-list-1")
         availability_zone_data1 = {
-            const.COMPUTE_ZONE: 'my_compute_zone1',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data1_json = jsonutils.dumps(availability_zone_data1)
@@ -144,7 +162,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
         availability_zone_profile2_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile-list-2")
         availability_zone_data2 = {
-            const.COMPUTE_ZONE: 'my_compute_zone2',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone2,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data2_json = jsonutils.dumps(availability_zone_data2)
@@ -167,7 +185,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
         availability_zone_profile3_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile-list-3")
         availability_zone_data3 = {
-            const.COMPUTE_ZONE: 'my_compute_zone3',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone3,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data3_json = jsonutils.dumps(availability_zone_data3)
@@ -329,7 +347,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
         availability_zone_profile_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile1-show")
         availability_zone_data = {
-            const.COMPUTE_ZONE: 'my_compute_zone',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data_json = jsonutils.dumps(availability_zone_data)
@@ -390,11 +408,17 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             raise self.skipException(
                 'Availability zone profiles are only available on '
                 'Octavia API version 2.14 or newer.')
+        if (CONF.load_balancer.availability_zone2 is None and
+                not CONF.load_balancer.test_with_noop):
+            raise self.skipException(
+                'Availability zone profile update API tests requires '
+                '[load_balancer] availability_zone2 to be defined in the '
+                'tempest configuration file.')
 
         availability_zone_profile_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile1-update")
         availability_zone_data = {
-            const.COMPUTE_ZONE: 'my_compute_zone1',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data_json = jsonutils.dumps(availability_zone_data)
@@ -427,7 +451,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
         availability_zone_profile_name2 = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile1-update2")
         availability_zone_data2 = {
-            const.COMPUTE_ZONE: 'my_compute_zone2',
+            const.COMPUTE_ZONE:  CONF.load_balancer.availability_zone2,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data2_json = jsonutils.dumps(availability_zone_data2)
@@ -495,7 +519,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
         availability_zone_profile_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile1-delete")
         availability_zone_data = {
-            const.COMPUTE_ZONE: 'my_compute_zone',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data_json = jsonutils.dumps(availability_zone_data)
