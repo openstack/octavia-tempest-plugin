@@ -371,6 +371,7 @@
               amphora_driver: amphora_noop_driver
               compute_driver: compute_noop_driver
               network_driver: network_noop_driver
+              image_driver: image_noop_driver
             certificates:
               cert_manager: local_cert_manager
       devstack_services:
