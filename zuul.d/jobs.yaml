@@ -1,10 +1,40 @@
 - nodeset:
+    name: octavia-single-node-ubuntu-bionic
+    nodes:
+      - name: controller
+        label: nested-virt-ubuntu-bionic
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
+    name: octavia-single-node-centos-7
+    nodes:
+      - name: controller
+        label: nested-virt-centos-7
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
+    name: octavia-single-node-centos-8
+    nodes:
+      - name: controller
+        label: nested-virt-centos-8
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
     name: octavia-two-node
     nodes:
       - name: controller
-        label: ubuntu-bionic
+        label: nested-virt-ubuntu-bionic
       - name: controller2
-        label: ubuntu-bionic
+        label: nested-virt-ubuntu-bionic
     groups:
       - name: controller
         nodes:
@@ -142,6 +172,7 @@
 - job:
     name: octavia-dsvm-live-base
     parent: octavia-dsvm-base
+    nodeset: octavia-single-node-ubuntu-bionic
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -176,6 +207,7 @@
 - job:
     name: octavia-dsvm-live-base-ipv6-only
     parent: octavia-dsvm-base-ipv6-only
+    nodeset: octavia-single-node-ubuntu-bionic
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -530,7 +562,7 @@
 - job:
     name: octavia-v2-dsvm-py2-scenario-centos-7
     parent: octavia-v2-dsvm-py2-scenario
-    nodeset: devstack-single-node-centos-7
+    nodeset: octavia-single-node-centos-7
     vars:
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: centos
@@ -540,6 +572,7 @@
 - job:
     name: octavia-v2-dsvm-scenario-centos-8
     parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-centos-8
     vars:
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: centos
@@ -605,11 +638,13 @@
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-rocky
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: openstack-single-node-xenial
     override-checkout: stable/rocky
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-queens
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: openstack-single-node-xenial
     override-checkout: stable/queens
 
 - job:
@@ -707,6 +742,7 @@
 - job:
     name: octavia-v2-dsvm-scenario-centos-7
     parent: octavia-v2-dsvm-py2-scenario-centos-7
+    nodeset: octavia-single-node-centos-7
 
 - job:
     name: octavia-v2-act-stdby-iptables-dsvm-scenario
@@ -748,7 +784,7 @@
 - job:
     name: octavia-v2-act-stdby-iptables-dsvm-py2-scenario-centos-7
     parent: octavia-v2-act-stdby-iptables-dsvm-py2-scenario
-    nodeset: devstack-single-node-centos-7
+    nodeset: octavia-single-node-centos-7
     vars:
       devstack_localrc:
         USE_PYTHON3: False
