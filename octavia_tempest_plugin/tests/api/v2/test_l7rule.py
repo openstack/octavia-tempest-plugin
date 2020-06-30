@@ -573,7 +573,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         l7rule_check = self.mem_l7rule_client.show_l7rule(
             l7rule[const.ID], l7policy_id=self.l7policy_id)
         self.assertEqual(const.ACTIVE, l7rule_check[const.PROVISIONING_STATUS])
-        self.assertEqual(False, l7rule_check[const.ADMIN_STATE_UP])
+        self.assertFalse(l7rule_check[const.ADMIN_STATE_UP])
 
         # Test that a user, without the load balancer member role, cannot
         # update this l7rule
@@ -588,7 +588,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         l7rule_check = self.mem_l7rule_client.show_l7rule(
             l7rule[const.ID], l7policy_id=self.l7policy_id)
         self.assertEqual(const.ACTIVE, l7rule_check[const.PROVISIONING_STATUS])
-        self.assertEqual(False, l7rule_check[const.ADMIN_STATE_UP])
+        self.assertFalse(l7rule_check[const.ADMIN_STATE_UP])
 
         l7rule_update_kwargs = {
             const.L7POLICY_ID: self.l7policy_id,

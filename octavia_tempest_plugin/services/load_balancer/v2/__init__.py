@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from octavia_tempest_plugin.services.load_balancer.v2.loadbalancer_client \
-    import LoadbalancerClient
+from .loadbalancer_client import LoadbalancerClient
 
 __all__ = ['LoadbalancerClient']

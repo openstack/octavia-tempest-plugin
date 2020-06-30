@@ -167,8 +167,8 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         }
 
         if self.lb_feature_enabled.pool_algorithms_enabled:
-            pool_update_kwargs[const.LB_ALGORITHM] = \
-                const.LB_ALGORITHM_LEAST_CONNECTIONS
+            pool_update_kwargs[const.LB_ALGORITHM] = (
+                const.LB_ALGORITHM_LEAST_CONNECTIONS)
 
         if self.protocol == const.HTTP and (
                 self.lb_feature_enabled.session_persistence_enabled):
