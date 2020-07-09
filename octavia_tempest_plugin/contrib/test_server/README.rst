@@ -2,8 +2,8 @@
 Amphorae test server
 ====================
 
-test_server is a static application that simulates an HTTP and a UDP server.
-
+test_server.bin is a static application that simulates HTTP, HTTPS, and UDP
+servers. This server can properly handle concurrent requests.
 
 Building
 --------
@@ -12,10 +12,14 @@ To build a statically linked binary for test_server (can run anywhere):
 
 Install dependencies for Ubuntu/Debian:
 
+::
+
     sudo apt-get install -y golang
 
 Install dependencies for Centos (use golang 1.10 from go-toolset-7) and launch
 a shell into the new environment:
+
+::
 
     sudo yum install -y centos-release-scl
     sudo yum install -y go-toolset-7-golang-bin glibc-static openssl-static zlib-static
@@ -23,4 +27,40 @@ a shell into the new environment:
 
 Build the binary:
 
+::
+
     CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-s -w -extldflags -static' -o test_server.bin test_server.go
+
+
+Usage
+-----
+
+The usage string can be output from the command by running:
+
+::
+
+    ./test_server.bin --help
+
+Example output:
+
+::
+
+  Usage of ./test_server.bin:
+    -cert string
+          Server side PEM format certificate.
+    -client_ca string
+          Client side PEM format CA certificate.
+    -https_port int
+          HTTPS port to listen on, -1 is disabled. (default -1)
+    -id string
+          Server ID (default "1")
+    -key string
+          Server side PEM format key.
+    -port int
+          Port to listen on (default 8080)
+
+If -https_port is not specified, the server will not accept HTTPS requests.
+When --https_port is specified, -cert and -key are required parameters.
+If -https_port is specified, the -client_ca parameter is optional. When
+-client_ca is specified, it will configure the HTTPS port to require a valid
+client certificate to connect.
