@@ -198,6 +198,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                     protocol_port=protocol_port,
                                     protocol=protocol)
 
+    @decorators.attr(type=['smoke', 'slow'])
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('6751135d-e15a-4e22-89f4-bfcc3408d424')
