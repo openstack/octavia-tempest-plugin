@@ -32,6 +32,15 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
     """Test the availability zone object API."""
 
     @classmethod
+    def skip_checks(cls):
+        super(AvailabilityZoneAPITest, cls).skip_checks()
+        if (CONF.load_balancer.availability_zone is None and
+                not CONF.load_balancer.test_with_noop):
+            raise cls.skipException(
+                'Availability Zone API tests require an availability zone '
+                'configured in the [load_balancer] availability_zone setting.')
+
+    @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
         super(AvailabilityZoneAPITest, cls).resource_setup()
@@ -46,7 +55,7 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
         availability_zone_profile_name = data_utils.rand_name(
             "lb_admin_availabilityzoneprofile-setup")
         availability_zone_data = {
-            const.COMPUTE_ZONE: 'my_compute_zone',
+            const.COMPUTE_ZONE: CONF.load_balancer.availability_zone,
             const.MANAGEMENT_NETWORK: uuidutils.generate_uuid(),
         }
         availability_zone_data_json = jsonutils.dumps(availability_zone_data)

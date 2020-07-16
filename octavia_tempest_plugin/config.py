@@ -195,6 +195,12 @@ OctaviaGroup = [
     cfg.StrOpt('availability_zone',
                default=None,
                help='Availability zone to use for creating servers.'),
+    cfg.StrOpt('availability_zone2',
+               default=None,
+               help='A second availability zone to use for creating servers.'),
+    cfg.StrOpt('availability_zone3',
+               default=None,
+               help='A third availability zone to use for creating servers.'),
     cfg.BoolOpt('test_reuse_connection', default=True,
                 help='Reuse TCP connections while testing LB with '
                      'HTTP members (keep-alive).'),
