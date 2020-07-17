@@ -446,6 +446,11 @@
         USE_PYTHON3: False
 
 - job:
+    name: octavia-v2-dsvm-noop-api-stable-ussuri
+    parent: octavia-v2-dsvm-noop-api
+    override-checkout: stable/ussuri
+
+- job:
     name: octavia-v2-dsvm-noop-api-stable-train
     parent: octavia-v2-dsvm-noop-api
     override-checkout: stable/train
@@ -504,6 +509,11 @@
     required-projects:
       - name: openstack/diskimage-builder
         override-checkout: 2.30.0
+
+- job:
+    name: octavia-v2-dsvm-scenario-stable-ussuri
+    parent: octavia-v2-dsvm-scenario
+    override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-scenario-stable-train
@@ -629,6 +639,11 @@
       - ^octavia_tempest_plugin/tests/(?!barbican_scenario/|\w+\.py).*
 
 - job:
+    name: octavia-v2-dsvm-tls-barbican-stable-ussuri
+    parent: octavia-v2-dsvm-tls-barbican
+    override-checkout: stable/ussuri
+
+- job:
     name: octavia-v2-dsvm-tls-barbican-stable-train
     parent: octavia-v2-dsvm-tls-barbican
     override-checkout: stable/train
@@ -677,6 +692,11 @@
     required-projects:
       - name: openstack/diskimage-builder
         override-checkout: 2.30.0
+
+- job:
+    name: octavia-v2-dsvm-spare-pool-stable-ussuri
+    parent: octavia-v2-dsvm-spare-pool
+    override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-spare-pool-stable-train
@@ -819,6 +839,11 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.act_stdby_scenario.v2.test_active_standby\.
       tox_envlist: all
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario-stable-ussuri
+    parent: octavia-v2-act-stdby-dsvm-scenario
+    override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-train
