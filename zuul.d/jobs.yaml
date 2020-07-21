@@ -570,6 +570,10 @@
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
       tox_envlist: all
       devstack_local_conf:
+        post-config:
+            $OCTAVIA_CONF:
+              nova:
+                enable_anti_affinity: True
         test-config:
           "$TEMPEST_CONFIG":
             load_balancer:
