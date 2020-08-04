@@ -80,6 +80,15 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
                          flavor_profile[const.PROVIDER_NAME])
         self.assertEqual(flavor_data_json, flavor_profile[const.FLAVOR_DATA])
 
+        # Testing that flavor_profiles do not support tags
+        flavor_profile_tags = ["Hello", "World"]
+        tags_flavor_profile_kwargs = flavor_profile_kwargs.copy()
+        tags_flavor_profile_kwargs[const.TAGS] = flavor_profile_tags
+        self.assertRaises(
+            TypeError,
+            self.lb_admin_flavor_profile_client.create_flavor_profile,
+            **tags_flavor_profile_kwargs)
+
     @decorators.idempotent_id('c4e17fdf-849a-4132-93ae-dfca21ce4444')
     def test_flavor_profile_list(self):
         """Tests flavor profile list API and field filtering.

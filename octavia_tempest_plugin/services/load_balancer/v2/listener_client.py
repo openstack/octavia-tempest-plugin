@@ -29,8 +29,9 @@ class ListenerClient(base_client.BaseLBaaSClient):
     list_root_tag = 'listeners'
 
     def create_listener(self, protocol, protocol_port, loadbalancer_id,
-                        name=Unset, description=Unset, admin_state_up=Unset,
-                        connection_limit=Unset, timeout_client_data=Unset,
+                        name=Unset, description=Unset, tags=Unset,
+                        admin_state_up=Unset, connection_limit=Unset,
+                        timeout_client_data=Unset,
                         timeout_member_connect=Unset,
                         timeout_member_data=Unset, timeout_tcp_inspect=Unset,
                         insert_headers=Unset, default_pool_id=Unset,
@@ -46,6 +47,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
         :param loadbalancer_id: The ID of the load balancer.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
+        :param tags: A human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param connection_limit: The maximum number of connections permitted
@@ -198,8 +200,8 @@ class ListenerClient(base_client.BaseLBaaSClient):
                                   return_object_only=return_object_only)
 
     def update_listener(self, listener_id, name=Unset, description=Unset,
-                        admin_state_up=Unset, connection_limit=Unset,
-                        timeout_client_data=Unset,
+                        tags=Unset, admin_state_up=Unset,
+                        connection_limit=Unset, timeout_client_data=Unset,
                         timeout_member_connect=Unset,
                         timeout_member_data=Unset, timeout_tcp_inspect=Unset,
                         insert_headers=Unset, default_pool_id=Unset,
@@ -213,6 +215,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
         :param listener_id: The listener ID to update.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
+        :param tags: A human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param connection_limit: The maximum number of connections permitted

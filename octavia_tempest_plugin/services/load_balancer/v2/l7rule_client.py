@@ -38,7 +38,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
             object=self.list_root_tag
         )
 
-    def create_l7rule(self, l7policy_id, type, value, compare_type,
+    def create_l7rule(self, l7policy_id, type, value, compare_type, tags=Unset,
                       admin_state_up=Unset, key=Unset, invert=Unset,
                       return_object_only=True):
         """Create a l7rule.
@@ -47,6 +47,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
         :param type: The L7 rule type.
         :param value: The value to use for the comparison.
         :param compare_type: The comparison type for the L7 rule.
+        :param tags: The tags of the L7 rule.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param key: The key to use for the comparison.
@@ -171,8 +172,8 @@ class L7RuleClient(base_client.BaseLBaaSClient):
                                   return_object_only=return_object_only)
 
     def update_l7rule(self, l7rule_id, l7policy_id, type=Unset, value=Unset,
-                      compare_type=Unset, admin_state_up=Unset, key=Unset,
-                      invert=Unset, return_object_only=True):
+                      compare_type=Unset, tags=Unset, admin_state_up=Unset,
+                      key=Unset, invert=Unset, return_object_only=True):
         """Update a l7rule.
 
         :param l7rule_id: The l7rule ID to update.
@@ -180,6 +181,7 @@ class L7RuleClient(base_client.BaseLBaaSClient):
         :param type: The L7 rule type.
         :param value: The value to use for the comparison.
         :param compare_type: The comparison type for the L7 rule.
+        :param tags: The tags of the L7 rule.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param key: The key to use for the comparison.

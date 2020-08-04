@@ -28,6 +28,7 @@ class PoolClient(base_client.BaseLBaaSClient):
 
     def create_pool(self, protocol, lb_algorithm, loadbalancer_id=Unset,
                     listener_id=Unset, name=Unset, description=Unset,
+                    tags=Unset,
                     admin_state_up=Unset, session_persistence=Unset,
                     return_object_only=True):
         """Create a pool.
@@ -38,6 +39,7 @@ class PoolClient(base_client.BaseLBaaSClient):
         :param listener_id: The ID of the listener for the pool.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
+        :param tags: A human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param session_persistence: A JSON object specifying the session
@@ -156,7 +158,7 @@ class PoolClient(base_client.BaseLBaaSClient):
                                   return_object_only=return_object_only)
 
     def update_pool(self, pool_id, lb_algorithm=Unset, name=Unset,
-                    description=Unset, admin_state_up=Unset,
+                    description=Unset, tags=Unset, admin_state_up=Unset,
                     session_persistence=Unset, return_object_only=True):
         """Update a pool.
 
@@ -164,6 +166,7 @@ class PoolClient(base_client.BaseLBaaSClient):
         :param lb_algorithm: The load balancing algorithm for the pool.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
+        :param tags: A human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param session_persistence: A JSON object specifying the session

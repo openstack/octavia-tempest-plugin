@@ -69,6 +69,13 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                      # vip_qos_policy_id=lb_qos_policy_id)
                      const.NAME: lb_name}
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            lb_tags = ["Hello", "World"]
+            lb_kwargs.update({
+                const.TAGS: lb_tags
+            })
+
         self._setup_lb_network_kwargs(lb_kwargs, ip_version, use_fixed_ip=True)
 
         # Test that a user without the load balancer role cannot
@@ -138,6 +145,10 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                 CONF.load_balancer.lb_build_timeout)
         except Exception:
             pass
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(lb_tags, lb[const.TAGS])
 
     @decorators.idempotent_id('643ef031-c800-45f2-b229-3c8f8b37c829')
     def test_load_balancer_delete(self):
@@ -263,17 +274,29 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
         lb_name = data_utils.rand_name("lb_member_lb2-list")
         lb_description = data_utils.rand_name('B')
+        lb_admin_state_up = True
+        lb_provider = CONF.load_balancer.provider
+        lb_vip_network_id = self.lb_member_vip_net[const.ID]
 
-        lb = self.mem_lb_client.create_loadbalancer(
-            admin_state_up=True,
-            description=lb_description,
+        lb_kwargs = {
+            const.ADMIN_STATE_UP: lb_admin_state_up,
+            const.DESCRIPTION: lb_description,
             # TODO(johnsom) Fix test to use a real flavor
             # flavor=lb_flavor,
-            provider=CONF.load_balancer.provider,
-            name=lb_name,
+            const.PROVIDER: lb_provider,
+            const.NAME: lb_name,
             # TODO(johnsom) Add QoS
             # vip_qos_policy_id=lb_qos_policy_id)
-            vip_network_id=self.lb_member_vip_net[const.ID])
+            const.VIP_NETWORK_ID: lb_vip_network_id
+        }
+
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            lb_tags = ["English", "Mathematics", "Marketing", "Creativity"]
+            lb_kwargs.update({const.TAGS: lb_tags})
+
+        lb = self.mem_lb_client.create_loadbalancer(
+            **lb_kwargs)
+
         self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
@@ -298,13 +321,25 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
         lb_name = data_utils.rand_name("lb_member_lb1-list")
         lb_description = data_utils.rand_name('A')
+        lb_admin_state_up = True
+        lb_provider = CONF.load_balancer.provider
+        lb_vip_network_id = self.lb_member_vip_net[const.ID]
+
+        lb_kwargs = {
+            const.ADMIN_STATE_UP: lb_admin_state_up,
+            const.DESCRIPTION: lb_description,
+            const.PROVIDER: lb_provider,
+            const.NAME: lb_name,
+            const.VIP_NETWORK_ID: lb_vip_network_id,
+        }
+
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            lb_tags = ["English", "Spanish", "Soft_skills", "Creativity"]
+            lb_kwargs.update({const.TAGS: lb_tags})
 
         lb = self.mem_lb_client.create_loadbalancer(
-            admin_state_up=True,
-            description=lb_description,
-            provider=CONF.load_balancer.provider,
-            name=lb_name,
-            vip_network_id=self.lb_member_vip_net[const.ID])
+            **lb_kwargs)
+
         self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
@@ -329,13 +364,26 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
         lb_name = data_utils.rand_name("lb_member_lb3-list")
         lb_description = data_utils.rand_name('C')
+        lb_admin_state_up = False
+        lb_provider = CONF.load_balancer.provider
+        lb_vip_network_id = self.lb_member_vip_net[const.ID]
+
+        lb_kwargs = {
+            const.ADMIN_STATE_UP: lb_admin_state_up,
+            const.DESCRIPTION: lb_description,
+            const.PROVIDER: lb_provider,
+            const.NAME: lb_name,
+            const.VIP_NETWORK_ID: lb_vip_network_id,
+        }
+
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            lb_tags = ["English", "Project_management",
+                       "Communication", "Creativity"]
+            lb_kwargs.update({const.TAGS: lb_tags})
 
         lb = self.mem_lb_client.create_loadbalancer(
-            admin_state_up=False,
-            description=lb_description,
-            provider=CONF.load_balancer.provider,
-            name=lb_name,
-            vip_network_id=self.lb_member_vip_net[const.ID])
+            **lb_kwargs)
+
         self.addCleanup(
             self.mem_lb_client.cleanup_loadbalancer,
             lb[const.ID])
@@ -441,6 +489,28 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         # Should be in descending order
         self.assertEqual(lb2[const.DESCRIPTION], lbs[1][const.DESCRIPTION])
         self.assertEqual(lb1[const.DESCRIPTION], lbs[0][const.DESCRIPTION])
+
+        # Creating a list of 3 LBs, each one contains different tags
+        if self.mem_lb_client.is_version_supported(
+                self.api_version, '2.5'):
+            list_of_lbs = [lb1, lb2, lb3]
+            test_list = []
+            for lb in list_of_lbs:
+
+                # If tags "English" and "Creativity" are in the LB's tags
+                # and "Spanish" is not, add the LB to the list
+                if "English" in lb[const.TAGS] and "Creativity" in (
+                    lb[const.TAGS]) and "Spanish" not in (
+                        lb[const.TAGS]):
+                    test_list.append(lb[const.NAME])
+
+            # Tests if only the first and the third ones have those tags
+            self.assertEqual(
+                test_list, [lb1[const.NAME], lb3[const.NAME]])
+
+            # Tests that filtering by an empty tag will return an empty list
+            self.assertTrue(not any(["" in lb[const.TAGS]
+                                     for lb in list_of_lbs]))
 
     @decorators.idempotent_id('826ae612-8717-4c64-a8a7-cb9570a85870')
     def test_load_balancer_show(self):
@@ -561,6 +631,13 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                      # vip_qos_policy_id=lb_qos_policy_id)
                      const.NAME: lb_name}
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            lb_tags = ["Hello", "World"]
+            lb_kwargs.update({
+                const.TAGS: lb_tags
+            })
+
         self._setup_lb_network_kwargs(lb_kwargs, 4, use_fixed_ip=True)
 
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
@@ -594,6 +671,10 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
                              lb[const.VIP_SUBNET_ID])
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(lb_tags, lb[const.TAGS])
+
         new_name = data_utils.rand_name("lb_member_lb1-update")
         new_description = data_utils.arbitrary_string(size=255,
                                                       base_text='new')
@@ -624,13 +705,26 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.ACTIVE, lb_check[const.PROVISIONING_STATUS])
         self.assertFalse(lb_check[const.ADMIN_STATE_UP])
 
-        lb = self.mem_lb_client.update_loadbalancer(
-            lb[const.ID],
-            admin_state_up=True,
-            description=new_description,
+        admin_state_up = True
+
+        lb_update_kwargs = {
+            # const.ID: lb[const.ID],
+            const.ADMIN_STATE_UP: admin_state_up,
+            const.DESCRIPTION: new_description,
             # TODO(johnsom) Add QoS
             # vip_qos_policy_id=lb_qos_policy_id)
-            name=new_name)
+            const.NAME: new_name
+        }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            new_tags = ["Hola", "Mundo"]
+            lb_update_kwargs.update({
+                const.TAGS: new_tags
+            })
+
+        lb = self.mem_lb_client.update_loadbalancer(
+            lb[const.ID], **lb_update_kwargs)
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                      lb[const.ID], const.PROVISIONING_STATUS,
@@ -641,6 +735,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         self.assertTrue(lb[const.ADMIN_STATE_UP])
         self.assertEqual(new_description, lb[const.DESCRIPTION])
         self.assertEqual(new_name, lb[const.NAME])
+        self.assertEqual(new_tags, lb[const.TAGS])
         # TODO(johnsom) Add QoS
 
         # Attempt to clean up so that one full test run doesn't start 10+

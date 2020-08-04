@@ -107,6 +107,13 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: True,
         }
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            hw_tags = ["Hello", "World"]
+            hm_kwargs.update({
+                const.TAGS: hw_tags
+            })
+
         # Test that a user without the loadbalancer role cannot
         # create a healthmonitor
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
@@ -147,6 +154,10 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         for item in equal_items:
             self.assertEqual(hm_kwargs[item], hm[item])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(hw_tags, hm[const.TAGS])
 
     # Helper functions for test healthmonitor list
     def _filter_hms_by_pool_id(self, hms, pool_ids):
@@ -250,6 +261,13 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             const.EXPECTED_CODES: '200-204',
             const.ADMIN_STATE_UP: True,
         }
+
+        if self.mem_healthmonitor_client.is_version_supported(
+                self.api_version, '2.5'):
+            hm1_tags = ["English", "Mathematics",
+                        "Marketing", "Creativity"]
+            hm1_kwargs.update({const.TAGS: hm1_tags})
+
         hm1 = self.mem_healthmonitor_client.create_healthmonitor(
             **hm1_kwargs)
         self.addCleanup(
@@ -286,6 +304,13 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             const.EXPECTED_CODES: '200-204',
             const.ADMIN_STATE_UP: True,
         }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            hm2_tags = ["English", "Spanish",
+                        "Soft_skills", "Creativity"]
+            hm2_kwargs.update({const.TAGS: hm2_tags})
+
         hm2 = self.mem_healthmonitor_client.create_healthmonitor(
             **hm2_kwargs)
         self.addCleanup(
@@ -322,6 +347,13 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             const.EXPECTED_CODES: '200-204',
             const.ADMIN_STATE_UP: False,
         }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            hm3_tags = ["English", "Project_management",
+                        "Communication", "Creativity"]
+            hm3_kwargs.update({const.TAGS: hm3_tags})
+
         hm3 = self.mem_healthmonitor_client.create_healthmonitor(
             **hm3_kwargs)
         self.addCleanup(
@@ -454,6 +486,28 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                          hms[1][const.NAME])
         self.assertEqual(hm1[const.NAME],
                          hms[0][const.NAME])
+
+        # Creating a list of 3 healthmonitors, each one contains different tags
+        if self.mem_healthmonitor_client.is_version_supported(
+                self.api_version, '2.5'):
+            list_of_hms = [hm1, hm2, hm3]
+            test_list = []
+            for hm in list_of_hms:
+
+                # If tags "English" and "Creativity" are in the HM's tags
+                # and "Spanish" is not, add the HM to the list
+                if "English" in hm[const.TAGS] and "Creativity" in (
+                    hm[const.TAGS]) and "Spanish" not in (
+                        hm[const.TAGS]):
+                    test_list.append(hm[const.NAME])
+
+            # Tests if only the first and the third ones have those tags
+            self.assertEqual(
+                test_list, [hm1[const.NAME], hm3[const.NAME]])
+
+            # Tests that filtering by an empty tag will return an empty list
+            self.assertTrue(not any(["" in hm[const.TAGS]
+                                     for hm in list_of_hms]))
 
     @decorators.idempotent_id('284e8d3b-7b2d-4697-9e41-580b3423c0b4')
     def test_healthmonitor_show(self):
@@ -607,6 +661,13 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: False,
         }
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            hw_tags = ["Hello", "World"]
+            hm_kwargs.update({
+                const.TAGS: hw_tags
+            })
+
         hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
         self.addCleanup(
             self.mem_healthmonitor_client.cleanup_healthmonitor,
@@ -642,6 +703,10 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         for item in equal_items:
             self.assertEqual(hm_kwargs[item], hm[item])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(hw_tags, hm[const.TAGS])
 
         # Test that a user, without the loadbalancer member role, cannot
         # use this command
@@ -685,6 +750,14 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             const.EXPECTED_CODES: '201,202',
             const.ADMIN_STATE_UP: not hm_kwargs[const.ADMIN_STATE_UP],
         }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            hw_new_tags = ["Hola", "Mundo"]
+            hm_update_kwargs.update({
+                const.TAGS: hw_new_tags
+            })
+
         hm = self.mem_healthmonitor_client.update_healthmonitor(
             hm[const.ID], **hm_update_kwargs)
 
@@ -711,6 +784,10 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                        const.MAX_RETRIES, const.MAX_RETRIES_DOWN,
                        const.HTTP_METHOD, const.URL_PATH, const.EXPECTED_CODES,
                        const.ADMIN_STATE_UP]
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            equal_items.append(const.TAGS)
 
         for item in equal_items:
             self.assertEqual(hm_update_kwargs[item], hm[item])

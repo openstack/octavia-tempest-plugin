@@ -27,7 +27,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
     resource_name = 'healthmonitor'
 
     def create_healthmonitor(self, pool_id, type, delay, timeout, max_retries,
-                             max_retries_down=Unset, name=Unset,
+                             max_retries_down=Unset, name=Unset, tags=Unset,
                              http_method=Unset, url_path=Unset,
                              expected_codes=Unset, admin_state_up=Unset,
                              return_object_only=True):
@@ -44,6 +44,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
                                  changing the operating status of the member to
                                  ERROR.
         :param name: Human-readable name of the resource.
+        :param tags: Human-readable tags of the resource.
         :param http_method: The HTTP method that the health monitor uses for
                             requests.
         :param url_path: The HTTP URL path of the request sent by the monitor
@@ -167,7 +168,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
 
     def update_healthmonitor(self, healthmonitor_id, delay=Unset,
                              timeout=Unset, max_retries=Unset,
-                             max_retries_down=Unset, name=Unset,
+                             max_retries_down=Unset, name=Unset, tags=Unset,
                              http_method=Unset, url_path=Unset,
                              expected_codes=Unset, admin_state_up=Unset,
                              return_object_only=True):
@@ -183,6 +184,7 @@ class HealthMonitorClient(base_client.BaseLBaaSClient):
                                  changing the operating status of the member to
                                  ERROR.
         :param name: Human-readable name of the resource.
+        :param tags: Human-readable tags of the resource.
         :param http_method: The HTTP method that the health monitor uses for
                             requests.
         :param url_path: The HTTP URL path of the request sent by the monitor

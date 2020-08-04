@@ -153,6 +153,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 const.BACKUP: False,
             })
 
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            member_tags = ["hello", "world"]
+            member_kwargs.update({
+                const.TAGS: member_tags
+            })
+
         if self.lb_member_vip_subnet:
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -196,6 +203,10 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            equal_items.append(const.TAGS)
 
         if monitor:
             equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
@@ -247,6 +258,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 101,
         }
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            member1_tags = ["English", "Mathematics",
+                            "Marketing", "Creativity"]
+            member1_kwargs.update({const.TAGS: member1_tags})
+
         member1 = self.mem_member_client.create_member(
             **member1_kwargs)
         self.addCleanup(
@@ -278,6 +296,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 100,
         }
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            member2_tags = ["English", "Spanish",
+                            "Soft_skills", "Creativity"]
+            member2_kwargs.update({const.TAGS: member2_tags})
+
         member2 = self.mem_member_client.create_member(
             **member2_kwargs)
         self.addCleanup(
@@ -309,6 +334,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.ADDRESS: '192.0.2.1',
             const.PROTOCOL_PORT: 102,
         }
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            member3_tags = ["English", "Project_management",
+                            "Communication", "Creativity"]
+            member3_kwargs.update({const.TAGS: member3_tags})
+
         member3 = self.mem_member_client.create_member(
             **member3_kwargs)
         self.addCleanup(
@@ -432,6 +464,28 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                          members[1][const.PROTOCOL_PORT])
         self.assertEqual(member1[const.PROTOCOL_PORT],
                          members[0][const.PROTOCOL_PORT])
+
+        # Creating a list of 3 members, each one contains different tags
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            list_of_members = [member1, member2, member3]
+            test_list = []
+            for member in list_of_members:
+
+                # If tags "English" and "Creativity" are in the member's tags
+                # and "Spanish" is not, add the member to the list
+                if "English" in member[const.TAGS] and "Creativity" in (
+                    member[const.TAGS]) and "Spanish" not in (
+                        member[const.TAGS]):
+                    test_list.append(member[const.NAME])
+
+            # Tests if only the first and the third ones have those tags
+            self.assertEqual(
+                test_list, [member1[const.NAME], member3[const.NAME]])
+
+            # Tests that filtering by an empty tag will return an empty list
+            self.assertTrue(not any(["" in member[const.TAGS]
+                                     for member in list_of_members]))
 
     @decorators.idempotent_id('7674ae04-7e92-44ef-9adf-40718d7ec705')
     def test_member_show(self):
@@ -563,6 +617,13 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 const.BACKUP: False,
             })
 
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            member_tags = ["Hello", "World"]
+            member_kwargs.update({
+                const.TAGS: member_tags
+            })
+
         if self.lb_member_vip_subnet:
             member_kwargs[const.SUBNET_ID] = self.lb_member_vip_subnet[
                 const.ID]
@@ -608,6 +669,10 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            equal_items.append(const.TAGS)
 
         if monitor:
             equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
@@ -672,6 +737,14 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             member_update_kwargs.update({
                 const.BACKUP: not member[const.BACKUP]
             })
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            new_tags = ["Hola", "Mundo"]
+            member_update_kwargs.update({
+                const.TAGS: new_tags
+            })
+
         if monitor:
             member_update_kwargs[const.MONITOR_ADDRESS] = '192.0.2.3'
             member_update_kwargs[const.MONITOR_PORT] = member[
@@ -708,6 +781,10 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.1'):
             equal_items.append(const.BACKUP)
+
+        if self.mem_member_client.is_version_supported(
+                self.api_version, '2.5'):
+            equal_items.append(const.TAGS)
 
         if monitor:
             equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]

@@ -134,6 +134,14 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             const.ADMIN_STATE_UP: True,
             const.POSITION: 1,
         }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7_policy_tags = ["Hello", "World"]
+            l7policy_kwargs.update({
+                const.TAGS: l7_policy_tags
+            })
+
         if url:
             l7policy_kwargs[const.ACTION] = const.REDIRECT_TO_URL
             l7policy_kwargs[const.REDIRECT_URL] = url
@@ -202,6 +210,10 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             self.assertIsNone(l7policy.pop(const.REDIRECT_URL, None))
             self.assertIsNone(l7policy.pop(const.REDIRECT_POOL_ID, None))
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(l7_policy_tags, l7policy[const.TAGS])
+
     @decorators.idempotent_id('42fa14ba-caf1-465e-ab36-27e7501f95ef')
     def test_l7policy_list(self):
         """Tests l7policy list API and field filtering.
@@ -248,6 +260,13 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             const.POSITION: 1,
             const.ACTION: const.REJECT
         }
+
+        if self.mem_l7policy_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7policy1_tags = ["English", "Mathematics",
+                              "Marketing", "Creativity"]
+            l7policy1_kwargs.update({const.TAGS: l7policy1_tags})
+
         l7policy1 = self.mem_l7policy_client.create_l7policy(
             **l7policy1_kwargs)
         self.addCleanup(
@@ -281,6 +300,13 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             const.ACTION: const.REDIRECT_TO_POOL,
             const.REDIRECT_POOL_ID: self.pool_id
         }
+
+        if self.mem_l7policy_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7policy2_tags = ["English", "Spanish",
+                              "Soft_skills", "Creativity"]
+            l7policy2_kwargs.update({const.TAGS: l7policy2_tags})
+
         l7policy2 = self.mem_l7policy_client.create_l7policy(
             **l7policy2_kwargs)
         self.addCleanup(
@@ -315,6 +341,13 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             const.ACTION: const.REDIRECT_TO_URL,
             const.REDIRECT_URL: l7_redirect_url
         }
+
+        if self.mem_l7policy_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7policy3_tags = ["English", "Project_management",
+                              "Communication", "Creativity"]
+            l7policy3_kwargs.update({const.TAGS: l7policy3_tags})
+
         l7policy3 = self.mem_l7policy_client.create_l7policy(
             **l7policy3_kwargs)
         self.addCleanup(
@@ -473,6 +506,28 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(l7policy1[const.DESCRIPTION],
                          l7policies[0][const.DESCRIPTION])
 
+        # Creating a list of 3 l7policies, each one contains different tags
+        if self.mem_l7policy_client.is_version_supported(
+                self.api_version, '2.5'):
+            list_of_l7policies = [l7policy1, l7policy2, l7policy3]
+            test_list = []
+            for l7policy in list_of_l7policies:
+
+                # If tags "English" and "Creativity" are in the l7policy's tags
+                # and "Spanish" is not, add the l7policy to the list
+                if "English" in l7policy[const.TAGS] and "Creativity" in (
+                        l7policy[const.TAGS]) and "Spanish" not in (
+                        l7policy[const.TAGS]):
+                    test_list.append(l7policy[const.NAME])
+
+            # Tests if only the first and the third ones have those tags
+            self.assertEqual(
+                test_list, [l7policy1[const.NAME], l7policy3[const.NAME]])
+
+            # Tests that filtering by an empty tag will return an empty list
+            self.assertTrue(not any(["" in l7policy[const.TAGS]
+                                     for l7policy in list_of_l7policies]))
+
     @decorators.idempotent_id('baaa8104-a037-4976-b908-82a0b3e08129')
     def test_l7policy_show(self):
         """Tests l7policy show API.
@@ -630,6 +685,13 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             const.REDIRECT_URL: l7_redirect_url,
         }
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7_policy_tags = ["Hello", "World"]
+            l7policy_kwargs.update({
+                const.TAGS: l7_policy_tags
+            })
+
         l7policy = self.mem_l7policy_client.create_l7policy(**l7policy_kwargs)
         self.addClassResourceCleanup(
             self.mem_l7policy_client.cleanup_l7policy,
@@ -664,6 +726,10 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.REDIRECT_TO_URL, l7policy[const.ACTION])
         self.assertEqual(l7_redirect_url, l7policy[const.REDIRECT_URL])
         self.assertIsNone(l7policy.pop(const.REDIRECT_POOL_ID, None))
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(l7_policy_tags, l7policy[const.TAGS])
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -706,6 +772,14 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             const.ACTION: const.REDIRECT_TO_POOL,
             const.REDIRECT_POOL_ID: self.pool_id,
         }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            l7_policy_new_tags = ["Hola", "Mundo"]
+            l7policy_update_kwargs.update({
+                const.TAGS: l7_policy_new_tags
+            })
+
         l7policy = self.mem_l7policy_client.update_l7policy(
             l7policy[const.ID], **l7policy_update_kwargs)
 
@@ -744,6 +818,11 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(const.REDIRECT_TO_POOL, l7policy[const.ACTION])
         self.assertEqual(self.pool_id, l7policy[const.REDIRECT_POOL_ID])
         self.assertIsNone(l7policy.pop(const.REDIRECT_URL, None))
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(l7_policy_new_tags,
+                             l7policy[const.TAGS])
 
     @decorators.idempotent_id('7925eb4b-94b6-4c28-98c2-fd0b4f0976cc')
     def test_l7policy_delete(self):

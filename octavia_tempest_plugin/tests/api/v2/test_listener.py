@@ -102,6 +102,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.TIMEOUT_TCP_INSPECT: 50,
             })
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            listener_tags = [str(x) for x in range(100)]
+            listener_kwargs.update({
+                const.TAGS: listener_tags
+            })
+
         # Test that a user without the load balancer role cannot
         # create a listener
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
@@ -135,9 +142,21 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 CONF.load_balancer.build_interval,
                 CONF.load_balancer.build_timeout)
 
-        self.assertEqual(listener_name, listener[const.NAME])
-        self.assertEqual(listener_description, listener[const.DESCRIPTION])
-        self.assertTrue(listener[const.ADMIN_STATE_UP])
+        equal_items = [const.NAME, const.DESCRIPTION,
+                       const.ADMIN_STATE_UP,
+                       const.PROTOCOL, const.PROTOCOL_PORT,
+                       const.CONNECTION_LIMIT]
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.TIMEOUT_CLIENT_DATA)
+            equal_items.append(const.TIMEOUT_MEMBER_CONNECT)
+            equal_items.append(const.TIMEOUT_MEMBER_DATA)
+            equal_items.append(const.TIMEOUT_TCP_INSPECT)
+
+        for item in equal_items:
+            self.assertEqual(listener_kwargs[item], listener[item])
+
         parser.parse(listener[const.CREATED_AT])
         parser.parse(listener[const.UPDATED_AT])
         UUID(listener[const.ID])
@@ -146,20 +165,17 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(self.protocol, listener[const.PROTOCOL])
-        self.assertEqual(80, listener[const.PROTOCOL_PORT])
-        self.assertEqual(200, listener[const.CONNECTION_LIMIT])
+
         insert_headers = listener[const.INSERT_HEADERS]
         self.assertTrue(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
         self.assertTrue(
             strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
+
         if self.mem_listener_client.is_version_supported(
-                self.api_version, '2.1'):
-            self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
-            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
-            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
-            self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
+                self.api_version, '2.5'):
+            self.assertEqual(sorted(listener_tags),
+                             sorted(listener[const.TAGS]))
 
     @decorators.idempotent_id('cceac303-4db5-4d5a-9f6e-ff33780a5f29')
     def test_listener_create_on_same_port(self):
@@ -336,6 +352,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: 80,
             const.LOADBALANCER_ID: lb_id,
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            listener1_tags = ["English", "Mathematics",
+                              "Marketing", "Creativity"]
+            listener1_kwargs.update({const.TAGS: listener1_tags})
+
         listener1 = self.mem_listener_client.create_listener(
             **listener1_kwargs)
         self.addCleanup(
@@ -368,6 +390,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: 81,
             const.LOADBALANCER_ID: lb_id,
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            listener2_tags = ["English", "Spanish",
+                              "Soft_skills", "Creativity"]
+            listener2_kwargs.update({const.TAGS: listener2_tags})
+
         listener2 = self.mem_listener_client.create_listener(
             **listener2_kwargs)
         self.addCleanup(
@@ -400,6 +428,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: 82,
             const.LOADBALANCER_ID: lb_id,
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            listener3_tags = ["English", "Project_management",
+                              "Communication", "Creativity"]
+            listener3_kwargs.update({const.TAGS: listener3_tags})
+
         listener3 = self.mem_listener_client.create_listener(
             **listener3_kwargs)
         self.addCleanup(
@@ -542,6 +576,28 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self.assertEqual(listener1[const.DESCRIPTION],
                          listeners[0][const.DESCRIPTION])
 
+        # Creating a list of 3 listeners, each one contains different tags
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            list_of_listeners = [listener1, listener2, listener3]
+            test_list = []
+            for listener in list_of_listeners:
+
+                # If tags "English" and "Creativity" are in the listener's tags
+                # and "Spanish" is not, add the listener to the list
+                if "English" in listener[const.TAGS] and "Creativity" in (
+                    listener[const.TAGS]) and "Spanish" not in (
+                        listener[const.TAGS]):
+                    test_list.append(listener[const.NAME])
+
+            # Tests if only the first and the third ones have those tags
+            self.assertEqual(
+                test_list, [listener1[const.NAME], listener3[const.NAME]])
+
+            # Tests that filtering by an empty tag will return an empty list
+            self.assertTrue(not any(["" in listener[const.TAGS]
+                                     for listener in list_of_listeners]))
+
     @decorators.idempotent_id('6e299eae-6907-4dfc-89c2-e57709d25d3d')
     def test_listener_show(self):
         """Tests listener show API.
@@ -581,6 +637,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.TIMEOUT_TCP_INSPECT: 50,
             })
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            listener_tags = ["hello", "world"]
+            listener_kwargs.update({
+                const.TAGS: listener_tags
+            })
+
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addClassResourceCleanup(
             self.mem_listener_client.cleanup_listener,
@@ -605,10 +668,31 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.ONLINE,
                 CONF.load_balancer.build_interval,
                 CONF.load_balancer.build_timeout)
+        equal_items = [const.NAME, const.DESCRIPTION,
+                       const.ADMIN_STATE_UP,
+                       const.PROTOCOL, const.PROTOCOL_PORT,
+                       const.CONNECTION_LIMIT]
 
-        self.assertEqual(listener_name, listener[const.NAME])
-        self.assertEqual(listener_description, listener[const.DESCRIPTION])
-        self.assertTrue(listener[const.ADMIN_STATE_UP])
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            equal_items.append(const.TIMEOUT_CLIENT_DATA)
+            equal_items.append(const.TIMEOUT_MEMBER_CONNECT)
+            equal_items.append(const.TIMEOUT_MEMBER_DATA)
+            equal_items.append(const.TIMEOUT_TCP_INSPECT)
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            equal_items.append(const.TAGS)
+
+        for item in equal_items:
+            self.assertEqual(listener_kwargs[item], listener[item])
+
+        insert_headers = listener[const.INSERT_HEADERS]
+        self.assertTrue(
+            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
+        self.assertTrue(
+            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
+
         parser.parse(listener[const.CREATED_AT])
         parser.parse(listener[const.UPDATED_AT])
         UUID(listener[const.ID])
@@ -617,21 +701,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(self.protocol, listener[const.PROTOCOL])
-        self.assertEqual(81, listener[const.PROTOCOL_PORT])
-        self.assertEqual(200, listener[const.CONNECTION_LIMIT])
-        insert_headers = listener[const.INSERT_HEADERS]
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
-
-        if self.mem_listener_client.is_version_supported(
-                self.api_version, '2.1'):
-            self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
-            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
-            self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
-            self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
 
         # Test that a user with lb_admin role can see the listener
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
@@ -702,6 +771,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.TIMEOUT_TCP_INSPECT: 50,
             })
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            listener_tags = ["Hello", "World"]
+            listener_kwargs.update({
+                const.TAGS: listener_tags
+            })
+
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addClassResourceCleanup(
             self.mem_listener_client.cleanup_listener,
@@ -742,6 +818,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
             self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
             self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(listener_tags, listener[const.TAGS])
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -799,6 +879,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.TIMEOUT_TCP_INSPECT: 100,
             })
 
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            listener_updated_tags = ["Hola", "Mundo"]
+            listener_update_kwargs.update({
+                const.TAGS: listener_updated_tags
+            })
+
         listener = self.mem_listener_client.update_listener(
             listener[const.ID], **listener_update_kwargs)
 
@@ -841,6 +928,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_CONNECT])
             self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_DATA])
             self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.5'):
+            self.assertEqual(listener_updated_tags, listener[const.TAGS])
 
     @decorators.idempotent_id('16f11c82-f069-4592-8954-81b35a98e3b7')
     def test_listener_delete(self):

@@ -104,6 +104,17 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             availability_zone_data_json,
             availability_zone_profile[const.AVAILABILITY_ZONE_DATA])
 
+        # Testing that availability_zone_profiles do not support tags
+        availability_zone_profile_tags = ["Hello", "World"]
+        tags_availability_zone_profile_kwargs = (
+            availability_zone_profile_kwargs.copy())
+        tags_availability_zone_profile_kwargs[const.TAGS] = (
+            availability_zone_profile_tags)
+        az_profile_client = self.lb_admin_availability_zone_profile_client
+        self.assertRaises(TypeError,
+                          az_profile_client.create_availability_zone_profile,
+                          **tags_availability_zone_profile_kwargs)
+
     @decorators.idempotent_id('ef7d1c45-e312-46ce-8dcb-f2fe26295658')
     def test_availability_zone_profile_list(self):
         """Tests availability zone profile list API and field filtering.

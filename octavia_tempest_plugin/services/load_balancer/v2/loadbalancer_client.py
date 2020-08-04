@@ -39,7 +39,8 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                             listeners=Unset, project_id=Unset, provider=Unset,
                             vip_address=Unset, vip_network_id=Unset,
                             vip_port_id=Unset, vip_qos_policy_id=Unset,
-                            vip_subnet_id=Unset, return_object_only=True):
+                            vip_subnet_id=Unset, return_object_only=True,
+                            tags=Unset):
         """Create a loadbalancer.
 
         :param name: Human-readable name of the resource.
@@ -56,6 +57,7 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
         :param vip_qos_policy_id: The ID of the QoS Policy which will apply to
                                   the Virtual IP (VIP).
         :param vip_subnet_id: The ID of the subnet for the Virtual IP (VIP).
+        :param tags: A human-readable tags of the resource.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -170,13 +172,15 @@ class LoadbalancerClient(base_client.BaseLBaaSClient):
                                   return_object_only=return_object_only)
 
     def update_loadbalancer(self, lb_id, name=Unset, description=Unset,
-                            admin_state_up=Unset, vip_qos_policy_id=Unset,
+                            tags=Unset, admin_state_up=Unset,
+                            vip_qos_policy_id=Unset,
                             return_object_only=True):
         """Update a loadbalancer.
 
         :param lb_id: The loadbalancer ID to update.
         :param name: Human-readable name of the resource.
         :param description: A human-readable description for the resource.
+        :param tags: A human-readable tags of the resource.
         :param admin_state_up: The administrative state of the resource, which
                                is up (true) or down (false).
         :param vip_qos_policy_id: The ID of the QoS Policy which will apply to
