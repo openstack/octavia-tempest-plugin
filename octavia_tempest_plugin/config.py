@@ -50,10 +50,10 @@ OctaviaGroup = [
                choices=['public', 'admin', 'internal',
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the load-balancer service"),
-    cfg.IntOpt('build_interval',
-               default=5,
-               help='Time in seconds between build status checks for '
-                    'non-load-balancer resources to build'),
+    cfg.FloatOpt('build_interval',
+                 default=5,
+                 help='Time in seconds between build status checks for '
+                      'non-load-balancer resources to build'),
     cfg.IntOpt('build_timeout',
                default=300,
                help='Timeout in seconds to wait for non-load-balancer '
@@ -62,9 +62,9 @@ OctaviaGroup = [
                help='The service_auth username the Octavia services are using'
                     'to access other OpenStack services.'),
     # load-balancer specific options
-    cfg.IntOpt('check_interval',
-               default=5,
-               help='Interval to check for status changes.'),
+    cfg.FloatOpt('check_interval',
+                 default=5,
+                 help='Interval to check for status changes.'),
     cfg.IntOpt('check_timeout',
                default=120,
                help='Timeout, in seconds, to wait for a status change.'),
@@ -72,10 +72,10 @@ OctaviaGroup = [
                 default=False,
                 help='Runs the tests assuming no-op drivers are being used. '
                      'Tests will assume no actual amphora are created.'),
-    cfg.IntOpt('lb_build_interval',
-               default=10,
-               help='Time in seconds between build status checks for a '
-                    'load balancer.'),
+    cfg.FloatOpt('lb_build_interval',
+                 default=10,
+                 help='Time in seconds between build status checks for a '
+                      'load balancer.'),
     cfg.IntOpt('lb_build_timeout',
                default=900,
                help='Timeout in seconds to wait for a '

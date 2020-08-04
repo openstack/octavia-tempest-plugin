@@ -42,10 +42,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                      const.NAME: lb_name}
 
         cls._setup_lb_network_kwargs(lb_kwargs)
-        cls.protocol = const.HTTP
-        lb_feature_enabled = CONF.loadbalancer_feature_enabled
-        if not lb_feature_enabled.l7_protocol_enabled:
-            cls.protocol = lb_feature_enabled.l4_protocol
 
         lb = cls.mem_lb_client.create_loadbalancer(**lb_kwargs)
         cls.lb_id = lb[const.ID]
@@ -64,7 +60,27 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             cls.allowed_cidrs = ['2001:db8:a0b:12f0::/64']
 
     @decorators.idempotent_id('88d0ec83-7b08-48d9-96e2-0df1d2f8cd98')
-    def test_listener_create(self):
+    def test_http_listener_create(self):
+        self._test_listener_create(const.HTTP, 8000)
+
+    @decorators.idempotent_id('2cc89237-fc6b-434d-b38e-b3309823e71f')
+    def test_https_listener_create(self):
+        self._test_listener_create(const.HTTPS, 8001)
+
+    @decorators.idempotent_id('45580065-5653-436b-aaff-dc465fa0a542')
+    def test_tcp_listener_create(self):
+        self._test_listener_create(const.TCP, 8002)
+
+    @decorators.idempotent_id('7b53f336-47bc-45ae-bbd7-4342ef0673fc')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_listener_create(self):
+        self._test_listener_create(const.UDP, 8003)
+
+    def _test_listener_create(self, protocol, protocol_port):
         """Tests listener create and basic show APIs.
 
         * Tests that users without the loadbalancer member role cannot
@@ -80,14 +96,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 80,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.INSERT_HEADERS: {
-                const.X_FORWARDED_FOR: "true",
-                const.X_FORWARDED_PORT: "true"
-            },
             # Don't test with a default pool -- we'll do that in the scenario,
             # but this will allow us to test that the field isn't mandatory,
             # as well as not conflate pool failures with listener test failures
@@ -97,6 +109,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if protocol == const.HTTP:
+            listener_kwargs[const.INSERT_HEADERS] = {
+                const.X_FORWARDED_FOR: "true",
+                const.X_FORWARDED_PORT: "true",
+                const.X_FORWARDED_PROTO: "true",
+            }
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             listener_kwargs.update({
@@ -182,11 +200,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
 
-        insert_headers = listener[const.INSERT_HEADERS]
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
+        if protocol == const.HTTP:
+            insert_headers = listener[const.INSERT_HEADERS]
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_FOR]))
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PORT]))
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PROTO]))
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
@@ -198,7 +219,27 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
     @decorators.idempotent_id('cceac303-4db5-4d5a-9f6e-ff33780a5f29')
-    def test_listener_create_on_same_port(self):
+    def test_http_udp_tcp_listener_create_on_same_port(self):
+        self._test_listener_create_on_same_port(const.HTTP, const.UDP,
+                                                const.TCP, 8010)
+
+    @decorators.idempotent_id('930338b8-3029-48a6-89b2-8b062060fe61')
+    def test_http_udp_https_listener_create_on_same_port(self):
+        self._test_listener_create_on_same_port(const.HTTP, const.UDP,
+                                                const.HTTPS, 8011)
+
+    @decorators.idempotent_id('01a21892-008a-4327-b4fd-fbf194ecb1a5')
+    def test_tcp_udp_http_listener_create_on_same_port(self):
+        self._test_listener_create_on_same_port(const.TCP, const.UDP,
+                                                const.HTTP, 8012)
+
+    @decorators.idempotent_id('5da764a4-c03a-46ed-848b-98b9d9fa9089')
+    def test_tcp_udp_https_listener_create_on_same_port(self):
+        self._test_listener_create_on_same_port(const.TCP, const.UDP,
+                                                const.HTTPS, 8013)
+
+    def _test_listener_create_on_same_port(self, protocol1, protocol2,
+                                           protocol3, protocol_port):
         """Tests listener creation on same port number.
 
         * Create a first listener.
@@ -224,8 +265,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         listener_kwargs = {
             const.NAME: listener_name,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 8080,
+            const.PROTOCOL: protocol1,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200
         }
@@ -251,19 +292,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
 
-        if self.protocol == const.UDP:
-            protocol = const.TCP
-        else:
-            protocol = const.UDP
-
         # Create a listener on the same port, but with a different protocol
         listener2_name = data_utils.rand_name("lb_member_listener2-create")
 
         listener2_kwargs = {
             const.NAME: listener2_name,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: protocol,
-            const.PROTOCOL_PORT: 8080,
+            const.PROTOCOL: protocol2,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
         }
@@ -295,8 +331,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         listener3_kwargs = {
             const.NAME: listener3_name,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: protocol,
-            const.PROTOCOL_PORT: 8080,
+            const.PROTOCOL: protocol1,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
         }
@@ -306,33 +342,45 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.mem_listener_client.create_listener,
             **listener3_kwargs)
 
-        # Create a listener on the same port, with another protocol over TCP,
-        # only if layer-7 protocols are enabled
-        lb_feature_enabled = CONF.loadbalancer_feature_enabled
-        if lb_feature_enabled.l7_protocol_enabled:
-            if self.protocol == const.HTTP:
-                protocol = const.HTTPS
-            else:
-                protocol = const.HTTP
+        # Create a listener on the same port, with another protocol over TCP
+        listener4_name = data_utils.rand_name("lb_member_listener4-create")
 
-            listener4_name = data_utils.rand_name("lb_member_listener4-create")
+        listener4_kwargs = {
+            const.NAME: listener4_name,
+            const.ADMIN_STATE_UP: True,
+            const.PROTOCOL: protocol3,
+            const.PROTOCOL_PORT: protocol_port,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.CONNECTION_LIMIT: 200,
+        }
 
-            listener4_kwargs = {
-                const.NAME: listener4_name,
-                const.ADMIN_STATE_UP: True,
-                const.PROTOCOL: protocol,
-                const.PROTOCOL_PORT: 8080,
-                const.LOADBALANCER_ID: self.lb_id,
-                const.CONNECTION_LIMIT: 200,
-            }
-
-            self.assertRaises(
-                exceptions.Conflict,
-                self.mem_listener_client.create_listener,
-                **listener4_kwargs)
+        self.assertRaises(
+            exceptions.Conflict,
+            self.mem_listener_client.create_listener,
+            **listener4_kwargs)
 
     @decorators.idempotent_id('78ba6eb0-178c-477e-9156-b6775ca7b271')
-    def test_listener_list(self):
+    def test_http_listener_list(self):
+        self._test_listener_list(const.HTTP, 8020)
+
+    @decorators.idempotent_id('61b7c643-f5fa-4471-8f9e-2e0ccdaf5ac7')
+    def test_https_listener_list(self):
+        self._test_listener_list(const.HTTPS, 8030)
+
+    @decorators.idempotent_id('1cd476e2-7788-415e-bcaf-c377acfc9794')
+    def test_tcp_listener_list(self):
+        self._test_listener_list(const.TCP, 8030)
+
+    @decorators.idempotent_id('c08fb77e-b317-4d6f-b430-91f5b27ebac6')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_listener_list(self):
+        self._test_listener_list(const.UDP, 8040)
+
+    def _test_listener_list(self, protocol, protocol_port_base):
         """Tests listener list API and field filtering.
 
         * Create a clean loadbalancer.
@@ -368,8 +416,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener1_name,
             const.DESCRIPTION: listener1_desc,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 80,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port_base,
             const.LOADBALANCER_ID: lb_id,
         }
         if self.mem_listener_client.is_version_supported(
@@ -406,8 +454,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener2_name,
             const.DESCRIPTION: listener2_desc,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 81,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port_base + 1,
             const.LOADBALANCER_ID: lb_id,
         }
         if self.mem_listener_client.is_version_supported(
@@ -444,8 +492,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener3_name,
             const.DESCRIPTION: listener3_desc,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 82,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port_base + 2,
             const.LOADBALANCER_ID: lb_id,
         }
         if self.mem_listener_client.is_version_supported(
@@ -492,8 +540,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
             self.assertEqual(0, len(primary))
 
-        # Test that a user without the lb member role cannot list load
-        # balancers
+        # Test that a user without the lb member role cannot list listeners
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
             self.assertRaises(
                 exceptions.Forbidden,
@@ -622,7 +669,27 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                                      for listener in list_of_listeners]))
 
     @decorators.idempotent_id('6e299eae-6907-4dfc-89c2-e57709d25d3d')
-    def test_listener_show(self):
+    def test_http_listener_show(self):
+        self._test_listener_show(const.HTTP, 8050)
+
+    @decorators.idempotent_id('aa838646-435f-4a20-8442-519a7a138e7e')
+    def test_https_listener_show(self):
+        self._test_listener_show(const.HTTPS, 8051)
+
+    @decorators.idempotent_id('1fcbbee2-b697-4890-b6bf-d308ac1c94cd')
+    def test_tcp_listener_show(self):
+        self._test_listener_show(const.TCP, 8052)
+
+    @decorators.idempotent_id('1dea3a6b-c95b-4e91-b591-1aa9cbcd0d1d')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_listener_show(self):
+        self._test_listener_show(const.UDP, 8053)
+
+    def _test_listener_show(self, protocol, protocol_port):
         """Tests listener show API.
 
         * Create a fully populated listener.
@@ -637,19 +704,21 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 81,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.INSERT_HEADERS: {
-                const.X_FORWARDED_FOR: "true",
-                const.X_FORWARDED_PORT: "true"
-            },
             # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_POOL_ID: '',
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if protocol == const.HTTP:
+            listener_kwargs[const.INSERT_HEADERS] = {
+                const.X_FORWARDED_FOR: "true",
+                const.X_FORWARDED_PORT: "true",
+                const.X_FORWARDED_PROTO: "true",
+            }
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
@@ -715,11 +784,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         for item in equal_items:
             self.assertEqual(listener_kwargs[item], listener[item])
 
-        insert_headers = listener[const.INSERT_HEADERS]
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
+        if protocol == const.HTTP:
+            insert_headers = listener[const.INSERT_HEADERS]
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_FOR]))
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PORT]))
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PROTO]))
 
         parser.parse(listener[const.CREATED_AT])
         parser.parse(listener[const.UPDATED_AT])
@@ -763,7 +835,27 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 listener[const.ID])
 
     @decorators.idempotent_id('aaae0298-5778-4c7e-a27a-01549a71b319')
-    def test_listener_update(self):
+    def test_http_listener_update(self):
+        self._test_listener_update(const.HTTP, 8060)
+
+    @decorators.idempotent_id('9679b061-2b2c-469f-abd9-26ed140ef001')
+    def test_https_listener_update(self):
+        self._test_listener_update(const.HTTPS, 8061)
+
+    @decorators.idempotent_id('8d933121-db03-4ccc-8b77-4e879064a9ba')
+    def test_tcp_listener_update(self):
+        self._test_listener_update(const.TCP, 8062)
+
+    @decorators.idempotent_id('fd02dbfd-39ce-41c2-b181-54fc7ad91707')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_listener_update(self):
+        self._test_listener_update(const.UDP, 8063)
+
+    def _test_listener_update(self, protocol, protocol_port):
         """Tests listener update and show APIs.
 
         * Create a fully populated listener.
@@ -781,19 +873,22 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: False,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 82,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            const.INSERT_HEADERS: {
-                const.X_FORWARDED_FOR: "true",
-                const.X_FORWARDED_PORT: "true"
-            },
             # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_POOL_ID: '',
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if protocol == const.HTTP:
+            listener_kwargs[const.INSERT_HEADERS] = {
+                const.X_FORWARDED_FOR: "true",
+                const.X_FORWARDED_PORT: "true",
+                const.X_FORWARDED_PROTO: "true"
+            }
+
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             listener_kwargs.update({
@@ -840,14 +935,17 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         UUID(listener[const.ID])
         # Operating status will be OFFLINE while admin_state_up = False
         self.assertEqual(const.OFFLINE, listener[const.OPERATING_STATUS])
-        self.assertEqual(self.protocol, listener[const.PROTOCOL])
-        self.assertEqual(82, listener[const.PROTOCOL_PORT])
+        self.assertEqual(protocol, listener[const.PROTOCOL])
+        self.assertEqual(protocol_port, listener[const.PROTOCOL_PORT])
         self.assertEqual(200, listener[const.CONNECTION_LIMIT])
-        insert_headers = listener[const.INSERT_HEADERS]
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
-        self.assertTrue(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
+        if protocol == const.HTTP:
+            insert_headers = listener[const.INSERT_HEADERS]
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_FOR]))
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PORT]))
+            self.assertTrue(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PROTO]))
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
@@ -902,15 +1000,17 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.DESCRIPTION: new_description,
             const.ADMIN_STATE_UP: True,
             const.CONNECTION_LIMIT: 400,
-            const.INSERT_HEADERS: {
-                const.X_FORWARDED_FOR: "false",
-                const.X_FORWARDED_PORT: "false"
-            },
             # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_POOL_ID: '',
             # const.DEFAULT_TLS_CONTAINER_REF: '',
             # const.SNI_CONTAINER_REFS: [],
         }
+        if protocol == const.HTTP:
+            listener_update_kwargs[const.INSERT_HEADERS] = {
+                const.X_FORWARDED_FOR: "false",
+                const.X_FORWARDED_PORT: "false",
+                const.X_FORWARDED_PROTO: "false"
+            }
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             listener_update_kwargs.update({
@@ -973,11 +1073,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         else:
             self.assertEqual(const.ONLINE, listener[const.OPERATING_STATUS])
         self.assertEqual(400, listener[const.CONNECTION_LIMIT])
-        insert_headers = listener[const.INSERT_HEADERS]
-        self.assertFalse(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_FOR]))
-        self.assertFalse(
-            strutils.bool_from_string(insert_headers[const.X_FORWARDED_PORT]))
+        if protocol == const.HTTP:
+            insert_headers = listener[const.INSERT_HEADERS]
+            self.assertFalse(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_FOR]))
+            self.assertFalse(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PORT]))
+            self.assertFalse(strutils.bool_from_string(
+                insert_headers[const.X_FORWARDED_PROTO]))
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])
@@ -998,7 +1101,27 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(expected_cidrs, listener[const.ALLOWED_CIDRS])
 
     @decorators.idempotent_id('16f11c82-f069-4592-8954-81b35a98e3b7')
-    def test_listener_delete(self):
+    def test_http_listener_delete(self):
+        self._test_listener_delete(const.HTTP, 8070)
+
+    @decorators.idempotent_id('769526a0-df71-47cd-996e-46484de32223')
+    def test_https_listener_delete(self):
+        self._test_listener_delete(const.HTTPS, 8071)
+
+    @decorators.idempotent_id('f5ca019d-2b33-48f9-9c2d-2ec169b423ca')
+    def test_tcp_listener_delete(self):
+        self._test_listener_delete(const.TCP, 8072)
+
+    @decorators.idempotent_id('86bd9717-e3e9-41e3-86c4-888c64455926')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_listener_delete(self):
+        self._test_listener_delete(const.UDP, 8073)
+
+    def _test_listener_delete(self, protocol, protocol_port):
         """Tests listener create and delete APIs.
 
         * Creates a listener.
@@ -1010,8 +1133,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         listener_kwargs = {
             const.NAME: listener_name,
-            const.PROTOCOL: self.protocol,
-            const.PROTOCOL_PORT: 83,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
         }
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
@@ -1059,7 +1182,27 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.check_timeout)
 
     @decorators.idempotent_id('6f14a6c1-945e-43bc-8215-410c8a5edb25')
-    def test_listener_show_stats(self):
+    def test_http_listener_show_stats(self):
+        self._test_listener_show_stats(const.HTTP, 8080)
+
+    @decorators.idempotent_id('f8a43c27-f0a0-496d-a287-1958f337ac04')
+    def test_https_listener_show_stats(self):
+        self._test_listener_show_stats(const.HTTPS, 8081)
+
+    @decorators.idempotent_id('8a999856-f448-498c-b891-21af449b5208')
+    def test_tcp_listener_show_stats(self):
+        self._test_listener_show_stats(const.TCP, 8082)
+
+    @decorators.idempotent_id('a4c1f199-923b-41e4-a134-c91e590e20c4')
+    # Skipping due to a status update bug in the amphora driver.
+    @decorators.skip_because(
+        bug='2007979',
+        bug_type='storyboard',
+        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
+    def test_udp_listener_show_stats(self):
+        self._test_listener_show_stats(const.UDP, 8083)
+
+    def _test_listener_show_stats(self, protocol, protocol_port):
         """Tests listener show statistics API.
 
         * Create a listener.
@@ -1075,8 +1218,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.NAME: listener_name,
             const.DESCRIPTION: listener_description,
             const.ADMIN_STATE_UP: True,
-            const.PROTOCOL: const.HTTP,
-            const.PROTOCOL_PORT: 84,
+            const.PROTOCOL: protocol,
+            const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
         }

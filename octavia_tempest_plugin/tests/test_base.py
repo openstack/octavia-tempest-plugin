@@ -154,6 +154,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin, test.BaseTestCase):
                 "Configuration value test_network_override must be "
                 "specified if test_subnet_override is used.")
 
+        # TODO(johnsom) Remove this
         # Get loadbalancing algorithms supported by provider driver.
         try:
             algorithms = const.SUPPORTED_LB_ALGORITHMS[

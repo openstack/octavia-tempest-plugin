@@ -30,16 +30,6 @@ CONF = config.CONF
 
 class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
     """Test the l7policy object API."""
-
-    @classmethod
-    def skip_checks(cls):
-        super(L7PolicyAPITest, cls).skip_checks()
-        if not CONF.loadbalancer_feature_enabled.l7_protocol_enabled:
-            raise cls.skipException(
-                '[loadbalancer-feature-enabled] '
-                '"l7_protocol_enabled" is set to False in the Tempest '
-                'configuration. L7 API tests will be skipped.')
-
     @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
@@ -87,7 +77,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
         pool_kwargs = {
             const.NAME: pool_name,
             const.PROTOCOL: const.HTTP,
-            const.LB_ALGORITHM: cls.lb_algorithm,
+            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
             const.LOADBALANCER_ID: cls.lb_id,
         }
 

@@ -399,6 +399,9 @@
           "$TEMPEST_CONFIG":
             load_balancer:
               test_with_noop: True
+              build_interval: 0.5
+              check_interval: 0.5
+              lb_build_interval: 0.5
               # AZ API tests with no-op need AZs configured but they do not
               # need to actually exist in Nova due to the no-op driver.
               availability_zone: bogus-az-1
@@ -429,7 +432,7 @@
               enabled: True
             audit_middleware_notifications:
               driver: log
-      tempest_concurrency: 2
+      tempest_concurrency: 4
       tempest_test_regex: ^octavia_tempest_plugin.tests.api.v2
       tox_envlist: all
     irrelevant-files:
@@ -875,6 +878,35 @@
         override-checkout: 2.30.0
 
 ######### Third party jobs ##########
+
+- job:
+    name: neutron-ovn-provider-v2-api
+    parent: ovn-octavia-provider-v2-dsvm-scenario
+    description: Runs the neutron OVN provider driver for Octavia api test.
+    voting: false
+    timeout: 5400
+    attempts: 1
+    tags: ovn-octavia-provider
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^etc/.*$
+      - ^releasenotes/.*$
+      - ^octavia/amphorae/.*$
+      - ^octavia/api/drivers/amphora_driver/.*$
+      - ^octavia/compute/.*$
+      - ^octavia/controller/.*$
+      - ^octavia/distributor/.*$
+      - ^octavia/volume/.*$
+      - ^octavia/tests/.*$
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.api.v2
+      devstack_local_conf:
+        test-config:
+          "$TEMPEST_CONFIG":
+            loadbalancer-feature-enabled:
+              not_implemented_is_error: False
 
 - job:
     name: neutron-ovn-provider-v2-scenario

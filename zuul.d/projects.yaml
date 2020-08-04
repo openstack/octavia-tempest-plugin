@@ -45,6 +45,8 @@
         - octavia-v2-dsvm-cinder-amphora:
             voting: false
         # Third party provider jobs
+        - neutron-ovn-provider-v2-api:
+            voting: false
         - neutron-ovn-provider-v2-scenario:
             voting: false
     gate:
