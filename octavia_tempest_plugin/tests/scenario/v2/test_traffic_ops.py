@@ -12,15 +12,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import ipaddress
+import shlex
 import testtools
+import time
 
 from oslo_log import log as logging
+from oslo_utils import uuidutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
+from octavia_tempest_plugin.tests import validators
 from octavia_tempest_plugin.tests import waiters
 
 CONF = config.CONF
@@ -800,3 +806,137 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                      'in Octavia API version 2.1 or newer')
 
         self._test_mixed_ipv4_ipv6_members_traffic(const.UDP, 8080)
+
+    @testtools.skipIf(CONF.load_balancer.test_with_noop,
+                      'Log offload tests will not work in noop mode.')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.log_offload_enabled,
+        'Skipping log offload tests because tempest configuration '
+        '[loadbalancer-feature-enabled] log_offload_enabled is False.')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.l7_protocol_enabled,
+        'Log offload tests require l7_protocol_enabled.')
+    @decorators.idempotent_id('571dddd9-f5bd-404e-a799-9df7ac9e2fa9')
+    def test_tenant_flow_log(self):
+        """Tests tenant flow log offloading
+
+        * Set up a member on a loadbalancer.
+        * Sends a request to the load balancer.
+        * Validates the flow log record for the request.
+        """
+        listener_name = data_utils.rand_name("lb_member_listener1_tenant_flow")
+        protocol_port = '8123'
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL_PORT: protocol_port,
+            const.LOADBALANCER_ID: self.lb_id,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        pool_name = data_utils.rand_name("lb_member_pool1_tenant_flow")
+        pool_kwargs = {
+            const.NAME: pool_name,
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: const.LB_ALGORITHM_SOURCE_IP,
+            const.LISTENER_ID: listener_id,
+        }
+        pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        pool_id = pool[const.ID]
+        self.addCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Set up Member for Webserver 1
+        member_name = data_utils.rand_name("lb_member_member-tenant_flow")
+        member_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 80,
+        }
+        if self.lb_member_1_subnet:
+            member_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        member = self.mem_member_client.create_member(**member_kwargs)
+        member_id = member[const.ID]
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        project_id = self.os_roles_lb_member.credentials.project_id
+        unique_request_id = uuidutils.generate_uuid()
+        LOG.info('Tenant flow logging unique request ID is: %s',
+                 unique_request_id)
+
+        # Make the request
+        URL = 'http://{0}:{1}/{2}'.format(
+            self.lb_vip_address, protocol_port, unique_request_id)
+        validators.validate_URL_response(URL, expected_status_code=200)
+
+        # We need to give the log subsystem time to commit the log
+        time.sleep(CONF.load_balancer.check_interval)
+
+        # Get the tenant log entry
+        log_line = None
+        with open(CONF.load_balancer.tenant_flow_log_file) as f:
+            for line in f:
+                if unique_request_id in line:
+                    log_line = line
+                    break
+        self.assertIsNotNone(
+            log_line, 'Tenant log entry was not found in {0}.'.format(
+                CONF.load_balancer.tenant_flow_log_file))
+
+        # Remove the syslog prefix
+        log_line = log_line[log_line.index(project_id):]
+
+        # Split the line into the log format fields
+        fields = shlex.split(log_line)
+
+        # Validate the fields
+        self.assertEqual(project_id, fields[0])  # project_id
+        self.assertEqual(self.lb_id, fields[1])  # loadbalancer_id
+        self.assertEqual(listener_id, fields[2])  # listener_id
+        ipaddress.ip_address(fields[3])  # client_ip
+        self.assertGreaterEqual(int(fields[4]), 0)  # client_port
+        self.assertLessEqual(int(fields[4]), 65535)  # client_port
+        datetime.datetime.strptime(fields[5],
+                                   '%d/%b/%Y:%H:%M:%S.%f')  # date_time
+        request_string = 'GET /{0} HTTP/1.1'.format(unique_request_id)
+        self.assertEqual(request_string, fields[6])  # request_string
+        self.assertEqual('200', fields[7])  # http_status
+        self.assertTrue(fields[8].isdigit())  # bytes_read
+        self.assertTrue(fields[9].isdigit())  # bytes_uploaded
+        self.assertEqual('-', fields[10])  # client_cert_verify
+        self.assertEqual("", fields[11])  # cert_dn
+        pool_string = '{0}:{1}'.format(pool_id, listener_id)
+        self.assertEqual(pool_string, fields[12])  # pool_id
+        self.assertEqual(member_id, fields[13])  # member_id
+        self.assertTrue(fields[14].isdigit())  # processing_time
+        self.assertEqual('----', fields[15])  # term_state

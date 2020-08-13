@@ -204,6 +204,11 @@ OctaviaGroup = [
     cfg.BoolOpt('test_reuse_connection', default=True,
                 help='Reuse TCP connections while testing LB with '
                      'HTTP members (keep-alive).'),
+    # Log offloading specific options
+    cfg.StrOpt('tenant_flow_log_file',
+               default='/var/log/octavia-tenant-traffic.log',
+               help='File path, on the tempest system, to the tenant flow '
+                    'log file.'),
 ]
 
 lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',
@@ -243,4 +248,8 @@ LBFeatureEnabledGroup = [
                 default=True,
                 help="Whether session persistence is supported with the "
                      "provider driver."),
+    cfg.BoolOpt('log_offload_enabled', default=False,
+                help="Whether the log offload tests will run. These require "
+                     "the tempest instance have access to the log files "
+                     "specified in the tempest configuration."),
 ]
