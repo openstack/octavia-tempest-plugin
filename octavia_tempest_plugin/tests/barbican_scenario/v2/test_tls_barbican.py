@@ -15,6 +15,7 @@
 import base64
 import requests
 import socket
+import ssl
 import tempfile
 
 from cryptography.hazmat.primitives import serialization
@@ -1094,3 +1095,77 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                                                            LISTENER1_TCP_PORT),
                     timeout=12, verify=False, cert=(cert_file.name,
                                                     key_file.name))
+
+    @decorators.idempotent_id('19bade6f-302f-45dc-b316-553f1dfff49c')
+    def test_alpn_tls_traffic(self):
+        """Test ALPN protocol negotiation"""
+        s_protos = c_protos = ['http/1.1']
+        expected = 'http/1.1'
+        self._test_alpn_tls_traffic(s_protos, c_protos, expected)
+
+    @decorators.idempotent_id('ee0d15a3-05b7-498d-9b2f-280d4896e597')
+    def test_alpn_fallback_tls_traffic(self):
+        """Test ALPN protocol negotiation fallback"""
+        s_protos = ['http/1.0', 'http/1.1']
+        c_protos = ['bogus', 'h2', 'http/1.1']
+        expected = 'http/1.1'
+        self._test_alpn_tls_traffic(s_protos, c_protos, expected)
+
+    @decorators.idempotent_id('56f4274a-ebd9-42f7-b897-baebc4b8eb5b')
+    def test_alpn_proto_not_supported_tls_traffic(self):
+        """Test failed ALPN protocol negotiation"""
+        s_protos = ['http/1.1', 'http/1.0']
+        c_protos = ['h2']
+        expected = None
+        self._test_alpn_tls_traffic(s_protos, c_protos, expected)
+
+    def _test_alpn_tls_traffic(self, s_protos, c_protos, expected_proto):
+        """Test ALPN protocols between client and load balancer.
+
+        :param s_protos: ALPN protocols the load balancer accepts during the
+                         SSL/TLS handshake.
+        :type s_protos: list of str
+        :param c_protos: ALPN protocols the client advertise during SSL/TLS the
+                         handshake.
+        :type c_protos: list of str
+        :param expected_proto: the expected ALPN protocol selected during the
+                               SSL/TLS handshake. Setting to ``None`` means
+                               parties could not agree on ALPN protocol.
+        :type expected_proto: str
+        :raises self.skipException: ALPN support not available prior to v2.20.
+        """
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.20'):
+            raise self.skipException('ALPN protocols are only available on '
+                                     'Octavia API version 2.20 or newer.')
+        listener_name = data_utils.rand_name("lb_member_listener1-tls-alpn")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: '443',
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+            const.ALPN_PROTOCOLS: s_protos,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        context.set_alpn_protocols(c_protos)
+        s = socket.socket()
+        ssl_sock = context.wrap_socket(s)
+        ssl_sock.connect((self.lb_vip_address, 443))
+        selected_proto = ssl_sock.selected_alpn_protocol()
+
+        self.assertEqual(expected_proto, selected_proto)

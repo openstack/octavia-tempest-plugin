@@ -41,6 +41,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         sni_container_refs=Unset, client_authentication=Unset,
                         client_ca_tls_container_ref=Unset,
                         client_crl_container_ref=Unset, allowed_cidrs=Unset,
+                        alpn_protocols=Unset,
                         return_object_only=True):
         """Create a listener.
 
@@ -89,6 +90,8 @@ class ListenerClient(base_client.BaseLBaaSClient):
                                          revocation list file for
                                          TERMINATED_HTTPS listeners.
         :param allowed_cidrs: A list of IPv4 or IPv6 CIDRs.
+        :param alpn_protocols: A list of ALPN protocols for TERMINATED_HTTPS
+                               listeners.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -215,6 +218,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         sni_container_refs=Unset, client_authentication=Unset,
                         client_ca_tls_container_ref=Unset,
                         client_crl_container_ref=Unset, allowed_cidrs=Unset,
+                        alpn_protocols=Unset,
                         return_object_only=True):
         """Update a listener.
 
@@ -261,6 +265,8 @@ class ListenerClient(base_client.BaseLBaaSClient):
                                          revocation list file for
                                          TERMINATED_HTTPS listeners.
         :param allowed_cidrs: A list of IPv4 or IPv6 CIDRs.
+        :param alpn_protocols: A list of ALPN protocols for TERMINATED_HTTPS
+                               listeners.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
