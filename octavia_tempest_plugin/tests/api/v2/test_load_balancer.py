@@ -148,7 +148,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(lb_tags, lb[const.TAGS])
+            self.assertCountEqual(lb_kwargs[const.TAGS], lb[const.TAGS])
 
     @decorators.idempotent_id('643ef031-c800-45f2-b229-3c8f8b37c829')
     def test_load_balancer_delete(self):
@@ -673,7 +673,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(lb_tags, lb[const.TAGS])
+            self.assertCountEqual(lb_kwargs[const.TAGS], lb[const.TAGS])
 
         new_name = data_utils.rand_name("lb_member_lb1-update")
         new_description = data_utils.arbitrary_string(size=255,
@@ -735,7 +735,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         self.assertTrue(lb[const.ADMIN_STATE_UP])
         self.assertEqual(new_description, lb[const.DESCRIPTION])
         self.assertEqual(new_name, lb[const.NAME])
-        self.assertEqual(new_tags, lb[const.TAGS])
+        self.assertCountEqual(lb_update_kwargs[const.TAGS], lb[const.TAGS])
         # TODO(johnsom) Add QoS
 
         # Attempt to clean up so that one full test run doesn't start 10+

@@ -202,7 +202,8 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(l7_rule_tags, l7rule[const.TAGS])
+            self.assertCountEqual(l7rule_kwargs[const.TAGS],
+                                  l7rule[const.TAGS])
 
     @decorators.idempotent_id('69095254-f106-4fb6-9f54-7a78cc14fb51')
     def test_l7rule_list(self):
@@ -620,7 +621,8 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            equal_items.append(const.TAGS)
+            self.assertCountEqual(l7rule_kwargs[const.TAGS],
+                                  l7rule[const.TAGS])
 
         for item in equal_items:
             self.assertEqual(l7rule_kwargs[item], l7rule[item])
@@ -699,7 +701,8 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            equal_items.append(const.TAGS)
+            self.assertCountEqual(l7rule_update_kwargs[const.TAGS],
+                                  l7rule[const.TAGS])
 
         for item in equal_items:
             self.assertEqual(l7rule_update_kwargs[item], l7rule[item])

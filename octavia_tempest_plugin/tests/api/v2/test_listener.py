@@ -174,8 +174,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(sorted(listener_tags),
-                             sorted(listener[const.TAGS]))
+            self.assertCountEqual(listener_kwargs[const.TAGS],
+                                  listener[const.TAGS])
 
     @decorators.idempotent_id('cceac303-4db5-4d5a-9f6e-ff33780a5f29')
     def test_listener_create_on_same_port(self):
@@ -682,7 +682,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            equal_items.append(const.TAGS)
+            self.assertCountEqual(listener_kwargs[const.TAGS],
+                                  listener[const.TAGS])
 
         for item in equal_items:
             self.assertEqual(listener_kwargs[item], listener[item])
@@ -821,7 +822,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(listener_tags, listener[const.TAGS])
+            self.assertCountEqual(listener_kwargs[const.TAGS],
+                                  listener[const.TAGS])
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -931,7 +933,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(listener_updated_tags, listener[const.TAGS])
+            self.assertCountEqual(listener_update_kwargs[const.TAGS],
+                                  listener[const.TAGS])
 
     @decorators.idempotent_id('16f11c82-f069-4592-8954-81b35a98e3b7')
     def test_listener_delete(self):

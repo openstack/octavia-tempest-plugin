@@ -206,7 +206,8 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.5'):
-            equal_items.append(const.TAGS)
+            self.assertCountEqual(member_kwargs[const.TAGS],
+                                  member[const.TAGS])
 
         if monitor:
             equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
@@ -672,7 +673,8 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.5'):
-            equal_items.append(const.TAGS)
+            self.assertCountEqual(member_kwargs[const.TAGS],
+                                  member[const.TAGS])
 
         if monitor:
             equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]
@@ -784,7 +786,8 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_member_client.is_version_supported(
                 self.api_version, '2.5'):
-            equal_items.append(const.TAGS)
+            self.assertCountEqual(member_update_kwargs[const.TAGS],
+                                  member[const.TAGS])
 
         if monitor:
             equal_items += [const.MONITOR_ADDRESS, const.MONITOR_PORT]

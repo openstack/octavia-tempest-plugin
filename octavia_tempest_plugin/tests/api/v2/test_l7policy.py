@@ -212,7 +212,8 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(l7_policy_tags, l7policy[const.TAGS])
+            self.assertCountEqual(l7policy_kwargs[const.TAGS],
+                                  l7policy[const.TAGS])
 
     @decorators.idempotent_id('42fa14ba-caf1-465e-ab36-27e7501f95ef')
     def test_l7policy_list(self):
@@ -729,7 +730,8 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(l7_policy_tags, l7policy[const.TAGS])
+            self.assertCountEqual(l7policy_kwargs[const.TAGS],
+                                  l7policy[const.TAGS])
 
         # Test that a user, without the load balancer member role, cannot
         # use this command
@@ -821,8 +823,8 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(l7_policy_new_tags,
-                             l7policy[const.TAGS])
+            self.assertCountEqual(l7policy_update_kwargs[const.TAGS],
+                                  l7policy[const.TAGS])
 
     @decorators.idempotent_id('7925eb4b-94b6-4c28-98c2-fd0b4f0976cc')
     def test_l7policy_delete(self):

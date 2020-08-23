@@ -157,7 +157,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(hw_tags, hm[const.TAGS])
+            self.assertCountEqual(hm_kwargs[const.TAGS], hm[const.TAGS])
 
     # Helper functions for test healthmonitor list
     def _filter_hms_by_pool_id(self, hms, pool_ids):
@@ -706,7 +706,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            self.assertEqual(hw_tags, hm[const.TAGS])
+            self.assertCountEqual(hm_kwargs[const.TAGS], hm[const.TAGS])
 
         # Test that a user, without the loadbalancer member role, cannot
         # use this command
@@ -787,7 +787,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
-            equal_items.append(const.TAGS)
+            self.assertCountEqual(hm_update_kwargs[const.TAGS], hm[const.TAGS])
 
         for item in equal_items:
             self.assertEqual(hm_update_kwargs[item], hm[item])

@@ -187,7 +187,8 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                              pool[const.SESSION_PERSISTENCE][
                                  const.COOKIE_NAME])
         if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
-            self.assertEqual(pool_tags, pool[const.TAGS])
+            self.assertCountEqual(pool_kwargs[const.TAGS],
+                                  pool[const.TAGS])
 
     @decorators.idempotent_id('6959a32e-fb34-4f3e-be68-8880c6450016')
     def test_pool_list(self):
@@ -670,7 +671,8 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         self.assertFalse(pool_check[const.ADMIN_STATE_UP])
 
         if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
-            self.assertEqual(pool_tags, pool[const.TAGS])
+            self.assertCountEqual(pool_kwargs[const.TAGS],
+                                  pool[const.TAGS])
 
         new_name = data_utils.rand_name("lb_member_pool1-UPDATED")
         new_description = data_utils.arbitrary_string(size=255,
@@ -719,6 +721,10 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             self.assertIsNone(
                 pool[const.SESSION_PERSISTENCE].get(const.COOKIE_NAME))
 
+        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
+            self.assertCountEqual(pool_update_kwargs[const.TAGS],
+                                  pool[const.TAGS])
+
         # Also test removing a Session Persistence
         if self.lb_feature_enabled.session_persistence_enabled:
             pool_update_kwargs = {
@@ -740,9 +746,6 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_timeout)
         if self.lb_feature_enabled.session_persistence_enabled:
             self.assertIsNone(pool.get(const.SESSION_PERSISTENCE))
-
-        if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
-            self.assertEqual(new_tags, pool[const.TAGS])
 
     @decorators.idempotent_id('35ed3800-7a4a-47a6-9b94-c1033fff1112')
     def test_pool_delete(self):
