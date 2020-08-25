@@ -19,6 +19,7 @@ import ssl
 import tempfile
 
 from cryptography.hazmat.primitives import serialization
+import httpx
 from OpenSSL.crypto import X509
 from OpenSSL import SSL
 
@@ -1169,3 +1170,49 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         selected_proto = ssl_sock.selected_alpn_protocol()
 
         self.assertEqual(expected_proto, selected_proto)
+
+    def _test_http_versions_tls_traffic(self, http_version, alpn_protos):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.20'):
+            raise self.skipException('ALPN protocols are only available on '
+                                     'Octavia API version 2.20 or newer.')
+        listener_name = data_utils.rand_name("lb_member_listener1-tls-alpn")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: '443',
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: self.pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+            const.ALPN_PROTOCOLS: alpn_protos,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        context = ssl.create_default_context(cadata=self.ca_cert.public_bytes(
+            serialization.Encoding.PEM).decode('utf-8'))
+        context.check_hostname = False
+
+        url = 'https://%s:%s' % (self.lb_vip_address, 443)
+        client = httpx.Client(http2=(http_version == 'HTTP/2'), verify=context)
+        r = client.get(url)
+        self.assertEqual(http_version, r.http_version)
+
+    @decorators.idempotent_id('9965828d-24af-4fa0-91ae-21c6bc47ab4c')
+    def test_http_2_tls_traffic(self):
+        self._test_http_versions_tls_traffic('HTTP/2', ['h2', 'http/1.1'])
+
+    @decorators.idempotent_id('a0dff0f2-d53e-497c-9ded-dca64e82991f')
+    def test_http_1_1_tls_traffic(self):
+        self._test_http_versions_tls_traffic(
+            'HTTP/1.1', ['http/1.1', 'http/1.0'])
