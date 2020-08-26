@@ -18,7 +18,6 @@ import pkg_resources
 import random
 import requests
 import shlex
-import six
 import socket
 import string
 import subprocess
@@ -1141,4 +1140,4 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                 self.assertEqual(response_content,
                                  session.get_redirect_target(req))
             elif response_content:
-                self.assertEqual(six.text_type(response_content), req.text)
+                self.assertEqual(str(response_content), req.text)
