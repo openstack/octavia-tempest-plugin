@@ -68,7 +68,7 @@ def wait_for_status(show_client, id, status_key, status,
             LOG.info('{name}\'s status updated to {status}.'.format(
                 name=show_client.__name__, status=status))
             return object_details
-        elif object_details[status_key] == 'ERROR':
+        elif object_details[status_key] == 'ERROR' and not error_ok:
             message = ('{name} {field} updated to an invalid state of '
                        'ERROR'.format(name=show_client.__name__,
                                       field=status_key))
@@ -76,9 +76,9 @@ def wait_for_status(show_client, id, status_key, status,
             if caller:
                 message = '({caller}) {message}'.format(caller=caller,
                                                         message=message)
-            if not error_ok:
-                raise exceptions.UnexpectedResponseCode(message)
-        elif int(time.time()) - start >= check_timeout:
+            raise exceptions.UnexpectedResponseCode(message)
+
+        if int(time.time()) - start >= check_timeout:
             message = (
                 '{name} {field} failed to update to {expected_status} within '
                 'the required time {timeout}. Current status of {name}: '
