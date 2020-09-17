@@ -671,7 +671,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             const.TCP, const.TCP, const.LB_ALGORITHM_ROUND_ROBIN)
         self._test_mixed_member_create(pool_id)
 
-    @decorators.idempotent_id('0623aa1f-753d-44e7-afa1-017d274eace7')
+    @decorators.idempotent_id('e74b28cf-ab1a-423b-a1c5-d940e3c0a5ab')
     @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
                           'IPv6 testing is disabled')
     # Skipping test for amphora driver until "UDP load balancers cannot mix

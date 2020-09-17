@@ -197,7 +197,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.lb_build_interval,
             CONF.load_balancer.lb_build_timeout)
 
-    @decorators.idempotent_id('643ef031-c800-45f2-b229-3c8f8b37c829')
+    @decorators.idempotent_id('abd784e3-485f-442a-85da-d91365c6b5dd')
     def test_load_balancer_delete_cascade(self):
         """Tests load balancer create and cascade delete APIs.
 
