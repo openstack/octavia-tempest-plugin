@@ -67,6 +67,7 @@ DEFAULT_TLS_CONTAINER_REF = 'default_tls_container_ref'
 SNI_CONTAINER_REFS = 'sni_container_refs'
 DEFAULT_POOL_ID = 'default_pool_id'
 L7_POLICIES = 'l7_policies'
+ALPN_PROTOCOLS = 'alpn_protocols'
 
 LB_ALGORITHM = 'lb_algorithm'
 LB_ALGORITHM_ROUND_ROBIN = 'ROUND_ROBIN'
