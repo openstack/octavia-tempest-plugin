@@ -182,6 +182,7 @@
     required-projects:
       - openstack/diskimage-builder
     vars:
+      configure_swap_size: 8192
       devstack_localrc:
         DIB_LOCAL_ELEMENTS: openstack-ci-mirrors
         LIBVIRT_TYPE: kvm
@@ -219,6 +220,7 @@
     required-projects:
       - openstack/diskimage-builder
     vars:
+      configure_swap_size: 8192
       devstack_localrc:
         DIB_LOCAL_ELEMENTS: openstack-ci-mirrors
       devstack_local_conf:
@@ -253,6 +255,7 @@
       - openstack/diskimage-builder
     host-vars:
       controller:
+        configure_swap_size: 8192
         devstack_localrc:
           # From devstack "vars:"
           DATABASE_USER: octavia
@@ -294,6 +297,7 @@
           '/var/log/octavia-amphora.log': logs
           '/var/log/octavia-tenant-traffic.log': logs
       controller2:
+        configure_swap_size: 8192
         devstack_localrc:
           # From devstack "vars:"
           DATABASE_USER: octavia
