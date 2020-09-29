@@ -1391,3 +1391,14 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             listener_port), const.X_FORWARDED_PROTO: const.HTTP.lower()}
         received_headers = _data_parser(data, expected_headers)
         self.assertEqual(expected_headers, received_headers)
+
+    @decorators.idempotent_id('2b05229c-0254-11eb-8610-74e5f9e2a801')
+    def test_tcp_and_udp_traffic_on_same_port(self):
+        common_vip_port = 103
+        listener_id_udp, pool_id_udp = self._listener_pool_create(
+            const.UDP, common_vip_port)
+        listener_id_tcp, pool_id_tcp = self._listener_pool_create(
+            const.TCP, common_vip_port)
+        self._test_basic_traffic(const.UDP, common_vip_port, pool_id_udp)
+        self._test_basic_traffic(const.TCP, common_vip_port, pool_id_tcp,
+                                 persistent=False)
