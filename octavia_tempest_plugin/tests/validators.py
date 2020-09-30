@@ -421,3 +421,37 @@ class ValidatorsMixin(test.BaseTestCase):
                                                           protocol_port))
         LOG.error(message)
         raise Exception(message)
+
+    def make_udp_requests_with_retries(
+            self, vip_address, number_of_retries, dst_port,
+            src_port=None, socket_timeout=20):
+        """Send UDP packets using retries mechanism
+
+        The delivery of data to the destination cannot be guaranteed in UDP.
+        In case when UDP package is getting lost and we might want to check
+        what could be the reason for that (Network issues or Server Side),
+        well need to send more packets to get into the conclusion.
+
+        :param vip_address: LB VIP address
+        :param number_of_retries: integer number of retries
+        :param dst_port: UDP server destination port
+        :param src_port: UDP source port to bind for UDP connection
+        :param socket_timeout: UDP socket timeout
+        :return: None if all UPD retries failed, else first successful
+                 response data from UDP server.
+        """
+        retry_number = 0
+        received_data = None
+        while retry_number < number_of_retries:
+            LOG.info('make_udp_requests_with_retries attempt '
+                     'number:{}'.format(retry_number))
+            retry_number += 1
+            try:
+                received_data = self.make_udp_request(
+                    vip_address, dst_port, timeout=socket_timeout,
+                    source_port=src_port)
+                break
+            except Exception as e:
+                LOG.warning('make_udp_request has failed with: '
+                            '{}'.format(e))
+        return received_data

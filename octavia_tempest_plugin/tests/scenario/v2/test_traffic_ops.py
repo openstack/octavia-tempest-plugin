@@ -204,6 +204,55 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             traffic_member_count=traffic_member_count, source_port=source_port,
             delay=delay)
 
+    def _pool_add_healthmonitor(self, pool_id, protocol):
+        hm_name = data_utils.rand_name("lb_member_hm1-hm-traffic")
+        if protocol != const.HTTP:
+            if protocol == const.UDP:
+                hm_type = const.HEALTH_MONITOR_UDP_CONNECT
+            elif protocol == const.TCP:
+                hm_type = const.HEALTH_MONITOR_TCP
+
+            hm_kwargs = {
+                const.POOL_ID: pool_id,
+                const.NAME: hm_name,
+                const.TYPE: hm_type,
+                const.DELAY: 3,
+                const.TIMEOUT: 2,
+                const.MAX_RETRIES: 2,
+                const.MAX_RETRIES_DOWN: 2,
+                const.ADMIN_STATE_UP: True,
+            }
+        else:
+            hm_kwargs = {
+                const.POOL_ID: pool_id,
+                const.NAME: hm_name,
+                const.TYPE: const.HEALTH_MONITOR_HTTP,
+                const.DELAY: 2,
+                const.TIMEOUT: 2,
+                const.MAX_RETRIES: 2,
+                const.MAX_RETRIES_DOWN: 2,
+                const.HTTP_METHOD: const.GET,
+                const.URL_PATH: '/',
+                const.EXPECTED_CODES: '200',
+                const.ADMIN_STATE_UP: True,
+            }
+        hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
+        self.addCleanup(
+            self.mem_healthmonitor_client.cleanup_healthmonitor,
+            hm[const.ID], lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        hm = waiters.wait_for_status(
+            self.mem_healthmonitor_client.show_healthmonitor,
+            hm[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        return hm
+
     @decorators.attr(type=['smoke', 'slow'])
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
@@ -348,54 +397,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                     protocol=protocol, persistent=persistent)
 
         # Create the healthmonitor
-        hm_name = data_utils.rand_name("lb_member_hm1-hm-traffic")
-        if protocol != const.HTTP:
-            if protocol == const.UDP:
-                hm_type = const.HEALTH_MONITOR_UDP_CONNECT
-            elif protocol == const.TCP:
-                hm_type = const.HEALTH_MONITOR_TCP
-
-            hm_kwargs = {
-                const.POOL_ID: pool_id,
-                const.NAME: hm_name,
-                const.TYPE: hm_type,
-                const.DELAY: 3,
-                const.TIMEOUT: 2,
-                const.MAX_RETRIES: 2,
-                const.MAX_RETRIES_DOWN: 2,
-                const.ADMIN_STATE_UP: True,
-            }
-        else:
-            hm_kwargs = {
-                const.POOL_ID: pool_id,
-                const.NAME: hm_name,
-                const.TYPE: const.HEALTH_MONITOR_HTTP,
-                const.DELAY: 2,
-                const.TIMEOUT: 2,
-                const.MAX_RETRIES: 2,
-                const.MAX_RETRIES_DOWN: 2,
-                const.HTTP_METHOD: const.GET,
-                const.URL_PATH: '/',
-                const.EXPECTED_CODES: '200',
-                const.ADMIN_STATE_UP: True,
-            }
-
-        hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
-        self.addCleanup(
-            self.mem_healthmonitor_client.cleanup_healthmonitor,
-            hm[const.ID], lb_client=self.mem_lb_client, lb_id=self.lb_id)
-
-        waiters.wait_for_status(
-            self.mem_lb_client.show_loadbalancer, self.lb_id,
-            const.PROVISIONING_STATUS, const.ACTIVE,
-            CONF.load_balancer.build_interval,
-            CONF.load_balancer.build_timeout)
-        hm = waiters.wait_for_status(
-            self.mem_healthmonitor_client.show_healthmonitor,
-            hm[const.ID], const.PROVISIONING_STATUS,
-            const.ACTIVE,
-            CONF.load_balancer.build_interval,
-            CONF.load_balancer.build_timeout)
+        hm = self._pool_add_healthmonitor(pool_id, protocol)
 
         # Wait for members to adjust to the correct OPERATING_STATUS
         waiters.wait_for_status(
@@ -1402,3 +1404,156 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         self._test_basic_traffic(const.UDP, common_vip_port, pool_id_udp)
         self._test_basic_traffic(const.TCP, common_vip_port, pool_id_tcp,
                                  persistent=False)
+
+    @decorators.idempotent_id('c79f2cd0-0324-11eb-bc8e-74e5f9e2a801')
+    def test_udp_update_pool_healthmonitor_listener(self):
+        """Test scenario:
+
+        * Prerequisites:
+          Create: UDP listener, pool, healtmonitor and validate UDP traffic.
+        * Test scenario:
+          Update pool algorithm to: "source_ip" and start sending UDP traffic.
+          Expected: successfully received UDP packages from LB VIP.
+        * Update healtmonitor with: "delay=20" and start sending UDP traffic.
+          Expected: successfully received UDP packages from LB VIP.
+        * Update listener with: "connection-limit=300" and start sending
+          UDP traffic.
+          Expected: successfully received UDP packages from LB VIP.
+        """
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            raise self.skipException('UDP listener support is only available '
+                                     'in Octavia API version 2.1 or newer')
+        listener_port = 104
+        listener_id, pool_id = self._listener_pool_create(
+            const.UDP, listener_port)
+        healthmonitor_id = self._pool_add_healthmonitor(
+            pool_id, protocol=const.UDP)[const.ID]
+        self._test_basic_traffic(
+            const.UDP, listener_port, pool_id)
+
+        # Update LB pool
+        self.mem_pool_client.update_pool(
+            pool_id=pool_id, lb_algorithm=const.LB_ALGORITHM_SOURCE_IP)
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+        self.assertIsNotNone(self.make_udp_requests_with_retries(
+            vip_address=self.lb_vip_address, dst_port=listener_port,
+            number_of_retries=3),
+            'Failed - all UDP retries to LB VIP has failed')
+
+        # Update LB healthmonitor
+        self.mem_healthmonitor_client.update_healthmonitor(
+            healthmonitor_id=healthmonitor_id, delay=5)
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.check_interval,
+                                CONF.load_balancer.check_timeout)
+        self.assertIsNotNone(self.make_udp_requests_with_retries(
+            vip_address=self.lb_vip_address, dst_port=listener_port,
+            number_of_retries=3),
+            'Failed - all UDP retries to LB VIP has failed')
+
+        # Update LB listener
+        listener_kwargs = {const.LISTENER_ID: listener_id,
+                           const.CONNECTION_LIMIT: 300}
+        self.mem_listener_client.update_listener(**listener_kwargs)
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+        self.assertIsNotNone(self.make_udp_requests_with_retries(
+            vip_address=self.lb_vip_address, dst_port=listener_port,
+            number_of_retries=3),
+            'Failed - all UDP retries to LB VIP has failed')
+
+    @decorators.attr(type='slow')
+    @decorators.idempotent_id('cd5aeefa-0e16-11eb-b8dc-74e5f9e2a801')
+    def test_hm_op_status_changed_as_expected_on_update(self):
+        """Test scenario:
+
+        * Create HTTP listener, pool and HTTP health monitor.
+        * Update health monitor with various combinations of:
+          HTTP method, expected HTTP status codes and backend URL.
+          Note: see "fault_cases" and "valid_cases" lists in test's code.
+        * Validate that members' operation status is getting into
+          appropriate state after each particular update done within the test.
+          Important: "operation status" value is expected to be changed from
+          ONLINE to ERROR after each update, otherwise we may miss
+          the potential bug.
+        """
+        listener_port = 105
+        listener_id, pool_id = self._listener_pool_create(
+            const.TCP, listener_port)
+        hm_id = self._pool_add_healthmonitor(
+            pool_id, protocol=const.HTTP)[const.ID]
+        self._test_basic_traffic(
+            const.HTTP, listener_port, pool_id, persistent=False)
+        mb_ids = [mb[const.ID] for
+                  mb in self.mem_member_client.list_members(pool_id)]
+
+        # Create list of test cases to be covered in test
+        fault_cases = [
+            {'mthd': const.POST, 'code': '101-102', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=103'},
+            {'mthd': const.DELETE, 'code': '201-204', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=205'},
+            {'mthd': const.PUT, 'code': '301-302', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=303'},
+            {'mthd': const.HEAD, 'code': '400-404', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=405'},
+            {'mthd': const.OPTIONS, 'code': '500-504', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=505'},
+            {'mthd': const.PATCH, 'code': '201-204', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=205'},
+            {'mthd': const.CONNECT, 'code': '201-204', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=205'},
+            {'mthd': const.TRACE, 'code': '201-204', 'op_stat': const.ERROR,
+             'url_path': '/request?response_code=205'}]
+        valid_cases = [
+            {'mthd': const.GET, 'code': '101-102', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=102'},
+            {'mthd': const.GET, 'code': '201-204', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=202'},
+            {'mthd': const.GET, 'code': '301-302', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=302'},
+            {'mthd': const.GET, 'code': '400-404', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=404'},
+            {'mthd': const.GET, 'code': '500-504', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=504'},
+            {'mthd': const.GET, 'code': '201-204', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=204'},
+            {'mthd': const.GET, 'code': '201-204', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=204'},
+            {'mthd': const.GET, 'code': '201-204', 'op_stat': const.ONLINE,
+             'url_path': '/request?response_code=204'}]
+        # Generate "flip_flop" using zip function, that will have
+        # the operation statuses changed on each subsequent test case.
+        # It means interleaved like: ERROR, ONLINE, ERROR, ONLINE...
+        flip_flop = [v for f in zip(valid_cases, fault_cases) for v in f]
+
+        # For each test case, update HM and validate that members'
+        # "Operation Status" is changed to expected value.
+        for ff in flip_flop:
+            LOG.info('Tested test case is: {}'.format(ff))
+            self.mem_healthmonitor_client.update_healthmonitor(
+                hm_id, expected_codes=ff['code'], http_method=ff['mthd'],
+                url_path=ff['url_path'])
+            waiters.wait_for_status(
+                self.mem_lb_client.show_loadbalancer, self.lb_id,
+                const.PROVISIONING_STATUS, const.ACTIVE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
+            for mb_id in mb_ids:
+                waiters.wait_for_status(
+                    self.mem_member_client.show_member,
+                    mb_id, const.OPERATING_STATUS,
+                    ff['op_stat'],
+                    CONF.load_balancer.check_interval,
+                    CONF.load_balancer.check_timeout,
+                    error_ok=True, pool_id=pool_id)
