@@ -47,7 +47,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -152,10 +152,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 **listener_kwargs)
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_listener_client.cleanup_listener,
-            listener[const.ID],
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -272,19 +268,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         }
 
         try:
-            listener = self.mem_listener_client.create_listener(
-                **listener_kwargs)
+            self.mem_listener_client.create_listener(**listener_kwargs)
         except exceptions.BadRequest as e:
             faultstring = e.resp_body.get('faultstring', '')
             if ("Invalid input for field/attribute protocol." in faultstring
                     and "Value should be one of:" in faultstring):
                 raise self.skipException("Skipping unsupported protocol")
             raise e
-
-        self.addClassResourceCleanup(
-            self.mem_listener_client.cleanup_listener,
-            listener[const.ID],
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -305,19 +295,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         }
 
         try:
-            listener2 = self.mem_listener_client.create_listener(
-                **listener2_kwargs)
+            self.mem_listener_client.create_listener(**listener2_kwargs)
         except exceptions.BadRequest as e:
             faultstring = e.resp_body.get('faultstring', '')
             if ("Invalid input for field/attribute protocol." in faultstring
                     and "Value should be one of:" in faultstring):
                 raise self.skipException("Skipping unsupported protocol")
             raise e
-
-        self.addClassResourceCleanup(
-            self.mem_listener_client.cleanup_listener,
-            listener2[const.ID],
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -741,10 +725,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_listener_client.cleanup_listener,
-            listener[const.ID],
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -910,10 +890,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_listener_client.cleanup_listener,
-            listener[const.ID],
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -1138,10 +1114,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.LOADBALANCER_ID: self.lb_id,
         }
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_listener_client.cleanup_listener,
-            listener[const.ID],
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer,

@@ -61,7 +61,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -103,9 +103,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         }
         cls.current_listener_port += 1
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
-        cls.addClassResourceCleanup(
-            cls.mem_listener_client.cleanup_listener, listener[const.ID],
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -135,10 +132,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             if hasattr(e, 'resp_body'):
                 message = e.resp_body.get('faultstring', message)
             raise testtools.TestCase.skipException(message)
-
-        cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool, pool[const.ID],
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -900,11 +893,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 **member_kwargs)
 
         member = self.mem_member_client.create_member(**member_kwargs)
-
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member[const.ID], pool_id=pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -1716,11 +1704,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
 
         member = self.mem_member_client.create_member(**member_kwargs)
 
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member[const.ID], pool_id=pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
-
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -2173,11 +2156,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
 
         member = self.mem_member_client.create_member(**member_kwargs)
 
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member[const.ID], pool_id=pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
-
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -2596,9 +2574,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             raise testtools.TestCase.skipException(message)
 
         pool_id = pool[const.ID]
-        self.addClassResourceCleanup(
-            self.mem_pool_client.cleanup_pool, pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id,
@@ -2631,11 +2606,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 const.ID]
         member1 = self.mem_member_client.create_member(**member1_kwargs)
 
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member1[const.ID], pool_id=pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
-
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id,
                                 const.PROVISIONING_STATUS,
@@ -2667,10 +2637,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 const.ID]
 
         member2 = self.mem_member_client.create_member(**member2_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member2[const.ID], pool_id=pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id,
@@ -2734,11 +2700,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             pool_id,
             query_params='{sort}={port}:{asc}'.format(
                 sort=const.SORT, port=const.PROTOCOL_PORT, asc=const.ASC))
-        for m in members:
-            self.addClassResourceCleanup(
-                self.mem_member_client.cleanup_member,
-                m[const.ID], pool_id=pool_id,
-                lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         # We should have two members: member2 and member3, in that order
         self.assertEqual(2, len(members))
@@ -2939,10 +2900,6 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: self.member_port.increment(),
         }
         member = self.mem_member_client.create_member(**member_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member[const.ID], pool_id=pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer,

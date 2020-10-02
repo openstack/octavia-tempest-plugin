@@ -64,7 +64,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -113,10 +113,6 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             const.CONNECTION_LIMIT: 200,
         }
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
-        cls.addClassResourceCleanup(
-            cls.mem_listener_client.cleanup_listener,
-            listener[const.ID],
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -132,10 +128,6 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             const.LISTENER_ID: listener[const.ID],
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
-        cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool,
-            pool[const.ID],
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -716,10 +708,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                       url_for_member1)
 
         # Assert that slow traffic goes to pool2->member2
+        # Increase timeout to cope with slow test systems.
         url_for_member2 = 'http://{}:{}/slow?delay=1s'.format(
             self.lb_vip_address, LISTENER_PORT)
         self.assertConsistentResponse((200, self.webserver2_response),
-                                      url_for_member2)
+                                      url_for_member2, timeout=3)
 
         # Assert that /turtles is redirected to identity
         url_for_identity = 'http://{}:{}/turtles'.format(self.lb_vip_address,
@@ -1199,8 +1192,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
-                                CONF.load_balancer.build_interval,
-                                CONF.load_balancer.build_timeout)
+                                CONF.load_balancer.check_interval,
+                                CONF.load_balancer.check_timeout)
 
         pool_name = data_utils.rand_name("lb_member_pool3_cidrs")
         pool_kwargs = {
@@ -1233,8 +1226,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
-                                CONF.load_balancer.build_interval,
-                                CONF.load_balancer.build_timeout)
+                                CONF.load_balancer.check_interval,
+                                CONF.load_balancer.check_timeout)
 
         # Set up Member 1 for Webserver 1
         member1_name = data_utils.rand_name("lb_member_member1-cidrs-traffic")
@@ -1300,8 +1293,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
-                                CONF.load_balancer.build_interval,
-                                CONF.load_balancer.build_timeout)
+                                CONF.load_balancer.check_interval,
+                                CONF.load_balancer.check_timeout)
 
         # NOTE: Before we start with the consistent response check, we must
         # wait until Neutron completes the SG update.

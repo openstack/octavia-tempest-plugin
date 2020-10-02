@@ -74,7 +74,7 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
         self.lb_id = lb[const.ID]
         self.addClassResourceCleanup(self.mem_lb_client.cleanup_loadbalancer,
-                                     self.lb_id)
+                                     self.lb_id, cascade=True)
 
         if CONF.validation.connect_method == 'floating':
             port_id = lb[const.VIP_PORT_ID]
@@ -114,10 +114,6 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
         }
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.listener_id = listener[const.ID]
-        self.addClassResourceCleanup(
-            self.mem_listener_client.cleanup_listener,
-            self.listener_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
@@ -134,10 +130,6 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
         }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
         self.pool_id = pool[const.ID]
-        self.addClassResourceCleanup(
-            self.mem_pool_client.cleanup_pool,
-            self.pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
@@ -157,12 +149,7 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_1_subnet:
             member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
 
-        member1 = self.mem_member_client.create_member(
-            **member1_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member1[const.ID], pool_id=self.pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        self.mem_member_client.create_member(**member1_kwargs)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -181,12 +168,7 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_2_subnet:
             member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
 
-        member2 = self.mem_member_client.create_member(
-            **member2_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_member_client.cleanup_member,
-            member2[const.ID], pool_id=self.pool_id,
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        self.mem_member_client.create_member(**member2_kwargs)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,

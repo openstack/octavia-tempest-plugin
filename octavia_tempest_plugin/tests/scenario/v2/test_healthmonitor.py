@@ -45,7 +45,7 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -268,9 +268,6 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
             const.LOADBALANCER_ID: self.lb_id,
         }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
-        self.addClassResourceCleanup(
-            self.mem_pool_client.cleanup_pool, pool[const.ID],
-            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
@@ -297,9 +294,6 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
                               const.EXPECTED_CODES: '200'})
 
         hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
-        self.addCleanup(
-            self.mem_healthmonitor_client.cleanup_healthmonitor,
-            hm[const.ID], lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -380,5 +374,11 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
         waiters.wait_for_deleted_status_or_not_found(
             self.mem_healthmonitor_client.show_healthmonitor, hm[const.ID],
             const.PROVISIONING_STATUS,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)

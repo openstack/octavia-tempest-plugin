@@ -78,6 +78,7 @@
       - ^etc/.*$
       - ^releasenotes/.*$
     vars:
+      configure_swap_size: 8192
       devstack_localrc:
         TEMPEST_PLUGINS: /opt/stack/octavia-tempest-plugin
         USE_PYTHON3: true

@@ -46,7 +46,7 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -75,9 +75,6 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         }
         pool1 = cls.mem_pool_client.create_pool(**pool1_kwargs)
         pool1_id = pool1[const.ID]
-        cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool, pool1_id,
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -94,9 +91,6 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         }
         pool2 = cls.mem_pool_client.create_pool(**pool2_kwargs)
         pool2_id = pool2[const.ID]
-        cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool, pool2_id,
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -406,16 +400,16 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             self.assertEqual(expected_cidrs, listener[const.ALLOWED_CIDRS])
 
         # Listener delete
+        self.mem_listener_client.delete_listener(listener[const.ID])
+        waiters.wait_for_deleted_status_or_not_found(
+            self.mem_listener_client.show_listener, listener[const.ID],
+            const.PROVISIONING_STATUS,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer,
             self.lb_id, const.PROVISIONING_STATUS,
             const.ACTIVE,
-            CONF.load_balancer.check_interval,
-            CONF.load_balancer.check_timeout)
-        self.mem_listener_client.delete_listener(listener[const.ID])
-
-        waiters.wait_for_deleted_status_or_not_found(
-            self.mem_listener_client.show_listener, listener[const.ID],
-            const.PROVISIONING_STATUS,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)

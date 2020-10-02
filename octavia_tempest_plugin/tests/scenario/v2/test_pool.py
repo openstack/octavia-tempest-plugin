@@ -45,7 +45,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -358,9 +358,6 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             listener = self.mem_listener_client.create_listener(
                 **listener_kwargs)
             listener_id = listener[const.ID]
-            self.addClassResourceCleanup(
-                self.mem_listener_client.cleanup_listener, listener_id,
-                lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
             waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                     self.lb_id, const.PROVISIONING_STATUS,

@@ -320,7 +320,8 @@ class BaseLBaaSClient(rest_client.RestClient):
         self.expected_success(204, response.status)
         return response.status
 
-    def _cleanup_obj(self, obj_id, lb_client=None, lb_id=None, parent_id=None):
+    def _cleanup_obj(self, obj_id, lb_client=None, lb_id=None, parent_id=None,
+                     cascade=False):
         """Clean up an object (for use in tempest addClassResourceCleanup).
 
         We always need to wait for the parent LB to be in a mutable state
@@ -343,6 +344,8 @@ class BaseLBaaSClient(rest_client.RestClient):
                           loadbalancer client already.
         :param lb_id: (Optional) The ID of the parent loadbalancer, if the main
                       obj_id is for a sub-object and not a loadbalancer.
+        :param cascade: If true will delete all child objects of an
+                        object, if that object supports it.
         :return:
         """
         if parent_id:
@@ -380,8 +383,8 @@ class BaseLBaaSClient(rest_client.RestClient):
             waiters.wait_for_status(wait_func, wait_id,
                                     const.PROVISIONING_STATUS,
                                     const.ACTIVE,
-                                    self.build_interval,
-                                    self.timeout)
+                                    CONF.load_balancer.check_interval,
+                                    CONF.load_balancer.check_timeout)
         except exceptions.UnexpectedResponseCode:
             # Status is ERROR, go ahead with deletion
             LOG.debug("Found %s %s in ERROR status, proceeding with cleanup.",
@@ -400,7 +403,10 @@ class BaseLBaaSClient(rest_client.RestClient):
             LOG.error("Cleanup encountered an unknown exception while waiting "
                       "for %s %s: %s", wait_client.root_tag, wait_id, e)
 
-        uri = '{0}/{1}'.format(uri, obj_id)
+        if cascade:
+            uri = '{0}/{1}?cascade=true'.format(uri, obj_id)
+        else:
+            uri = '{0}/{1}'.format(uri, obj_id)
         LOG.info("Cleaning up %s %s...", self.root_tag, obj_id)
         return_status = test_utils.call_and_ignore_notfound_exc(
             self.delete, uri)
@@ -411,8 +417,8 @@ class BaseLBaaSClient(rest_client.RestClient):
             waiters.wait_for_status(wait_func, wait_id,
                                     const.PROVISIONING_STATUS,
                                     const.ACTIVE,
-                                    self.build_interval,
-                                    self.timeout)
+                                    CONF.load_balancer.check_interval,
+                                    CONF.load_balancer.check_timeout)
         else:
             LOG.info("Waiting for %s %s to be DELETED...",
                      wait_client.root_tag, wait_id)

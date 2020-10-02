@@ -186,7 +186,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -219,10 +219,6 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
         cls.pool_id = pool[const.ID]
-        cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool,
-            cls.pool_id,
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -242,12 +238,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if cls.lb_member_1_subnet:
             member1_kwargs[const.SUBNET_ID] = cls.lb_member_1_subnet[const.ID]
 
-        member1 = cls.mem_member_client.create_member(
-            **member1_kwargs)
-        cls.addClassResourceCleanup(
-            cls.mem_member_client.cleanup_member,
-            member1[const.ID], pool_id=cls.pool_id,
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+        cls.mem_member_client.create_member(**member1_kwargs)
         waiters.wait_for_status(
             cls.mem_lb_client.show_loadbalancer, cls.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -266,12 +257,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if cls.lb_member_2_subnet:
             member2_kwargs[const.SUBNET_ID] = cls.lb_member_2_subnet[const.ID]
 
-        member2 = cls.mem_member_client.create_member(
-            **member2_kwargs)
-        cls.addClassResourceCleanup(
-            cls.mem_member_client.cleanup_member,
-            member2[const.ID], pool_id=cls.pool_id,
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+        cls.mem_member_client.create_member(**member2_kwargs)
         waiters.wait_for_status(
             cls.mem_lb_client.show_loadbalancer, cls.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,

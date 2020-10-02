@@ -64,7 +64,7 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         cls.lb_id = lb[const.ID]
         cls.addClassResourceCleanup(
             cls.mem_lb_client.cleanup_loadbalancer,
-            cls.lb_id)
+            cls.lb_id, cascade=True)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -107,9 +107,6 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
         }
         cls.current_listener_port += 1
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
-        cls.addClassResourceCleanup(
-            cls.mem_listener_client.cleanup_listener, listener[const.ID],
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -135,10 +132,6 @@ class MemberScenarioTest(test_base.LoadBalancerBaseTest):
             if hasattr(e, 'resp_body'):
                 message = e.resp_body.get('faultstring', message)
             raise testtools.TestCase.skipException(message)
-
-        cls.addClassResourceCleanup(
-            cls.mem_pool_client.cleanup_pool, pool[const.ID],
-            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
