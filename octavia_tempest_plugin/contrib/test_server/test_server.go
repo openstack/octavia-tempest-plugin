@@ -160,6 +160,7 @@ func https_serve(port int, id string, cert tls.Certificate,
 				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 			},
+			NextProtos: []string{"h2", "http/1.1", "http/1.0"},
 		}
 	}
 	tls_config.Rand = rand.Reader
