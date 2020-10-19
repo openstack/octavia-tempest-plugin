@@ -16,14 +16,11 @@ Install dependencies for Ubuntu/Debian:
 
     sudo apt-get install -y golang
 
-Install dependencies for Centos (use golang 1.10 from go-toolset-7) and launch
-a shell into the new environment:
+Install dependencies for Centos:
 
 ::
 
-    sudo yum install -y centos-release-scl
-    sudo yum install -y go-toolset-7-golang-bin glibc-static openssl-static zlib-static
-    scl enable go-toolset-7 bash
+    sudo dnf install -y golang
 
 Build the binary:
 

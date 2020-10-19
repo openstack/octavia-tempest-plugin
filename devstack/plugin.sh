@@ -1,14 +1,49 @@
+#!/usr/bin/env bash
+
+saveenv=$-
+set -e
 
 # install_octavia_tempest_plugin
 function install_octavia_tempest_plugin {
     setup_dev_lib "octavia-tempest-plugin"
 }
 
+function build_backend_test_server {
+    if is_fedora || is_ubuntu; then
+        install_package golang
+    else
+        die "Distribution not supported. Supported distributions are: RHEL, CentOS, Fedora, Ubuntu"
+    fi
+
+    go_path=$(find $DEST/tempest/.tox/tempest/ -name test_server.go)
+    bin_path=${go_path%.go}.bin
+    CGO_ENABLED=0 GOOS=linux go build \
+        -a -ldflags '-s -w -extldflags -static' -o $bin_path \
+        ${DEST}/octavia-tempest-plugin/octavia_tempest_plugin/contrib/test_server/test_server.go
+}
+
 if [[ "$1" == "stack" ]]; then
     case "$2" in
         install)
-            echo_summary "Installing octavia-tempest-plugin"
-            install_octavia_tempest_plugin
+            # Install dev library if
+            # - the release is more recent than stein (devstack in stein would
+            #   try to install it in a python2 env, but octavia-tempest-plugin is
+            #   now a python3-only project)
+            # - or the user explicitly requests it (INSTALL_TEMPEST=True)
+            if [[ "$DEVSTACK_SERIES" != "stein" ]] || [[ "$(trueorfalse False INSTALL_TEMPEST)" == "True" ]]; then
+                echo_summary "Installing octavia-tempest-plugin"
+                install_octavia_tempest_plugin
+            fi
+            ;;
+        test-config)
+            echo_summary "Building backend test server"
+            build_backend_test_server
             ;;
     esac
+fi
+
+if [[ $saveenv =~ e ]]; then
+    set -e
+else
+    set +e
 fi

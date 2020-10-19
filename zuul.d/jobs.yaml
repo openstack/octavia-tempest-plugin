@@ -80,7 +80,6 @@
     vars:
       configure_swap_size: 8192
       devstack_localrc:
-        TEMPEST_PLUGINS: /opt/stack/octavia-tempest-plugin
         USE_PYTHON3: true
         LIBVIRT_TYPE: kvm
         LIBVIRT_CPU_MODE: host-passthrough
@@ -115,6 +114,9 @@
         tempest: true
       devstack_plugins:
         octavia: https://opendev.org/openstack/octavia.git
+        octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
+      tempest_plugins:
+        - octavia-tempest-plugin
 
 - job:
     name: octavia-dsvm-base-ipv6-only
@@ -134,7 +136,6 @@
       - ^releasenotes/.*$
     vars:
       devstack_localrc:
-        TEMPEST_PLUGINS: /opt/stack/octavia-tempest-plugin
         USE_PYTHON3: true
         LIBVIRT_TYPE: kvm
         LIBVIRT_CPU_MODE: host-passthrough
@@ -169,6 +170,9 @@
         tempest: true
       devstack_plugins:
         octavia: https://opendev.org/openstack/octavia.git
+        octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
+      tempest_plugins:
+        - octavia-tempest-plugin
 
 - job:
     name: octavia-dsvm-live-base
@@ -270,7 +274,6 @@
           MULTI_HOST: 1
           SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           HOST_IP: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
-          TEMPEST_PLUGINS: /opt/stack/octavia-tempest-plugin
           USE_PYTHON3: true
           LIBVIRT_TYPE: kvm
           LIBVIRT_CPU_MODE: host-passthrough
@@ -283,6 +286,9 @@
         devstack_plugins:
           neutron: https://opendev.org/openstack/neutron.git
           octavia: https://opendev.org/openstack/octavia.git
+          octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
+        tempest_plugins:
+          - octavia-tempest-plugin
         zuul_copy_output:
           '/var/log/dib-build' : logs
           '/var/log/octavia-amphora.log': logs
@@ -323,6 +329,9 @@
           OCTAVIA_MGMT_PORT_IP: 192.168.0.4
         devstack_plugins:
           octavia: https://opendev.org/openstack/octavia.git
+          octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
+        tempest_plugins:
+          - octavia-tempest-plugin
         zuul_copy_output:
           '/var/log/octavia-amphora.log': logs
           '/var/log/octavia-tenant-traffic.log': logs
@@ -648,8 +657,9 @@
         barbican: true
       devstack_plugins:
         barbican: https://opendev.org/openstack/barbican.git
-      devstack_localrc:
-        TEMPEST_PLUGINS: '"/opt/stack/octavia-tempest-plugin /opt/stack/barbican-tempest-plugin"'
+      tempest_plugins:
+        - octavia-tempest-plugin
+        - barbican-tempest-plugin
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
