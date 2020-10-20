@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -69,6 +70,34 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, resp)
 }
 
+func requestHandler(w http.ResponseWriter, r *http.Request) {
+	scoreboard.open()
+	defer scoreboard.close()
+
+	http.SetCookie(w, &sessCookie)
+
+	params := r.URL.Query()
+	if value, ok := params["response_code"]; ok {
+		if responseCode, err := strconv.Atoi(value[0]); err == nil {
+			w.WriteHeader(responseCode)
+		}
+	}
+
+	io.WriteString(w, fmt.Sprintf("%s %s %s\n",
+	                              r.Method, r.RequestURI, r.Proto))
+
+	io.WriteString(w, fmt.Sprintf("Host: %s\n", r.Host))
+
+	for key, values := range r.Header {
+		for _, value := range values {
+			header := fmt.Sprintf("%s: %s\n", key, value)
+			io.WriteString(w, header)
+		}
+	}
+	io.WriteString(w, "\n")
+	io.WriteString(w, resp)
+}
+
 func slowHandler(w http.ResponseWriter, r *http.Request) {
 	scoreboard.open()
 	defer scoreboard.close()
@@ -113,6 +142,7 @@ func httpSetup(id string) {
 	http.HandleFunc("/slow", slowHandler)
 	http.HandleFunc("/stats", statsHandler)
 	http.HandleFunc("/reset", resetHandler)
+	http.HandleFunc("/request", requestHandler)
 }
 
 func httpServe(port int, id string) {
@@ -128,6 +158,7 @@ func httpsServe(port int, id string, cert tls.Certificate,
 	mux.Handle("/slow", httpsWrapper(slowHandler))
 	mux.Handle("/stats", httpsWrapper(statsHandler))
 	mux.Handle("/reset", httpsWrapper(resetHandler))
+	mux.Handle("/request", httpsWrapper(requestHandler))
 
 	var tlsConfig *tls.Config
 	if certpool != nil {
