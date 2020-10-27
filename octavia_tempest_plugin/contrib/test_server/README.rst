@@ -44,20 +44,24 @@ Example output:
 
   Usage of ./test_server.bin:
     -cert string
-          Server side PEM format certificate.
+          Server side PEM format certificate file path.
     -client_ca string
-          Client side PEM format CA certificate.
+          Client auth PEM format CA certificate file path.
     -https_port int
           HTTPS port to listen on, -1 is disabled. (default -1)
+    -https_client_auth_port int
+          HTTPS with client authentication port to listen on, -1 is disabled.
+          (default -1)
     -id string
           Server ID (default "1")
     -key string
-          Server side PEM format key.
+          Server side PEM format key file path.
     -port int
           Port to listen on (default 8080)
 
 If -https_port is not specified, the server will not accept HTTPS requests.
 When --https_port is specified, -cert and -key are required parameters.
-If -https_port is specified, the -client_ca parameter is optional. When
--client_ca is specified, it will configure the HTTPS port to require a valid
-client certificate to connect.
+
+If -https_client_auth_port is specified, the -client_ca parameter is required.
+When -client_ca is specified, it will configure the HTTPS client auth port to
+require a valid client certificate to connect.
