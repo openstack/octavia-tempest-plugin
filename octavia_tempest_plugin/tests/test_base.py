@@ -587,6 +587,17 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             lb_kwargs[const.VIP_NETWORK_ID] = cls.lb_member_vip_net[const.ID]
             lb_kwargs[const.VIP_SUBNET_ID] = None
 
+    def _validate_listener_protocol(self, protocol, raise_if_unsupported=True):
+        if (protocol == const.SCTP and
+            not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.23')):
+            if raise_if_unsupported:
+                raise self.skipException('SCTP listener protocol '
+                                         'is only available on Octavia '
+                                         'API version 2.23 or newer.')
+            return False
+        return True
+
 
 class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
     @classmethod
