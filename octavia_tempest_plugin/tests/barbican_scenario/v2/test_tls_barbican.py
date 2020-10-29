@@ -1395,3 +1395,147 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         self.check_members_balanced(self.lb_vip_address, protocol=const.HTTP,
                                     protocol_port=84, traffic_member_count=1)
+
+    @decorators.idempotent_id('11b67c96-a553-4b47-9fc6-4c3d7a2a10ce')
+    def test_pool_reencryption_client_authentication(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.8'):
+            raise self.skipException('Pool re-encryption is only available on '
+                                     'Octavia API version 2.8 or newer.')
+        pool_name = data_utils.rand_name("lb_member_pool1-tls-client-auth")
+        pool_kwargs = {
+            const.NAME: pool_name,
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: self.lb_algorithm,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.TLS_ENABLED: True
+        }
+        # Specify an http/1.x alpn to work around HTTP healthchecks
+        # on older haproxy versions when alpn includes h2
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.24'):
+            pool_kwargs[const.ALPN_PROTOCOLS] = ['http/1.0', 'http/1.1']
+
+        pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        pool_id = pool[const.ID]
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        hm_name = data_utils.rand_name("lb_member_hm1-tls-client-auth")
+        hm_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: hm_name,
+            const.TYPE: const.HEALTH_MONITOR_HTTPS,
+            const.HTTP_METHOD: const.GET,
+            const.URL_PATH: '/',
+            const.EXPECTED_CODES: '200',
+            const.DELAY: 1,
+            const.TIMEOUT: 1,
+            const.MAX_RETRIES: 1,
+            const.MAX_RETRIES_DOWN: 1,
+            const.ADMIN_STATE_UP: True,
+        }
+        hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
+        self.addCleanup(
+            self.mem_healthmonitor_client.cleanup_healthmonitor,
+            hm[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        hm = waiters.wait_for_status(
+            self.mem_healthmonitor_client.show_healthmonitor,
+            hm[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Set up Member 1 for Webserver 1
+        member1_name = data_utils.rand_name(
+            "lb_member_member1-tls-client-auth")
+        member1_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member1_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 9443,
+        }
+        if self.lb_member_1_subnet:
+            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        self.mem_member_client.create_member(**member1_kwargs)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 2 for Webserver 2
+        member2_name = data_utils.rand_name(
+            "lb_member_member2-tls-client-auth")
+        member2_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member2_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver2_ip,
+            const.PROTOCOL_PORT: 9443,
+        }
+        if self.lb_member_2_subnet:
+            member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
+
+        self.mem_member_client.create_member(**member2_kwargs)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        listener_name = data_utils.rand_name(
+            "lb_member_listener1-tls-client-auth")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL_PORT: '85',
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: pool_id,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Test that there are no members without a client certificate
+        url = 'http://{0}:85'.format(self.lb_vip_address)
+        self.validate_URL_response(url, expected_status_code=503)
+
+        # Test with client certificates
+        pool_update_kwargs = {
+            const.TLS_CONTAINER_REF: self.pool_client_ref
+        }
+
+        self.mem_pool_client.update_pool(pool_id, **pool_update_kwargs)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+        waiters.wait_for_status(
+            self.mem_pool_client.show_pool, pool_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTP,
+                                    protocol_port=85)

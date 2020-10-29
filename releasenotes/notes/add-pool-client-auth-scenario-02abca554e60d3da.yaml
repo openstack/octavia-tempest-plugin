@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added scenario test coverage for pool client authentication.

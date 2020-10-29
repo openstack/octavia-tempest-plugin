@@ -667,6 +667,20 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                 cls.lb_mem_SGr_client.delete_security_group_rule,
                 cls.lb_mem_SGr_client.show_security_group_rule,
                 SGr['id'])
+            # Create a security group rule to allow 9443 (test webservers)
+            # Used in the pool backend encryption client authentication tests
+            SGr = cls.lb_mem_SGr_client.create_security_group_rule(
+                direction='ingress',
+                security_group_id=cls.lb_member_sec_group['id'],
+                protocol='tcp',
+                ethertype='IPv4',
+                port_range_min=9443,
+                port_range_max=9443)['security_group_rule']
+            cls.addClassResourceCleanup(
+                waiters.wait_for_not_found,
+                cls.lb_mem_SGr_client.delete_security_group_rule,
+                cls.lb_mem_SGr_client.show_security_group_rule,
+                SGr['id'])
             # Create a security group rule to allow UDP 9999 (test webservers)
             # Port 9999 is used to illustrate health monitor ERRORs on closed
             # ports.
@@ -731,6 +745,20 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                     ethertype='IPv6',
                     port_range_min=443,
                     port_range_max=443)['security_group_rule']
+                cls.addClassResourceCleanup(
+                    waiters.wait_for_not_found,
+                    cls.lb_mem_SGr_client.delete_security_group_rule,
+                    cls.lb_mem_SGr_client.show_security_group_rule,
+                    SGr['id'])
+                # Create a security group rule to allow 9443 (test webservers)
+                # Used in the pool encryption client authentication tests
+                SGr = cls.lb_mem_SGr_client.create_security_group_rule(
+                    direction='ingress',
+                    security_group_id=cls.lb_member_sec_group['id'],
+                    protocol='tcp',
+                    ethertype='IPv6',
+                    port_range_min=9443,
+                    port_range_max=9443)['security_group_rule']
                 cls.addClassResourceCleanup(
                     waiters.wait_for_not_found,
                     cls.lb_mem_SGr_client.delete_security_group_rule,
