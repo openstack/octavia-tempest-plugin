@@ -16,9 +16,11 @@ function build_backend_test_server {
     fi
 
     go_path=$(find $DEST/tempest/.tox/tempest/ -name test_server.go)
-    bin_path=${go_path%.go}.bin
+    sudo mkdir -m755 -p /opt/octavia-tempest-plugin
+    sudo chown $STACK_USER /opt/octavia-tempest-plugin
     CGO_ENABLED=0 GOOS=linux go build \
-        -a -ldflags '-s -w -extldflags -static' -o $bin_path \
+        -a -ldflags '-s -w -extldflags -static' \
+        -o /opt/octavia-tempest-plugin/test_server.bin \
         ${DEST}/octavia-tempest-plugin/octavia_tempest_plugin/contrib/test_server/test_server.go
 }
 

@@ -213,6 +213,10 @@ OctaviaGroup = [
                default='/var/log/octavia-amphora.log',
                help='File path, on the tempest system, to the amphora admin '
                     'log file.'),
+    cfg.StrOpt('test_server_path',
+               default='/opt/octavia-tempest-plugin/test_server.bin',
+               help='Filesystem path to the test web server that will be '
+                    'installed in the web server VMs.'),
 ]
 
 lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',

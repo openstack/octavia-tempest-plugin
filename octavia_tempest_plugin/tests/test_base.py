@@ -13,7 +13,6 @@
 #    under the License.
 
 import ipaddress
-import pkg_resources
 import random
 import shlex
 import string
@@ -849,8 +848,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
 
     @classmethod
     def _install_start_webserver(cls, ip_address, ssh_key, start_id):
-        local_file = pkg_resources.resource_filename(
-            'octavia_tempest_plugin.contrib.test_server', 'test_server.bin')
+        local_file = CONF.load_balancer.test_server_path
         dest_file = '/dev/shm/test_server.bin'
 
         linux_client = remote_client.RemoteClient(
