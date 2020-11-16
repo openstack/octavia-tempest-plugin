@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    The Octavia tempest plugin now as a configuration setting for the path to
+    the test server. By default it will expect the test server to now be
+    located in /opt/octavia-tempest-plugin/test_server.bin. The devstack
+    plugin has been updated to place the test_server.bin in that location.
