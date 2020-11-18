@@ -28,11 +28,11 @@ if [[ "$1" == "stack" ]]; then
     case "$2" in
         install)
             # Install dev library if
-            # - the release is more recent than stein (devstack in stein would
-            #   try to install it in a python2 env, but octavia-tempest-plugin is
-            #   now a python3-only project)
+            # - the release is more recent than train (devstack in train would
+            #   try to install it in a python2 env, but octavia-tempest-plugin
+            #   is now a python3-only project)
             # - or the user explicitly requests it (INSTALL_TEMPEST=True)
-            if [[ "$DEVSTACK_SERIES" != "stein" ]] || [[ "$(trueorfalse False INSTALL_TEMPEST)" == "True" ]]; then
+            if [[ ! "$DEVSTACK_SERIES" =~ (stein|train) ]] || [[ "$(trueorfalse False INSTALL_TEMPEST)" == "True" ]]; then
                 echo_summary "Installing octavia-tempest-plugin"
                 install_octavia_tempest_plugin
             fi
