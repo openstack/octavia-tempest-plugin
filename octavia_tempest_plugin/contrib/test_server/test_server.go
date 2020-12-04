@@ -16,60 +16,60 @@ import (
 	"time"
 )
 
-var sess_cookie http.Cookie
+var sessCookie http.Cookie
 var resp string
 
-type ConnectionCount struct {
-	mu         sync.Mutex
-	cur_conn   int
-	max_conn   int
-	total_conn int
+type connectionCount struct {
+	mu        sync.Mutex
+	curConn   int
+	maxConn   int
+	totalConn int
 }
 
-var scoreboard ConnectionCount
+var scoreboard connectionCount
 
-func (cc *ConnectionCount) open() {
+func (cc *connectionCount) open() {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 
-	cc.cur_conn++
-	cc.total_conn++
+	cc.curConn++
+	cc.totalConn++
 }
 
-func (cc *ConnectionCount) close() {
+func (cc *connectionCount) close() {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 
-	if cc.cur_conn > cc.max_conn {
-		cc.max_conn = cc.cur_conn
+	if cc.curConn > cc.maxConn {
+		cc.maxConn = cc.curConn
 	}
-	cc.cur_conn--
+	cc.curConn--
 }
 
-func (cc *ConnectionCount) stats() (int, int) {
+func (cc *connectionCount) stats() (int, int) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 
-	return cc.max_conn, cc.total_conn
+	return cc.maxConn, cc.totalConn
 }
 
-func (cc *ConnectionCount) reset() {
+func (cc *connectionCount) reset() {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 
-	cc.max_conn = 0
-	cc.total_conn = 0
+	cc.maxConn = 0
+	cc.totalConn = 0
 }
 
-func root_handler(w http.ResponseWriter, r *http.Request) {
+func rootHandler(w http.ResponseWriter, r *http.Request) {
 	scoreboard.open()
 	defer scoreboard.close()
 
-	http.SetCookie(w, &sess_cookie)
+	http.SetCookie(w, &sessCookie)
 	io.WriteString(w, resp)
 }
 
-func slow_handler(w http.ResponseWriter, r *http.Request) {
+func slowHandler(w http.ResponseWriter, r *http.Request) {
 	scoreboard.open()
 	defer scoreboard.close()
 
@@ -79,59 +79,59 @@ func slow_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	time.Sleep(delay)
-	http.SetCookie(w, &sess_cookie)
+	http.SetCookie(w, &sessCookie)
 	io.WriteString(w, resp)
 }
 
-func stats_handler(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &sess_cookie)
-	max_conn, total_conn := scoreboard.stats()
-	fmt.Fprintf(w, "max_conn=%d\ntotal_conn=%d\n", max_conn, total_conn)
+func statsHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &sessCookie)
+	maxConn, totalConn := scoreboard.stats()
+	fmt.Fprintf(w, "maxConn=%d\ntotalConn=%d\n", maxConn, totalConn)
 }
 
-func https_wrapper(base_handler func(http.ResponseWriter,
+func httpsWrapper(baseHandler func(http.ResponseWriter,
 	*http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Add("Strict-Transport-Security",
 			"max-age=66012000; includeSubDomains")
-		base_handler(w, r)
+		baseHandler(w, r)
 	})
 }
 
-func reset_handler(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &sess_cookie)
+func resetHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &sessCookie)
 	scoreboard.reset()
 	fmt.Fprintf(w, "reset\n")
 }
 
-func http_setup(id string) {
-	sess_cookie.Name = "JSESSIONID"
-	sess_cookie.Value = id
+func httpSetup(id string) {
+	sessCookie.Name = "JSESSIONID"
+	sessCookie.Value = id
 
-	http.HandleFunc("/", root_handler)
-	http.HandleFunc("/slow", slow_handler)
-	http.HandleFunc("/stats", stats_handler)
-	http.HandleFunc("/reset", reset_handler)
+	http.HandleFunc("/", rootHandler)
+	http.HandleFunc("/slow", slowHandler)
+	http.HandleFunc("/stats", statsHandler)
+	http.HandleFunc("/reset", resetHandler)
 }
 
-func http_serve(port int, id string) {
+func httpServe(port int, id string) {
 	portStr := fmt.Sprintf(":%d", port)
 	log.Fatal(http.ListenAndServe(portStr, nil))
 }
 
-func https_serve(port int, id string, cert tls.Certificate,
-	certpool *x509.CertPool, server_cert_pem string,
-	server_key_pem string) {
+func httpsServe(port int, id string, cert tls.Certificate,
+	certpool *x509.CertPool, serverCertPem string,
+	serverKeyPem string) {
 	mux := http.NewServeMux()
-	mux.Handle("/", https_wrapper(root_handler))
-	mux.Handle("/slow", https_wrapper(slow_handler))
-	mux.Handle("/stats", https_wrapper(stats_handler))
-	mux.Handle("/reset", https_wrapper(reset_handler))
+	mux.Handle("/", httpsWrapper(rootHandler))
+	mux.Handle("/slow", httpsWrapper(slowHandler))
+	mux.Handle("/stats", httpsWrapper(statsHandler))
+	mux.Handle("/reset", httpsWrapper(resetHandler))
 
-	var tls_config *tls.Config
+	var tlsConfig *tls.Config
 	if certpool != nil {
-		tls_config = &tls.Config{
+		tlsConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			ClientCAs:    certpool,
@@ -147,7 +147,7 @@ func https_serve(port int, id string, cert tls.Certificate,
 			},
 		}
 	} else {
-		tls_config = &tls.Config{
+		tlsConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			ClientAuth:   tls.NoClientCert,
 			MinVersion:   tls.VersionTLS12,
@@ -163,19 +163,19 @@ func https_serve(port int, id string, cert tls.Certificate,
 			NextProtos: []string{"h2", "http/1.1", "http/1.0"},
 		}
 	}
-	tls_config.Rand = rand.Reader
+	tlsConfig.Rand = rand.Reader
 	portStr := fmt.Sprintf(":%d", port)
 	srv := &http.Server{
 		Addr:      portStr,
 		Handler:   mux,
-		TLSConfig: tls_config,
+		TLSConfig: tlsConfig,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn,
 			http.Handler), 0),
 	}
-	log.Fatal(srv.ListenAndServeTLS(server_cert_pem, server_key_pem))
+	log.Fatal(srv.ListenAndServeTLS(serverCertPem, serverKeyPem))
 }
 
-func udp_serve(port int, id string) {
+func udpServe(port int, id string) {
 	portStr := fmt.Sprintf("0.0.0.0:%d", port)
 
 	pc, err := net.ListenPacket("udp", portStr)
@@ -203,44 +203,44 @@ func udp_serve(port int, id string) {
 func main() {
 	portPtr := flag.Int("port", 8080, "Port to listen on")
 	idPtr := flag.String("id", "1", "Server ID")
-	https_portPtr := flag.Int("https_port", -1,
+	httpsPortPtr := flag.Int("https_port", -1,
 		"HTTPS port to listen on, -1 is disabled.")
-	server_cert_pem := flag.String("cert", "",
+	serverCertPem := flag.String("cert", "",
 		"Server side PEM format certificate.")
-	server_key := flag.String("key", "", "Server side PEM format key.")
-	client_ca_cert_pem := flag.String("client_ca", "",
+	serverKey := flag.String("key", "", "Server side PEM format key.")
+	clientCaCertPem := flag.String("client_ca", "",
 		"Client side PEM format CA certificate.")
 
 	flag.Parse()
 
 	resp = fmt.Sprintf("%s", *idPtr)
 
-	http_setup(*idPtr)
+	httpSetup(*idPtr)
 
-	if *https_portPtr > -1 {
-		cert, err := tls.LoadX509KeyPair(*server_cert_pem, *server_key)
+	if *httpsPortPtr > -1 {
+		cert, err := tls.LoadX509KeyPair(*serverCertPem, *serverKey)
 		if err != nil {
-			fmt.Println("Error load server certificate and key.\n")
+			fmt.Println("Error load server certificate and key.")
 			os.Exit(1)
 		}
 		certpool := x509.NewCertPool()
-		if *client_ca_cert_pem != "" {
-			ca_pem, err := ioutil.ReadFile(*client_ca_cert_pem)
+		if *clientCaCertPem != "" {
+			caPem, err := ioutil.ReadFile(*clientCaCertPem)
 			if err != nil {
-				fmt.Println("Error load client side CA cert.\n")
+				fmt.Println("Error load client side CA cert.")
 				os.Exit(1)
 			}
-			if !certpool.AppendCertsFromPEM(ca_pem) {
+			if !certpool.AppendCertsFromPEM(caPem) {
 				fmt.Println("Can't parse client side certificate authority")
 				os.Exit(1)
 			}
 		} else {
 			certpool = nil
 		}
-		go https_serve(*https_portPtr, *idPtr, cert, certpool,
-			*server_cert_pem, *server_key)
+		go httpsServe(*httpsPortPtr, *idPtr, cert, certpool,
+			*serverCertPem, *serverKey)
 	}
 
-	go http_serve(*portPtr, *idPtr)
-	udp_serve(*portPtr, *idPtr)
+	go httpServe(*portPtr, *idPtr)
+	udpServe(*portPtr, *idPtr)
 }
