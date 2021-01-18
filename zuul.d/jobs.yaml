@@ -896,7 +896,7 @@
 
 - job:
     name: neutron-ovn-provider-v2-api
-    parent: ovn-octavia-provider-v2-dsvm-scenario
+    parent: ovn-octavia-provider-tempest-release
     description: Runs the neutron OVN provider driver for Octavia api test.
     voting: false
     timeout: 5400
@@ -925,7 +925,7 @@
 
 - job:
     name: neutron-ovn-provider-v2-scenario
-    parent: ovn-octavia-provider-v2-dsvm-scenario
+    parent: ovn-octavia-provider-tempest-release
     description: Runs the neutron OVN provider driver for Octavia scenario test.
     voting: false
     timeout: 5400
