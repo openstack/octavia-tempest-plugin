@@ -434,7 +434,6 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         parser.parse(pool[const.CREATED_AT])
         parser.parse(pool[const.UPDATED_AT])
         UUID(pool[const.ID])
-        self.assertEqual(const.OFFLINE, pool[const.OPERATING_STATUS])
         self.assertEqual(pool_protocol, pool[const.PROTOCOL])
         self.assertEqual(1, len(pool[const.LOADBALANCERS]))
         self.assertEqual(self.lb_id, pool[const.LOADBALANCERS][0][const.ID])
@@ -443,6 +442,7 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
             self.assertEqual(listener_id, pool[const.LISTENERS][0][const.ID])
         else:
             self.assertEmpty(pool[const.LISTENERS])
+            self.assertEqual(const.OFFLINE, pool[const.OPERATING_STATUS])
         self.assertEqual(algorithm, pool[const.LB_ALGORITHM])
 
         if session_persistence == const.SESSION_PERSISTENCE_APP_COOKIE:
@@ -510,6 +510,13 @@ class PoolScenarioTest(test_base.LoadBalancerBaseTest):
         self.assertEqual(new_description, pool[const.DESCRIPTION])
         self.assertTrue(pool[const.ADMIN_STATE_UP])
         self.assertEqual(algorithm, pool[const.LB_ALGORITHM])
+        if listener_protocol is not None:
+            pool = waiters.wait_for_status(
+                self.mem_pool_client.show_pool,
+                pool[const.ID], const.OPERATING_STATUS,
+                const.ONLINE,
+                CONF.load_balancer.build_interval,
+                CONF.load_balancer.build_timeout)
 
         if session_persistence == const.SESSION_PERSISTENCE_APP_COOKIE:
             self.assertIsNotNone(pool.get(const.SESSION_PERSISTENCE))

@@ -443,6 +443,8 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                 const.ONLINE,
                 CONF.load_balancer.build_interval,
                 CONF.load_balancer.build_timeout)
+        else:
+            self.assertEqual(const.OFFLINE, pool[const.OPERATING_STATUS])
 
         self.assertEqual(pool_name, pool[const.NAME])
         self.assertEqual(pool_description, pool[const.DESCRIPTION])
