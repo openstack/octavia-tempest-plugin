@@ -928,9 +928,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             listener_id, pool_id = self._listener_pool_create(
                 const.TCP, 60092,
                 pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)
+            # Without a delay this can trigger a "Cannot assign requested
+            # address" warning setting the source port, leading to failure
             self._test_basic_traffic(
                 const.TCP, 60092, listener_id, pool_id, traffic_member_count=1,
-                persistent=False, source_port=60092)
+                persistent=False, source_port=60092, delay=0.2)
         except exceptions.NotImplemented as e:
             message = ("The configured provider driver '{driver}' "
                        "does not support a feature required for this "
