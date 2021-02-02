@@ -245,10 +245,16 @@ AMPHORA_PROVIDERS = ['amphora', 'amphorav2', 'octavia']
 
 # Flavor capabilities
 LOADBALANCER_TOPOLOGY = 'loadbalancer_topology'
+COMPUTE_FLAVOR = 'compute_flavor'
 
 # Availability zone capabilities
 COMPUTE_ZONE = 'compute_zone'
 MANAGEMENT_NETWORK = 'management_network'
+
+# Compute flavors
+RAM = 'ram'
+VCPUS = 'vcpus'
+DISK = 'disk'
 
 # API valid fields
 SHOW_LOAD_BALANCER_RESPONSE_FIELDS = (

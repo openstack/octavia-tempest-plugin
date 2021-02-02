@@ -287,6 +287,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             lb_admin_prefix.AvailabilityZoneClient())
         cls.mem_availability_zone_client = (
             cls.os_roles_lb_member.load_balancer_v2.AvailabilityZoneClient())
+        cls.os_admin_compute_flavors_client = cls.os_admin.flavors_client
 
     @classmethod
     def resource_setup(cls):
