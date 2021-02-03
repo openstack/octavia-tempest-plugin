@@ -258,9 +258,17 @@
     name: octavia-dsvm-live-two-node-base
     parent: octavia-dsvm-base
     nodeset: octavia-two-node
-    timeout: 9000
+    timeout: 10800
     required-projects:
       - openstack/diskimage-builder
+    roles:
+      - zuul: openstack/neutron-tempest-plugin
+    pre-run: playbooks/prepare-ovn-multinode.yaml
+    vars:
+      zuul_copy_output:
+        '/var/log/dib-build': logs
+        '/var/log/octavia-amphora.log': logs
+        '/var/log/octavia-tenant-traffic.log': logs
     host-vars:
       controller:
         configure_swap_size: 8192
@@ -300,10 +308,6 @@
           octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
         tempest_plugins:
           - octavia-tempest-plugin
-        zuul_copy_output:
-          '/var/log/dib-build' : logs
-          '/var/log/octavia-amphora.log': logs
-          '/var/log/octavia-tenant-traffic.log': logs
       controller2:
         configure_swap_size: 8192
         devstack_localrc:
@@ -340,13 +344,8 @@
           OCTAVIA_USE_PREGENERATED_CERTS: true
           OCTAVIA_MGMT_PORT_IP: 192.168.0.4
         devstack_plugins:
+          neutron: https://opendev.org/openstack/neutron.git
           octavia: https://opendev.org/openstack/octavia.git
-          octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
-        tempest_plugins:
-          - octavia-tempest-plugin
-        zuul_copy_output:
-          '/var/log/octavia-amphora.log': logs
-          '/var/log/octavia-tenant-traffic.log': logs
     group-vars:
       controller:
         devstack_local_conf:
@@ -358,6 +357,9 @@
                 api_v1_enabled: False
               amphora_agent:
                 forward_all_logs: True
+            "/$NEUTRON_CORE_PLUGIN_CONF":
+              ovn:
+                enable_distributed_floating_ip: True
         devstack_services:
           base: false
           barbican: false
@@ -381,11 +383,16 @@
           o-cw: true
           o-hm: true
           o-hk: true
+          ovn-controller: true
+          ovn-northd: true
+          ovn-vswitchd: true
+          ovsdb-server: true
           placement-api: true
-          q-agt: true
-          q-dhcp: true
-          q-l3: true
-          q-meta: true
+          q-agt: false
+          q-dhcp: false
+          q-l3: false
+          q-meta: false
+          q-ovn-metadata-agent: true
           q-svc: true
           rabbit: true
           tempest: true
@@ -400,6 +407,9 @@
                 api_v1_enabled: False
               amphora_agent:
                 forward_all_logs: True
+            "/$NEUTRON_CORE_PLUGIN_CONF":
+              ovn:
+                enable_distributed_floating_ip: True
         devstack_services:
           c-vol: false
           c-bak: false
@@ -408,7 +418,16 @@
           o-cw: true
           o-hm: true
           o-hk: true
-          q-agt: true
+          ovn-controller: true
+          ovn-northd: false
+          ovn-vswitchd: true
+          ovsdb-server: true
+          q-fake: true
+          q-agt: false
+          q-dhcp: false
+          q-l3: false
+          q-meta: false
+          q-ovn-metadata-agent: true
 
 - job:
     name: octavia-dsvm-noop-base
@@ -614,19 +633,30 @@
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-two-node
     parent: octavia-dsvm-live-two-node-base
-    vars:
-      tempest_concurrency: 2
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
-      tox_envlist: all
-      devstack_local_conf:
-        post-config:
+    group-vars:
+      controller:
+        tempest_concurrency: 2
+        tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
+        tox_envlist: all
+        devstack_local_conf:
+          post-config:
             $OCTAVIA_CONF:
               nova:
                 enable_anti_affinity: True
-        test-config:
-          "$TEMPEST_CONFIG":
-            load_balancer:
-              loadbalancer_topology: ACTIVE_STANDBY
+              controller_worker:
+                loadbalancer_topology: ACTIVE_STANDBY
+          test-config:
+            "$TEMPEST_CONFIG":
+              load_balancer:
+                loadbalancer_topology: ACTIVE_STANDBY
+      subnode:
+        devstack_local_conf:
+          post-config:
+            $OCTAVIA_CONF:
+              nova:
+                enable_anti_affinity: True
+              controller_worker:
+                loadbalancer_topology: ACTIVE_STANDBY
 
 - job:
     name: octavia-v2-dsvm-py2-scenario-centos-7
