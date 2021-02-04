@@ -179,6 +179,13 @@ OctaviaGroup = [
     cfg.StrOpt('member_2_ipv6_subnet_cidr',
                default='fd77:1457:4cf0:26a8::/64',
                help='CIDR format subnet to use for the member 1 ipv6 subnet.'),
+    cfg.StrOpt('default_router',
+               default='router1',
+               help='The default router connected to the public network.'),
+    cfg.StrOpt('default_ipv6_subnetpool',
+               default='shared-default-subnetpool-v6',
+               help='The default IPv6 subnetpool to use when creating the '
+                    'IPv6 VIP subnet.'),
     # Amphora specific options
     cfg.StrOpt('amphora_ssh_user',
                default='ubuntu',

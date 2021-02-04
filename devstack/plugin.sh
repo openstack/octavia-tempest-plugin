@@ -24,6 +24,15 @@ function build_backend_test_server {
         ${DEST}/octavia-tempest-plugin/octavia_tempest_plugin/contrib/test_server/test_server.go
 }
 
+function _configure_tempest {
+    if [ -n "$Q_ROUTER_NAME" ]; then
+        iniset $TEMPEST_CONFIG load_balancer default_router "$Q_ROUTER_NAME"
+    fi
+    if [ -n "$SUBNETPOOL_NAME_V6" ]; then
+        iniset $TEMPEST_CONFIG load_balancer default_ipv6_subnetpool "$SUBNETPOOL_NAME_V6"
+    fi
+}
+
 if [[ "$1" == "stack" ]]; then
     case "$2" in
         install)
@@ -40,6 +49,7 @@ if [[ "$1" == "stack" ]]; then
         test-config)
             echo_summary "Building backend test server"
             build_backend_test_server
+            _configure_tempest
             ;;
     esac
 fi
