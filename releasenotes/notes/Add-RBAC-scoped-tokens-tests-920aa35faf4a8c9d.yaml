@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Added API test support for keystone default roles and scoped tokens.
+issues:
+  - |
+    Currently the API tests will not pass with the
+    keystone_default_roles-policy.yaml override file. This is due to the
+    tempest framework credentials do not yet support token scopes.
+    This issue is tracked in https://bugs.launchpad.net/tempest/+bug/1917168
+    Once that bug is fixed, octavia-tempest-plugin can be updated to use the
+    required scope in the test credentials.
+upgrade:
+  - |
+    Two new tempest.conf settings enable/disable keystone default roles and
+    scoped token testing, [enforce_scope] octavia = True/False and
+    [load_balancer] enforce_new_defaults = True/False.

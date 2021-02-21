@@ -401,13 +401,23 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         else:
             pool_kwargs[const.LOADBALANCER_ID] = self.lb_id
 
-        # Test that a user without the load balancer role cannot
-        # create a pool
+        # Test that a user without the loadbalancer role cannot
+        # create a pool.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.pool_client.create_pool,
-                **pool_kwargs)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_create_RBAC_enforcement(
+                'pool_client', 'create_pool',
+                expected_allowed,
+                status_method=self.mem_lb_client.show_loadbalancer,
+                obj_id=self.lb_id, **pool_kwargs)
 
         # This is a special case as the reference driver does not support
         # SOURCE-IP-PORT. Since it runs with not_implemented_is_error, we must
@@ -585,6 +595,9 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         * List the pools filtering to one of the three.
         * List the pools filtered, one field, and sorted.
         """
+        # IDs of pools created in the test
+        test_ids = []
+
         if (algorithm == const.LB_ALGORITHM_SOURCE_IP_PORT and not
             self.mem_listener_client.is_version_supported(
                 self.api_version, '2.13')):
@@ -655,6 +668,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+        test_ids.append(pool1[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -694,6 +708,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+        test_ids.append(pool2[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -733,20 +748,68 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+        test_ids.append(pool3[const.ID])
 
-        # Test that a different user cannot list pools
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.pool_client
-            primary = member2_client.list_pools(
-                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
-            self.assertEqual(0, len(primary))
-
-        # Test that a user without the lb member role cannot list load
-        # balancers
+        # Test that a different users cannot see the lb_member pools.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_primary', 'os_roles_lb_member2',
+                                'os_roles_lb_observer']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_primary',
+                                'os_roles_lb_member2', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.pool_client.list_pools)
+            expected_allowed = ['os_roles_lb_observer', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement_count(
+                'pool_client', 'list_pools', expected_allowed, 0,
+                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
+
+        # Test credentials that should see these pools can see them.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_member',
+                                'os_roles_lb_global_observer']
+        if expected_allowed:
+            self.check_list_IDs_RBAC_enforcement(
+                'pool_client', 'list_pools', expected_allowed, test_ids,
+                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
+
+        # Test that users without the lb member role cannot list pools.
+        # Note: non-owners can still call this API, they will just get the list
+        #       of pools for their project (zero). The above tests
+        #       are intended to cover the cross project use case.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
+                                'os_roles_lb_member', 'os_roles_lb_member2',
+                                'os_roles_lb_observer',
+                                'os_roles_lb_global_observer']
+        # Note: os_admin is here because it evaluaties to "project_admin"
+        #       in oslo_policy and since keystone considers "project_admin"
+        #       a superscope of "project_reader". This means it can read
+        #       objects in the "admin" credential's project.
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_primary', 'os_system_admin',
+                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'pool_client', 'list_pools', expected_allowed,
+                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
 
         # Check the default sort order, created_at
         pools = self.mem_pool_client.list_pools(
@@ -1062,33 +1125,24 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.SESSION_PERSISTENCE_SOURCE_IP,
                              pool[const.SESSION_PERSISTENCE][const.TYPE])
 
-        # Test that a user with lb_admin role can see the pool
+        # Test that the appropriate users can see or not see the pool
+        # based on the API RBAC.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            pool_client = self.os_roles_lb_admin.pool_client
-            pool_adm = pool_client.show_pool(pool[const.ID])
-            self.assertEqual(pool_name, pool_adm[const.NAME])
-
-        # Test that a user with cloud admin role can see the pool
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            adm = self.os_admin.pool_client.show_pool(
-                pool[const.ID])
-            self.assertEqual(pool_name, adm[const.NAME])
-
-        # Test that a different user, with load balancer member role, cannot
-        # see this pool
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.pool_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.show_pool,
-                              pool[const.ID])
-
-        # Test that a user, without the load balancer member role, cannot
-        # show pools
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.pool_client.show_pool,
-                pool[const.ID])
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'pool_client', 'show_pool',
+                expected_allowed, pool[const.ID])
 
     @decorators.idempotent_id('d73755fe-ba3a-4248-9543-8e167a5aa7f4')
     def test_HTTP_LC_pool_update(self):
@@ -1306,28 +1360,22 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(const.SESSION_PERSISTENCE_SOURCE_IP,
                              pool[const.SESSION_PERSISTENCE][const.TYPE])
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this command
+        # Test that a user, without the loadbalancer member role, cannot
+        # update this pool.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.pool_client.update_pool,
-                pool[const.ID], admin_state_up=True)
-
-        # Assert we didn't go into PENDING_*
-        pool_check = self.mem_pool_client.show_pool(
-            pool[const.ID])
-        self.assertEqual(const.ACTIVE,
-                         pool_check[const.PROVISIONING_STATUS])
-        self.assertFalse(pool_check[const.ADMIN_STATE_UP])
-
-        # Test that a user, without the load balancer member role, cannot
-        # update this pool
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.pool_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.update_pool,
-                              pool[const.ID], admin_state_up=True)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'pool_client', 'update_pool',
+                expected_allowed, None, None, pool[const.ID],
+                admin_state_up=True)
 
         # Assert we didn't go into PENDING_*
         pool_check = self.mem_pool_client.show_pool(
@@ -1609,21 +1657,21 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
 
-        # Test that a user without the load balancer role cannot
-        # delete this pool
+        # Test that a user without the loadbalancer role cannot delete this
+        # pool.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.pool_client.delete_pool,
-                pool[const.ID])
-
-        # Test that a different user, with the load balancer member role
-        # cannot delete this pool
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.pool_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.delete_pool,
-                              pool[const.ID])
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_delete_RBAC_enforcement(
+                'pool_client', 'delete_pool',
+                expected_allowed, None, None, pool[const.ID])
 
         self.mem_pool_client.delete_pool(pool[const.ID])
 

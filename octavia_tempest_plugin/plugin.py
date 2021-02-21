@@ -38,6 +38,8 @@ class OctaviaTempestPlugin(plugins.TempestPlugin):
         config.register_opt_group(conf,
                                   project_config.lb_feature_enabled_group,
                                   project_config.LBFeatureEnabledGroup)
+        config.register_opt_group(conf, project_config.enforce_scope_group,
+                                  project_config.EnforceScopeGroup)
 
     def get_opt_lists(self):
         return [

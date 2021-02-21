@@ -86,6 +86,12 @@ OctaviaGroup = [
     cfg.StrOpt('admin_role',
                default='load-balancer_admin',
                help='The load balancing admin RBAC role.'),
+    cfg.StrOpt('observer_role',
+               default='load-balancer_observer',
+               help='The load balancing observer RBAC role.'),
+    cfg.StrOpt('global_observer_role',
+               default='load-balancer_global_observer',
+               help='The load balancing global observer RBAC role.'),
     cfg.IntOpt('scp_connection_timeout',
                default=5,
                help='Timeout in seconds to wait for a '
@@ -97,10 +103,13 @@ OctaviaGroup = [
                default='octavia',
                help='The provider driver to use for the tests.'),
     cfg.StrOpt('RBAC_test_type', default=const.ADVANCED,
-               choices=[const.ADVANCED, const.OWNERADMIN, const.NONE],
+               choices=[const.ADVANCED, const.KEYSTONE_DEFAULT_ROLES,
+                        const.OWNERADMIN, const.NONE],
                help='Type of RBAC tests to run. "advanced" runs the octavia '
                     'default RBAC tests. "owner_or_admin" runs the legacy '
-                    'owner or admin tests. "none" disables the RBAC tests.'),
+                    'owner or admin tests. "keystone_default_roles" runs the '
+                    'tests using only the keystone default roles. "none" '
+                    'disables the RBAC tests.'),
     cfg.DictOpt('enabled_provider_drivers',
                 help=('A comma separated list of dictionaries of the '
                       'enabled provider driver names and descriptions. '
@@ -217,6 +226,15 @@ OctaviaGroup = [
                default='/opt/octavia-tempest-plugin/test_server.bin',
                help='Filesystem path to the test web server that will be '
                     'installed in the web server VMs.'),
+    # RBAC related options
+    # Note: Also see the enforce_scope section (from tempest) for Octavia API
+    #       scope checking setting.
+    cfg.BoolOpt('enforce_new_defaults',
+                default=False,
+                help='Does the load-balancer service API policies enforce '
+                     'the new keystone default roles? This configuration '
+                     'value should be same as octavia.conf: '
+                     '[oslo_policy].enforce_new_defaults option.'),
 ]
 
 lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',
@@ -260,4 +278,16 @@ LBFeatureEnabledGroup = [
                 help="Whether the log offload tests will run. These require "
                      "the tempest instance have access to the log files "
                      "specified in the tempest configuration."),
+]
+
+# Extending this enforce_scope group defined in tempest
+enforce_scope_group = cfg.OptGroup(name="enforce_scope",
+                                   title="OpenStack Services with "
+                                         "enforce scope")
+EnforceScopeGroup = [
+    cfg.BoolOpt('octavia',
+                default=False,
+                help='Does the load-balancer service API policies enforce '
+                     'scope? This configuration value should be same as '
+                     'octavia.conf: [oslo_policy].enforce_scope option.'),
 ]

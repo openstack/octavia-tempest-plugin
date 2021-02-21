@@ -143,13 +143,23 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
             listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
 
-        # Test that a user without the load balancer role cannot
-        # create a listener
+        # Test that a user without the loadbalancer role cannot
+        # create a listener.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.listener_client.create_listener,
-                **listener_kwargs)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_create_RBAC_enforcement(
+                'listener_client', 'create_listener',
+                expected_allowed,
+                status_method=self.mem_lb_client.show_loadbalancer,
+                obj_id=self.lb_id, **listener_kwargs)
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
 
@@ -378,6 +388,9 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         * List the listeners filtering to one of the three.
         * List the listeners filtered, one field, and sorted.
         """
+        # IDs of listeners created in the test
+        test_ids = []
+
         lb_name = data_utils.rand_name("lb_member_lb2_listener-list")
         lb = self.mem_lb_client.create_loadbalancer(
             name=lb_name, provider=CONF.load_balancer.provider,
@@ -427,6 +440,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+        test_ids.append(listener1[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -465,6 +479,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+        test_ids.append(listener2[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -503,6 +518,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
+        test_ids.append(listener3[const.ID])
 
         if not CONF.load_balancer.test_with_noop:
             # Wait for the enabled listeners to come ONLINE
@@ -517,18 +533,67 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 CONF.load_balancer.build_interval,
                 CONF.load_balancer.build_timeout)
 
-        # Test that a different user cannot list listeners
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.listener_client
-            primary = member2_client.list_listeners(
-                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
-            self.assertEqual(0, len(primary))
-
-        # Test that a user without the lb member role cannot list listeners
+        # Test that a different users cannot see the lb_member listeners.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_primary', 'os_roles_lb_member2',
+                                'os_roles_lb_observer']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_primary',
+                                'os_roles_lb_member2', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.listener_client.list_listeners)
+            expected_allowed = ['os_roles_lb_observer', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement_count(
+                'listener_client', 'list_listeners', expected_allowed, 0,
+                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
+
+        # Test credentials that should see these listeners can see them.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_member',
+                                'os_roles_lb_global_observer']
+        if expected_allowed:
+            self.check_list_IDs_RBAC_enforcement(
+                'listener_client', 'list_listeners', expected_allowed,
+                test_ids,
+                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
+
+        # Test that users without the lb member role cannot list listeners.
+        # Note: non-owners can still call this API, they will just get the list
+        #       of health monitors for their project (zero). The above tests
+        #       are intended to cover the cross project use case.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
+                                'os_roles_lb_member', 'os_roles_lb_member2',
+                                'os_roles_lb_observer',
+                                'os_roles_lb_global_observer']
+        # Note: os_admin is here because it evaluaties to "project_admin"
+        #       in oslo_policy and since keystone considers "project_admin"
+        #       a superscope of "project_reader". This means it can read
+        #       objects in the "admin" credential's project.
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_primary', 'os_system_admin',
+                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'listener_client', 'list_listeners', expected_allowed,
+                query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
 
         # Check the default sort order, created_at
         listeners = self.mem_listener_client.list_listeners(
@@ -786,33 +851,24 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 self.api_version, '2.12'):
             self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
-        # Test that a user with lb_admin role can see the listener
+        # Test that the appropriate users can see or not see the listener
+        # based on the API RBAC.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            listener_client = self.os_roles_lb_admin.listener_client
-            listener_adm = listener_client.show_listener(listener[const.ID])
-            self.assertEqual(listener_name, listener_adm[const.NAME])
-
-        # Test that a user with cloud admin role can see the listener
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            adm = self.os_admin.listener_client.show_listener(
-                listener[const.ID])
-            self.assertEqual(listener_name, adm[const.NAME])
-
-        # Test that a different user, with load balancer member role, cannot
-        # see this listener
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.listener_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.show_listener,
-                              listener[const.ID])
-
-        # Test that a user, without the load balancer member role, cannot
-        # show listeners
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.listener_client.show_listener,
-                listener[const.ID])
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'listener_client', 'show_listener',
+                expected_allowed, listener[const.ID])
 
     @decorators.idempotent_id('aaae0298-5778-4c7e-a27a-01549a71b319')
     def test_http_listener_update(self):

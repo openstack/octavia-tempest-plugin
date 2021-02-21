@@ -15,7 +15,6 @@
 from oslo_log import log as logging
 from tempest import config
 from tempest.lib import decorators
-from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
@@ -44,10 +43,25 @@ class ProviderAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer role cannot
         # list providers.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = [
+                'os_admin', 'os_primary', 'os_roles_lb_admin',
+                'os_roles_lb_observer', 'os_roles_lb_global_observer',
+                'os_roles_lb_member', 'os_roles_lb_member2']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_primary', 'os_system_admin',
+                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.provider_client.list_providers)
+            expected_allowed = [
+                'os_system_admin', 'os_system_reader', 'os_roles_lb_observer',
+                'os_roles_lb_global_observer', 'os_roles_lb_admin',
+                'os_roles_lb_member', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'provider_client', 'list_providers', expected_allowed)
 
         providers = self.mem_provider_client.list_providers()
 

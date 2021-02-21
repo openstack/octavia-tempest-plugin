@@ -183,6 +183,7 @@ PATH = 'PATH'
 
 # RBAC options
 ADVANCED = 'advanced'
+KEYSTONE_DEFAULT_ROLES = 'keystone_default_roles'
 OWNERADMIN = 'owner_or_admin'
 NONE = 'none'
 
