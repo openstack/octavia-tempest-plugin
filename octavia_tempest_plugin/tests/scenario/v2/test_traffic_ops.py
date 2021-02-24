@@ -15,6 +15,7 @@
 import datetime
 import ipaddress
 import shlex
+import socket
 import testtools
 import time
 
@@ -90,7 +91,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
 
     @classmethod
     def _listener_pool_create(cls, protocol, protocol_port,
-                              pool_algorithm=const.LB_ALGORITHM_ROUND_ROBIN):
+                              pool_algorithm=const.LB_ALGORITHM_ROUND_ROBIN,
+                              insert_headers_dic=None):
         if (protocol == const.UDP and
                 not cls.mem_listener_client.is_version_supported(
                     cls.api_version, '2.1')):
@@ -112,6 +114,10 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             # haproxy process and use haproxy>=1.8:
             const.CONNECTION_LIMIT: 200,
         }
+
+        if insert_headers_dic:
+            listener_kwargs[const.INSERT_HEADERS] = insert_headers_dic
+
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
@@ -1322,3 +1328,70 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                                  protocol_port)
         self.assertConsistentResponse(
             (None, None), url_for_vip, repeat=3, expect_connection_error=True)
+
+    @decorators.idempotent_id('d3a28e76-76bc-11eb-a7c3-74e5f9e2a801')
+    def test_insert_headers(self):
+        # Create listener, enable insert of "X_FORWARDED_FOR" HTTP header
+        listener_port = 102
+        listener_id, pool_id = self._listener_pool_create(
+            const.HTTP, listener_port, insert_headers_dic={
+                const.X_FORWARDED_FOR: "true"})
+        self._test_basic_traffic(
+            const.HTTP, listener_port, listener_id, pool_id)
+
+        # Initiate HTTP traffic
+        test_url = 'http://{}:{}/request'.format(
+            self.lb_vip_address, listener_port)
+        data = self.validate_URL_response(test_url)
+        LOG.info('Received payload is: {}'.format(data))
+
+        # Detect source IP that is used to create TCP socket toward LB_VIP.
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((self.lb_vip_address, listener_port))
+            client_source_ip = s.getsockname()[0]
+            s.close()
+        except Exception:
+            LOG.exception('Failed to initiate TCP socket toward LB_VIP')
+            raise Exception('LB_VIP is not available')
+
+        # Function needed to parse the received payload from backend.
+        # Returns dictionary of relevant headers if found.
+        def _data_parser(payload, relevant_headers):
+            retrieved_headers = {}
+            for line in payload.split('\n'):
+                try:
+                    key, value = line.split(': ', 1)
+                except ValueError:
+                    continue
+                if key in relevant_headers:
+                    retrieved_headers[key] = value.lower()
+            return retrieved_headers
+
+        # Make sure that "X_FORWARDED_FOR" header was inserted with
+        # expected IP (client_source_ip). Should present in data.
+        expected_headers = {const.X_FORWARDED_FOR: client_source_ip}
+        received_headers = _data_parser(data, expected_headers)
+        self.assertEqual(expected_headers, received_headers)
+
+        # Update listener to insert: "X_FORWARDED_PORT" and
+        # "X_FORWARDED_PROTO"type headers.
+        listener_kwargs = {
+            const.LISTENER_ID: listener_id,
+            const.INSERT_HEADERS: {
+                const.X_FORWARDED_PORT: "true",
+                const.X_FORWARDED_PROTO: "true"}}
+        self.mem_listener_client.update_listener(**listener_kwargs)
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.check_interval,
+                                CONF.load_balancer.check_timeout)
+
+        # Initiate HTTP traffic
+        data = self.validate_URL_response(test_url)
+        LOG.info('Received payload is: {}'.format(data))
+        expected_headers = {const.X_FORWARDED_PORT: '{}'.format(
+            listener_port), const.X_FORWARDED_PROTO: const.HTTP.lower()}
+        received_headers = _data_parser(data, expected_headers)
+        self.assertEqual(expected_headers, received_headers)
