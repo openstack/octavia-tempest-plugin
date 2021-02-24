@@ -236,11 +236,14 @@ func main() {
 	idPtr := flag.String("id", "1", "Server ID")
 	httpsPortPtr := flag.Int("https_port", -1,
 		"HTTPS port to listen on, -1 is disabled.")
+	httpsClientAuthPortPtr := flag.Int("https_client_auth_port", -1,
+		"HTTPS with client authentication port to listen on, -1 is disabled.")
 	serverCertPem := flag.String("cert", "",
-		"Server side PEM format certificate.")
-	serverKey := flag.String("key", "", "Server side PEM format key.")
+		"Server side PEM format certificate file path.")
+	serverKey := flag.String("key", "",
+        "Server side PEM format key file path.")
 	clientCaCertPem := flag.String("client_ca", "",
-		"Client side PEM format CA certificate.")
+		"Client auth PEM format CA certificate file path.")
 
 	flag.Parse()
 
@@ -254,21 +257,27 @@ func main() {
 			fmt.Println("Error load server certificate and key.")
 			os.Exit(1)
 		}
-		certpool := x509.NewCertPool()
-		if *clientCaCertPem != "" {
-			caPem, err := ioutil.ReadFile(*clientCaCertPem)
-			if err != nil {
-				fmt.Println("Error load client side CA cert.")
-				os.Exit(1)
-			}
-			if !certpool.AppendCertsFromPEM(caPem) {
-				fmt.Println("Can't parse client side certificate authority")
-				os.Exit(1)
-			}
-		} else {
-			certpool = nil
+		go httpsServe(*httpsPortPtr, *idPtr, cert, nil,
+			*serverCertPem, *serverKey)
+	}
+
+	if *httpsClientAuthPortPtr > -1 {
+		cert, err := tls.LoadX509KeyPair(*serverCertPem, *serverKey)
+		if err != nil {
+			fmt.Println("Error load server certificate and key.\n")
+			os.Exit(1)
 		}
-		go httpsServe(*httpsPortPtr, *idPtr, cert, certpool,
+		certpool := x509.NewCertPool()
+		caPem, err := ioutil.ReadFile(*clientCaCertPem)
+		if err != nil {
+			fmt.Println("Error loading client auth CA cert.\n")
+			os.Exit(1)
+		}
+		if !certpool.AppendCertsFromPEM(caPem) {
+			fmt.Println("Can't parse client auth certificate authority")
+			os.Exit(1)
+		}
+		go httpsServe(*httpsClientAuthPortPtr, *idPtr, cert, certpool,
 			*serverCertPem, *serverKey)
 	}
 
