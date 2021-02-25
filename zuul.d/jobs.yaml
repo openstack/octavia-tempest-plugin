@@ -475,11 +475,6 @@
     override-checkout: stable/train
 
 - job:
-    name: octavia-v2-dsvm-noop-api-stable-stein
-    parent: octavia-v2-dsvm-noop-api
-    override-checkout: stable/stein
-
-- job:
     name: octavia-v2-dsvm-scenario
     parent: octavia-dsvm-live-base
     vars:
@@ -542,20 +537,6 @@
     name: octavia-v2-dsvm-scenario-stable-train
     parent: octavia-v2-dsvm-scenario
     override-checkout: stable/train
-
-- job:
-    name: octavia-v2-dsvm-scenario-stable-stein
-    parent: octavia-v2-dsvm-scenario
-    override-checkout: stable/stein
-    required-projects:
-      - name: openstack/diskimage-builder
-        override-checkout: 2.30.0
-    vars:
-      devstack_local_conf:
-        test-config:
-          "$TEMPEST_CONFIG":
-            loadbalancer-feature-enabled:
-              log_offload_enabled: False
 
 # Legacy jobs for the transition to the act-stdby two node jobs
 - job:
@@ -683,14 +664,6 @@
     override-checkout: stable/train
 
 - job:
-    name: octavia-v2-dsvm-tls-barbican-stable-stein
-    parent: octavia-v2-dsvm-tls-barbican
-    override-checkout: stable/stein
-    required-projects:
-      - name: openstack/diskimage-builder
-        override-checkout: 2.30.0
-
-- job:
     name: octavia-v2-dsvm-tls-barbican-stable-rocky
     parent: octavia-v2-dsvm-tls-barbican
     nodeset: openstack-single-node-xenial
@@ -736,14 +709,6 @@
     name: octavia-v2-dsvm-spare-pool-stable-train
     parent: octavia-v2-dsvm-spare-pool
     override-checkout: stable/train
-
-- job:
-    name: octavia-v2-dsvm-spare-pool-stable-stein
-    parent: octavia-v2-dsvm-spare-pool
-    override-checkout: stable/stein
-    required-projects:
-      - name: openstack/diskimage-builder
-        override-checkout: 2.30.0
 
 - job:
     name: octavia-v2-dsvm-cinder-amphora
@@ -883,14 +848,6 @@
     name: octavia-v2-act-stdby-dsvm-scenario-stable-train
     parent: octavia-v2-act-stdby-dsvm-scenario
     override-checkout: stable/train
-
-- job:
-    name: octavia-v2-act-stdby-dsvm-scenario-stable-stein
-    parent: octavia-v2-act-stdby-dsvm-scenario
-    override-checkout: stable/stein
-    required-projects:
-      - name: openstack/diskimage-builder
-        override-checkout: 2.30.0
 
 ######### Third party jobs ##########
 
