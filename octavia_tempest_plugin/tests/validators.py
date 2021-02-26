@@ -284,6 +284,9 @@ class ValidatorsMixin(test.BaseTestCase):
             HTTPS_verify, requests_session=requests_session,
             source_port=source_port)
 
+        if source_port:
+            LOG.debug('Using source port %s for request(s)', source_port)
+
         response_counts = {}
         # Send a number requests to lb vip
         for i in range(repeat):
