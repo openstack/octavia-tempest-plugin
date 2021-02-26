@@ -144,9 +144,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         return listener[const.ID], pool[const.ID]
 
     def _test_basic_traffic(
-            self, protocol, protocol_port, listener_id, pool_id,
-            persistent=True, traffic_member_count=2, source_port=None,
-            delay=None):
+            self, protocol, protocol_port, pool_id, persistent=True,
+            traffic_member_count=2, source_port=None, delay=None):
         """Tests sending traffic through a loadbalancer
 
         * Set up members on a loadbalancer.
@@ -210,15 +209,15 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('6751135d-e15a-4e22-89f4-bfcc3408d424')
     def test_basic_http_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(const.HTTP, 80)
-        self._test_basic_traffic(const.HTTP, 80, listener_id, pool_id)
+        pool_id = self._listener_pool_create(const.HTTP, 80)[1]
+        self._test_basic_traffic(const.HTTP, 80, pool_id)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('332a08e0-eff1-4c19-b46c-bf87148a6d84')
     def test_basic_tcp_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(const.TCP, 81)
-        self._test_basic_traffic(const.TCP, 81, listener_id, pool_id,
+        pool_id = self._listener_pool_create(const.TCP, 81)[1]
+        self._test_basic_traffic(const.TCP, 81, pool_id,
                                  persistent=False)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
@@ -229,11 +228,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 self.api_version, '2.1'):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
-        listener_id, pool_id = self._listener_pool_create(const.UDP, 8080)
-        self._test_basic_traffic(const.UDP, 8080, listener_id, pool_id)
+        pool_id = self._listener_pool_create(const.UDP, 8080)[1]
+        self._test_basic_traffic(const.UDP, 8080, pool_id)
 
     def _test_healthmonitor_traffic(self, protocol, protocol_port,
-                                    listener_id, pool_id, persistent=True):
+                                    pool_id, persistent=True):
         """Tests traffic is correctly routed based on healthmonitor status
 
         * Create three members:
@@ -468,13 +467,13 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
 
     @decorators.idempotent_id('a16f8eb4-a77c-4b0e-8b1b-91c237039713')
     def test_healthmonitor_http_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(const.HTTP, 82)
-        self._test_healthmonitor_traffic(const.HTTP, 82, listener_id, pool_id)
+        pool_id = self._listener_pool_create(const.HTTP, 82)[1]
+        self._test_healthmonitor_traffic(const.HTTP, 82, pool_id)
 
     @decorators.idempotent_id('22f00c34-343b-4aa9-90be-4567ecf85772')
     def test_healthmonitor_tcp_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(const.TCP, 83)
-        self._test_healthmonitor_traffic(const.TCP, 83, listener_id, pool_id,
+        pool_id = self._listener_pool_create(const.TCP, 83)[1]
+        self._test_healthmonitor_traffic(const.TCP, 83, pool_id,
                                          persistent=False)
 
     @decorators.idempotent_id('80b86513-1a76-4e42-91c9-cb23c879e536')
@@ -484,8 +483,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
 
-        listener_id, pool_id = self._listener_pool_create(const.UDP, 8081)
-        self._test_healthmonitor_traffic(const.UDP, 8081, listener_id, pool_id)
+        pool_id = self._listener_pool_create(const.UDP, 8081)[1]
+        self._test_healthmonitor_traffic(const.UDP, 8081, pool_id)
 
     @decorators.idempotent_id('3558186d-6dcd-4d9d-b7f7-adc190b66149')
     def test_http_l7policies_and_l7rules(self):
@@ -733,8 +732,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                                       headers={'reject': 'true'})
 
     def _test_mixed_ipv4_ipv6_members_traffic(self, protocol, protocol_port,
-                                              listener_id, pool_id,
-                                              persistent=True):
+                                              pool_id, persistent=True):
         """Tests traffic through a loadbalancer with IPv4 and IPv6 members.
 
         * Set up members on a loadbalancer.
@@ -801,9 +799,8 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                           'Mixed IPv4/IPv6 member test requires IPv6.')
     @decorators.idempotent_id('20b6b671-0101-4bed-a249-9af6ee3aa6d9')
     def test_mixed_ipv4_ipv6_members_http_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(const.HTTP, 85)
-        self._test_mixed_ipv4_ipv6_members_traffic(const.HTTP, 85,
-                                                   listener_id, pool_id)
+        pool_id = self._listener_pool_create(const.HTTP, 85)[1]
+        self._test_mixed_ipv4_ipv6_members_traffic(const.HTTP, 85, pool_id)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
@@ -811,10 +808,9 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                           'Mixed IPv4/IPv6 member test requires IPv6.')
     @decorators.idempotent_id('c442ae84-0abc-4470-8c7e-14a07e92a6fa')
     def test_mixed_ipv4_ipv6_members_tcp_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(const.TCP, 86)
+        pool_id = self._listener_pool_create(const.TCP, 86)[1]
         self._test_mixed_ipv4_ipv6_members_traffic(const.TCP, 86,
-                                                   listener_id, pool_id,
-                                                   persistent=False)
+                                                   pool_id, persistent=False)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
@@ -833,26 +829,26 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 self.api_version, '2.1'):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
-        listener_id, pool_id = self._listener_pool_create(const.UDP, 8082)
-        self._test_mixed_ipv4_ipv6_members_traffic(const.UDP, 8082,
-                                                   listener_id, pool_id)
+        pool_id = self._listener_pool_create(const.UDP, 8082)[1]
+        self._test_mixed_ipv4_ipv6_members_traffic(const.UDP, 8082, pool_id)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('a58063fb-b9e8-4cfc-8a8c-7b2e9e884e7a')
     def test_least_connections_http_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(
+        pool_id = self._listener_pool_create(
             const.HTTP, 87,
-            pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)
-        self._test_basic_traffic(const.HTTP, 87, listener_id, pool_id)
+            pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)[1]
+        self._test_basic_traffic(const.HTTP, 87, pool_id)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('e1056709-6a1a-4a15-80c2-5cbb8279f924')
     def test_least_connections_tcp_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(
-            const.TCP, 88, pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)
-        self._test_basic_traffic(const.TCP, 88, listener_id, pool_id,
+        pool_id = self._listener_pool_create(
+            const.TCP, 88,
+            pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)[1]
+        self._test_basic_traffic(const.TCP, 88, pool_id,
                                  persistent=False, delay=0.2)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
@@ -863,28 +859,28 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 self.api_version, '2.1'):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
-        listener_id, pool_id = self._listener_pool_create(
+        pool_id = self._listener_pool_create(
             const.UDP, 8083,
-            pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)
-        self._test_basic_traffic(const.UDP, 8083, listener_id, pool_id)
+            pool_algorithm=const.LB_ALGORITHM_LEAST_CONNECTIONS)[1]
+        self._test_basic_traffic(const.UDP, 8083, pool_id)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('881cc3e9-a011-4043-b0e3-a6185f736053')
     def test_source_ip_http_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(
+        pool_id = self._listener_pool_create(
             const.HTTP, 89,
-            pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)
-        self._test_basic_traffic(const.HTTP, 89, listener_id, pool_id,
+            pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)[1]
+        self._test_basic_traffic(const.HTTP, 89, pool_id,
                                  traffic_member_count=1, persistent=False)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('4568db0e-4243-4191-a822-9d327a55fa64')
     def test_source_ip_tcp_traffic(self):
-        listener_id, pool_id = self._listener_pool_create(
-            const.TCP, 90, pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)
-        self._test_basic_traffic(const.TCP, 90, listener_id, pool_id,
+        pool_id = self._listener_pool_create(
+            const.TCP, 90, pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)[1]
+        self._test_basic_traffic(const.TCP, 90, pool_id,
                                  traffic_member_count=1, persistent=False)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
@@ -895,10 +891,10 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 self.api_version, '2.1'):
             raise self.skipException('UDP listener support is only available '
                                      'in Octavia API version 2.1 or newer')
-        listener_id, pool_id = self._listener_pool_create(
+        pool_id = self._listener_pool_create(
             const.UDP, 8084,
-            pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)
-        self._test_basic_traffic(const.UDP, 8084, listener_id, pool_id,
+            pool_algorithm=const.LB_ALGORITHM_SOURCE_IP)[1]
+        self._test_basic_traffic(const.UDP, 8084, pool_id,
                                  traffic_member_count=1, persistent=False)
 
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
@@ -909,11 +905,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # this test. Since it runs with not_implemented_is_error, we must
         # handle this test case special.
         try:
-            listener_id, pool_id = self._listener_pool_create(
+            pool_id = self._listener_pool_create(
                 const.HTTP, 60091,
-                pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)
+                pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)[1]
             self._test_basic_traffic(
-                const.HTTP, 60091, listener_id, pool_id,
+                const.HTTP, 60091, pool_id,
                 traffic_member_count=1, persistent=False, source_port=60091)
         except exceptions.NotImplemented as e:
             message = ("The configured provider driver '{driver}' "
@@ -937,7 +933,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             # Without a delay this can trigger a "Cannot assign requested
             # address" warning setting the source port, leading to failure
             self._test_basic_traffic(
-                const.TCP, 60092, listener_id, pool_id, traffic_member_count=1,
+                const.TCP, 60092, pool_id, traffic_member_count=1,
                 persistent=False, source_port=60092, delay=0.2)
         except exceptions.NotImplemented as e:
             message = ("The configured provider driver '{driver}' "
@@ -959,11 +955,11 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # this test. Since it runs with not_implemented_is_error, we must
         # handle this test case special.
         try:
-            listener_id, pool_id = self._listener_pool_create(
+            pool_id = self._listener_pool_create(
                 const.UDP, 8085,
-                pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)
+                pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)[1]
             self._test_basic_traffic(
-                const.UDP, 8085, listener_id, pool_id, traffic_member_count=1,
+                const.UDP, 8085, pool_id, traffic_member_count=1,
                 persistent=False, source_port=8085)
         except exceptions.NotImplemented as e:
             message = ("The configured provider driver '{driver}' "
@@ -1337,7 +1333,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             const.HTTP, listener_port, insert_headers_dic={
                 const.X_FORWARDED_FOR: "true"})
         self._test_basic_traffic(
-            const.HTTP, listener_port, listener_id, pool_id)
+            const.HTTP, listener_port, pool_id)
 
         # Initiate HTTP traffic
         test_url = 'http://{}:{}/request'.format(
