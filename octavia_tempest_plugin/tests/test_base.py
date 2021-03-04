@@ -13,12 +13,14 @@
 #    under the License.
 
 import ipaddress
+import os
 import random
 import shlex
 import string
 import subprocess
 import tempfile
 
+from cryptography.hazmat.primitives import serialization
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 from tempest import config
@@ -29,6 +31,7 @@ from tempest import test
 import tenacity
 
 from octavia_tempest_plugin import clients
+from octavia_tempest_plugin.common import cert_utils
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import validators
 from octavia_tempest_plugin.tests import waiters
@@ -636,6 +639,9 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
 
             LOG.info('lb_member_sec_group: {}'.format(cls.lb_member_sec_group))
 
+        # Setup backend member reencryption PKI
+        cls._create_backend_reencryption_pki()
+
         # Create webserver 1 instance
         server_details = cls._create_webserver('lb_member_webserver1',
                                                cls.lb_member_1_net)
@@ -699,7 +705,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         # Set up serving on webserver 2
         cls._install_start_webserver(cls.webserver2_public_ip,
                                      cls.lb_member_keypair['private_key'],
-                                     cls.webserver2_response)
+                                     cls.webserver2_response, revoke_cert=True)
 
         # Validate webserver 2
         cls._validate_webserver(cls.webserver2_public_ip,
@@ -847,9 +853,9 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         return webserver_details
 
     @classmethod
-    def _install_start_webserver(cls, ip_address, ssh_key, start_id):
+    def _install_start_webserver(cls, ip_address, ssh_key, start_id,
+                                 revoke_cert=False):
         local_file = CONF.load_balancer.test_server_path
-        dest_file = '/dev/shm/test_server.bin'
 
         linux_client = remote_client.RemoteClient(
             ip_address, CONF.validation.image_ssh_user, pkey=ssh_key)
@@ -865,7 +871,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                 CONF.load_balancer.scp_connection_timeout,
                 CONF.load_balancer.scp_connection_attempts,
                 key.name, local_file, CONF.validation.image_ssh_user,
-                ip_address, dest_file)
+                ip_address, const.TEST_SERVER_BINARY)
             args = shlex.split(cmd)
             subprocess_args = {'stdout': subprocess.PIPE,
                                'stderr': subprocess.STDOUT,
@@ -875,6 +881,9 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             if proc.returncode != 0:
                 raise exceptions.CommandFailed(proc.returncode, cmd,
                                                stdout, stderr)
+
+            cls._load_member_pki_content(ip_address, key,
+                                         revoke_cert=revoke_cert)
 
         # Enabling memory overcommit allows to run golang static binaries
         # compiled with a recent golang toolchain (>=1.11). Those binaries
@@ -886,10 +895,16 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         linux_client.exec_command('sudo sh -c "echo 1 > '
                                   '/proc/sys/vm/overcommit_memory"')
 
-        linux_client.exec_command('sudo screen -d -m {0} -port 80 '
-                                  '-id {1}'.format(dest_file, start_id))
+        # The initial process also supports HTTPS and HTTPS with client auth
+        linux_client.exec_command(
+            'sudo screen -d -m {0} -port 80 -id {1} -https_port 443 -cert {2} '
+            '-key {3} -https_client_auth_port 9443 -client_ca {4}'.format(
+                const.TEST_SERVER_BINARY, start_id, const.TEST_SERVER_CERT,
+                const.TEST_SERVER_KEY, const.TEST_SERVER_CLIENT_CA))
+
         linux_client.exec_command('sudo screen -d -m {0} -port 81 '
-                                  '-id {1}'.format(dest_file, start_id + 1))
+                                  '-id {1}'.format(const.TEST_SERVER_BINARY,
+                                                   start_id + 1))
 
     # Cirros does not configure the assigned IPv6 address by default
     # so enable it manually like tempest does here:
@@ -924,3 +939,106 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             raise Exception("Response from test server doesn't match the "
                             "expected value ({0} != {1}).".format(
                                 res, str(start_id + 1)))
+
+    @classmethod
+    def _create_backend_reencryption_pki(cls):
+        # Create a CA self-signed cert and key for the member test servers
+        cls.member_ca_cert, cls.member_ca_key = (
+            cert_utils.generate_ca_cert_and_key())
+
+        LOG.debug('Member CA Cert: %s', cls.member_ca_cert.public_bytes(
+            serialization.Encoding.PEM))
+        LOG.debug('Member CA private Key: %s', cls.member_ca_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()))
+        LOG.debug('Member CA public Key: %s',
+                  cls.member_ca_key.public_key().public_bytes(
+                      encoding=serialization.Encoding.PEM,
+                      format=serialization.PublicFormat.SubjectPublicKeyInfo))
+
+        # Create the member client authentication CA
+        cls.member_client_ca_cert, member_client_ca_key = (
+            cert_utils.generate_ca_cert_and_key())
+
+        # Create client cert and key
+        cls.member_client_cn = uuidutils.generate_uuid()
+        cls.member_client_cert, cls.member_client_key = (
+            cert_utils.generate_client_cert_and_key(
+                cls.member_client_ca_cert, member_client_ca_key,
+                cls.member_client_cn))
+        # Note: We are not revoking a client cert here as we don't need to
+        #       test the backend web server CRL checking.
+
+    @classmethod
+    def _load_member_pki_content(cls, ip_address, ssh_key, revoke_cert=False):
+        # Create webserver certificate and key
+        cert, key = cert_utils.generate_server_cert_and_key(
+            cls.member_ca_cert, cls.member_ca_key, ip_address)
+
+        LOG.debug('%s Cert: %s', ip_address, cert.public_bytes(
+            serialization.Encoding.PEM))
+        LOG.debug('%s private Key: %s', ip_address, key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()))
+        public_key = key.public_key()
+        LOG.debug('%s public Key: %s', ip_address, public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo))
+
+        # Create a CRL with a revoked certificate
+        if revoke_cert:
+            # Create a CRL with webserver 2 revoked
+            cls.member_crl = cert_utils.generate_certificate_revocation_list(
+                cls.member_ca_cert, cls.member_ca_key, cert)
+
+        # Load the certificate, key, and client CA certificate into the
+        # test server.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.umask(0)
+            files_to_send = []
+            cert_filename = os.path.join(tmpdir, const.CERT_PEM)
+            files_to_send.append(cert_filename)
+            with open(os.open(cert_filename, os.O_CREAT | os.O_WRONLY,
+                              0o700), 'w') as fh:
+                fh.write(cert.public_bytes(
+                    serialization.Encoding.PEM).decode('utf-8'))
+                fh.flush()
+            key_filename = os.path.join(tmpdir, const.KEY_PEM)
+            files_to_send.append(key_filename)
+            with open(os.open(key_filename, os.O_CREAT | os.O_WRONLY,
+                              0o700), 'w') as fh:
+                fh.write(key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=serialization.NoEncryption()).decode(
+                        'utf-8'))
+                fh.flush()
+            client_ca_filename = os.path.join(tmpdir, const.CLIENT_CA_PEM)
+            files_to_send.append(client_ca_filename)
+            with open(os.open(client_ca_filename, os.O_CREAT | os.O_WRONLY,
+                              0o700), 'w') as fh:
+                fh.write(cls.member_client_ca_cert.public_bytes(
+                    serialization.Encoding.PEM).decode('utf-8'))
+                fh.flush()
+
+            # For security, we don't want to use a shell that can glob
+            # the file names, so iterate over them.
+            subprocess_args = {'stdout': subprocess.PIPE,
+                               'stderr': subprocess.STDOUT,
+                               'cwd': None}
+            cmd = ("scp -v -o UserKnownHostsFile=/dev/null "
+                   "-o StrictHostKeyChecking=no "
+                   "-o ConnectTimeout={0} -o ConnectionAttempts={1} "
+                   "-i {2} {3} {4} {5} {6}@{7}:{8}").format(
+                CONF.load_balancer.scp_connection_timeout,
+                CONF.load_balancer.scp_connection_attempts,
+                ssh_key.name, cert_filename, key_filename, client_ca_filename,
+                CONF.validation.image_ssh_user, ip_address, const.DEV_SHM_PATH)
+            args = shlex.split(cmd)
+            proc = subprocess.Popen(args, **subprocess_args)
+            stdout, stderr = proc.communicate()
+            if proc.returncode != 0:
+                raise exceptions.CommandFailed(proc.returncode, cmd,
+                                               stdout, stderr)
