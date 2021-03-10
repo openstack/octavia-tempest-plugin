@@ -115,6 +115,7 @@
       devstack_plugins:
         octavia: https://opendev.org/openstack/octavia.git
         octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
+        neutron: https://opendev.org/openstack/neutron.git
       tempest_plugins:
         - octavia-tempest-plugin
 
@@ -171,6 +172,7 @@
       devstack_plugins:
         octavia: https://opendev.org/openstack/octavia.git
         octavia-tempest-plugin: https://opendev.org/openstack/octavia-tempest-plugin.git
+        neutron: https://opendev.org/openstack/neutron.git
       tempest_plugins:
         - octavia-tempest-plugin
 
@@ -205,8 +207,6 @@
               not_implemented_is_error: True
       devstack_services:
         neutron-qos: true
-      devstack_plugins:
-        neutron: https://opendev.org/openstack/neutron.git
       zuul_copy_output:
         '/var/log/dib-build' : logs
         '/var/log/octavia-amphora.log': logs
@@ -239,8 +239,6 @@
               check_timeout: 180
       devstack_services:
         neutron-qos: true
-      devstack_plugins:
-        neutron: https://opendev.org/openstack/neutron.git
       zuul_copy_output:
         '/var/log/dib-build' : logs
         '/var/log/octavia-amphora.log': logs
