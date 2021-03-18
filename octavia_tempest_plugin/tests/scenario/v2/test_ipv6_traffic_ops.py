@@ -297,7 +297,7 @@ class IPv6TrafficOperationsScenarioTest(
     @decorators.idempotent_id('843a13f7-e00f-4151-8817-b5395eb69b52')
     def test_ipv6_tcp_LC_listener_with_allowed_cidrs(self):
         self._test_listener_with_allowed_cidrs(
-            const.TCP, 91, const.LB_ALGORITHM_LEAST_CONNECTIONS)
+            const.TCP, 91, const.LB_ALGORITHM_LEAST_CONNECTIONS, delay=0.2)
 
     @decorators.idempotent_id('cc0d55b1-87e8-4a87-bf50-66299947a469')
     def test_ipv6_udp_LC_listener_with_allowed_cidrs(self):
@@ -350,7 +350,7 @@ class IPv6TrafficOperationsScenarioTest(
             const.UDP, 101, const.LB_ALGORITHM_SOURCE_IP_PORT)
 
     def _test_listener_with_allowed_cidrs(self, protocol, protocol_port,
-                                          algorithm):
+                                          algorithm, delay=None):
         """Tests traffic through a loadbalancer with allowed CIDRs set.
 
         * Set up listener with allowed CIDRS (allow all) on a loadbalancer.
@@ -476,7 +476,7 @@ class IPv6TrafficOperationsScenarioTest(
         self.check_members_balanced(
             self.lb_vip_address, protocol=protocol,
             protocol_port=protocol_port, persistent=False,
-            traffic_member_count=members)
+            traffic_member_count=members, delay=delay)
 
         listener_kwargs = {
             const.LISTENER_ID: listener_id,
