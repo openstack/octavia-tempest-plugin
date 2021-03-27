@@ -131,6 +131,8 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin, test.BaseTestCase):
         cls.mem_flavor_client = cls.os_roles_lb_member.flavor_client
         cls.mem_provider_client = cls.os_roles_lb_member.provider_client
         cls.os_admin_servers_client = cls.os_admin.servers_client
+        cls.os_admin_routers_client = cls.os_admin.routers_client
+        cls.os_admin_subnetpools_client = cls.os_admin.subnetpools_client
         cls.lb_admin_flavor_capabilities_client = (
             cls.os_roles_lb_admin.flavor_capabilities_client)
         cls.lb_admin_availability_zone_capabilities_client = (
@@ -327,33 +329,38 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin, test.BaseTestCase):
 
         # Create tenant VIP IPv6 subnet
         if CONF.load_balancer.test_with_ipv6:
-            # See if ipv6-private-subnet exists and use it if so.
-            priv_ipv6_subnet = cls.os_admin.subnets_client.list_subnets(
-                name='ipv6-private-subnet')['subnets']
-
             cls.lb_member_vip_ipv6_subnet_stateful = False
-            if len(priv_ipv6_subnet) == 1:
-                if (priv_ipv6_subnet[0]['ipv6_address_mode'] ==
-                        'dhcpv6-stateful'):
-                    cls.lb_member_vip_ipv6_subnet_stateful = True
-                cls.lb_member_vip_ipv6_subnet = priv_ipv6_subnet[0]
-                cls.lb_member_vip_ipv6_net = {
-                    'id': priv_ipv6_subnet[0]['network_id']}
-            else:
-                subnet_kwargs = {
-                    'name': data_utils.rand_name("lb_member_vip_ipv6_subnet"),
-                    'network_id': cls.lb_member_vip_net['id'],
-                    'cidr': CONF.load_balancer.vip_ipv6_subnet_cidr,
-                    'ip_version': 6}
-                result = cls.lb_mem_subnet_client.create_subnet(
-                    **subnet_kwargs)
-                cls.lb_member_vip_ipv6_net = cls.lb_member_vip_net
-                cls.lb_member_vip_ipv6_subnet = result['subnet']
-                cls.addClassResourceCleanup(
-                    waiters.wait_for_not_found,
-                    cls._logging_delete_subnet,
-                    cls.lb_mem_subnet_client.show_subnet,
-                    cls.lb_member_vip_ipv6_subnet['id'])
+            cls.lb_member_vip_ipv6_subnet_use_subnetpool = False
+            subnet_kwargs = {
+                'name': data_utils.rand_name("lb_member_vip_ipv6_subnet"),
+                'network_id': cls.lb_member_vip_net['id'],
+                'ip_version': 6}
+
+            # Use a CIDR from devstack's default IPv6 subnetpool if it exists,
+            # the subnetpool's cidr is routable from the devstack node
+            # through the default router
+            subnetpool_name = CONF.load_balancer.default_ipv6_subnetpool
+            if subnetpool_name:
+                subnetpool = cls.os_admin_subnetpools_client.list_subnetpools(
+                    name=subnetpool_name)['subnetpools']
+                if len(subnetpool) == 1:
+                    subnetpool = subnetpool[0]
+                    subnet_kwargs['subnetpool_id'] = subnetpool['id']
+                    cls.lb_member_vip_ipv6_subnet_use_subnetpool = True
+
+            if 'subnetpool_id' not in subnet_kwargs:
+                subnet_kwargs['cidr'] = (
+                    CONF.load_balancer.vip_ipv6_subnet_cidr)
+
+            result = cls.lb_mem_subnet_client.create_subnet(
+                **subnet_kwargs)
+            cls.lb_member_vip_ipv6_net = cls.lb_member_vip_net
+            cls.lb_member_vip_ipv6_subnet = result['subnet']
+            cls.addClassResourceCleanup(
+                waiters.wait_for_not_found,
+                cls._logging_delete_subnet,
+                cls.lb_mem_subnet_client.show_subnet,
+                cls.lb_member_vip_ipv6_subnet['id'])
 
             LOG.info('lb_member_vip_ipv6_subnet: {}'.format(
                 cls.lb_member_vip_ipv6_subnet))
@@ -742,6 +749,30 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             cls.lb_mem_routers_client.remove_router_interface,
             cls.lb_member_router['id'],
             subnet_id=cls.lb_member_vip_subnet['id'])
+
+        if (CONF.load_balancer.test_with_ipv6 and
+                CONF.load_balancer.default_router and
+                cls.lb_member_vip_ipv6_subnet_use_subnetpool):
+
+            router_name = CONF.load_balancer.default_router
+            # if lb_member_vip_ipv6_subnet uses devstack's subnetpool,
+            # plug the subnet into the default router
+            router = cls.os_admin.routers_client.list_routers(
+                name=router_name)['routers']
+
+            if len(router) == 1:
+                router = router[0]
+
+                # Add IPv6 VIP subnet to router1
+                cls.os_admin_routers_client.add_router_interface(
+                    router['id'],
+                    subnet_id=cls.lb_member_vip_ipv6_subnet['id'])
+                cls.addClassResourceCleanup(
+                    waiters.wait_for_not_found,
+                    cls.os_admin_routers_client.remove_router_interface,
+                    cls.os_admin_routers_client.remove_router_interface,
+                    router['id'],
+                    subnet_id=cls.lb_member_vip_ipv6_subnet['id'])
 
         # Add member subnet 1 to router
         cls.lb_mem_routers_client.add_router_interface(
