@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import testtools
 import time
 from uuid import UUID
@@ -78,13 +79,25 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
         self._setup_lb_network_kwargs(lb_kwargs, ip_version, use_fixed_ip=True)
 
-        # Test that a user without the load balancer role cannot
-        # create a load balancer
+        # Test that a user without the loadbalancer role cannot
+        # create a load balancer.
+        lb_kwargs_with_project_id = copy.deepcopy(lb_kwargs)
+        lb_kwargs_with_project_id[const.PROJECT_ID] = (
+            self.os_roles_lb_member.credentials.project_id)
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.create_loadbalancer,
-                **lb_kwargs)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_create_RBAC_enforcement(
+                'loadbalancer_client', 'create_loadbalancer',
+                expected_allowed, None, None, **lb_kwargs_with_project_id)
 
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
 
@@ -173,21 +186,21 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                      CONF.load_balancer.lb_build_interval,
                                      CONF.load_balancer.lb_build_timeout)
 
-        # Test that a user without the load balancer role cannot
-        # delete this load balancer
+        # Test that a user without the loadbalancer role cannot delete this
+        # load balancer.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.delete_loadbalancer,
-                lb[const.ID])
-
-        # Test that a different user, with the load balancer member role
-        # cannot delete this load balancer
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.loadbalancer_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.delete_loadbalancer,
-                              lb[const.ID])
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_delete_RBAC_enforcement(
+                'loadbalancer_client', 'delete_loadbalancer',
+                expected_allowed, None, None, lb[const.ID])
 
         self.mem_lb_client.delete_loadbalancer(lb[const.ID])
 
@@ -222,21 +235,21 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
 
         # TODO(johnsom) Add other objects when we have clients for them
 
-        # Test that a user without the load balancer role cannot
-        # delete this load balancer
+        # Test that a user without the loadbalancer role cannot delete this
+        # load balancer.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.delete_loadbalancer,
-                lb[const.ID], cascade=True)
-
-        # Test that a different user, with the load balancer member role
-        # cannot delete this load balancer
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.loadbalancer_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.delete_loadbalancer,
-                              lb[const.ID], cascade=True)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_delete_RBAC_enforcement(
+                'loadbalancer_client', 'delete_loadbalancer',
+                expected_allowed, None, None, lb[const.ID], cascade=True)
 
         self.mem_lb_client.delete_loadbalancer(lb[const.ID], cascade=True)
 
@@ -267,6 +280,8 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         * List the load balancers filtering to one of the three.
         * List the load balancers filtered, one field, and sorted.
         """
+        # IDs of load balancers created in the test
+        test_ids = []
         # Get a list of pre-existing LBs to filter from test data
         pretest_lbs = self.mem_lb_client.list_loadbalancers()
         # Store their IDs for easy access
@@ -313,6 +328,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                           const.ONLINE,
                                           CONF.load_balancer.check_interval,
                                           CONF.load_balancer.check_timeout)
+        test_ids.append(lb1[const.ID])
 
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
@@ -356,6 +372,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                           const.ONLINE,
                                           CONF.load_balancer.check_interval,
                                           CONF.load_balancer.check_timeout)
+        test_ids.append(lb2[const.ID])
 
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
@@ -394,19 +411,67 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                       const.ACTIVE,
                                       CONF.load_balancer.lb_build_interval,
                                       CONF.load_balancer.lb_build_timeout)
+        test_ids.append(lb3[const.ID])
 
-        # Test that a different user cannot list load balancers
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.loadbalancer_client
-            primary = member2_client.list_loadbalancers()
-            self.assertEqual(0, len(primary))
-
-        # Test that a user without the lb member role cannot list load
-        # balancers
+        # Test that a different users cannot see the lb_member load balancers.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_primary', 'os_roles_lb_member2',
+                                'os_roles_lb_observer']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_primary',
+                                'os_roles_lb_member2', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.list_loadbalancers)
+            expected_allowed = ['os_roles_lb_observer', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement_count(
+                'loadbalancer_client', 'list_loadbalancers',
+                expected_allowed, 0)
+
+        # Test credentials that should see these load balancers can see them.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_member',
+                                'os_roles_lb_global_observer']
+        if expected_allowed:
+            self.check_list_IDs_RBAC_enforcement(
+                'loadbalancer_client', 'list_loadbalancers',
+                expected_allowed, test_ids)
+
+        # Test that users without the lb member role cannot list load balancers
+        # Note: non-owners can still call this API, they will just get the list
+        #       of load balancers for their project (zero). The above tests
+        #       are intended to cover the cross project use case.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
+                                'os_roles_lb_member', 'os_roles_lb_member2',
+                                'os_roles_lb_observer',
+                                'os_roles_lb_global_observer']
+        # Note: os_admin is here because it evaluaties to "project_admin"
+        #       in oslo_policy and since keystone considers "project_admin"
+        #       a superscope of "project_reader". This means it can read
+        #       objects in the "admin" credential's project.
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_primary', 'os_system_admin',
+                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_observer',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member', 'os_roles_lb_member2']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'loadbalancer_client', 'list_loadbalancers', expected_allowed)
 
         # Check the default sort order, created_at
         lbs = self.mem_lb_client.list_loadbalancers()
@@ -566,33 +631,24 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
                              lb[const.VIP_SUBNET_ID])
 
-        # Test that a user with lb_admin role can see the load balanacer
+        # Test that the appropriate users can see or not see the load
+        # balancer based on the API RBAC.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            lb_client = self.os_roles_lb_admin.loadbalancer_client
-            lb_adm = lb_client.show_loadbalancer(lb[const.ID])
-            self.assertEqual(lb_name, lb_adm[const.NAME])
-
-        # Test that a user with cloud admin role can see the load balanacer
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            adm = self.os_admin.loadbalancer_client.show_loadbalancer(
-                lb[const.ID])
-            self.assertEqual(lb_name, adm[const.NAME])
-
-        # Test that a different user, with load balancer member role, cannot
-        # see this load balancer
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.loadbalancer_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.show_loadbalancer,
-                              lb[const.ID])
-
-        # Test that a user, without the load balancer member role, cannot
-        # show load balancers
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.show_loadbalancer,
-                lb[const.ID])
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'loadbalancer_client', 'show_loadbalancer',
+                expected_allowed, lb[const.ID])
 
         # Attempt to clean up so that one full test run doesn't start 10+
         # amps before the cleanup phase fires
@@ -679,26 +735,22 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
         new_description = data_utils.arbitrary_string(size=255,
                                                       base_text='new')
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this command
+        # Test that a user, without the loadbalancer member role, cannot
+        # update this load balancer.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.update_loadbalancer,
-                lb[const.ID], admin_state_up=True)
-
-        # Assert we didn't go into PENDING_*
-        lb_check = self.mem_lb_client.show_loadbalancer(lb[const.ID])
-        self.assertEqual(const.ACTIVE, lb_check[const.PROVISIONING_STATUS])
-        self.assertFalse(lb_check[const.ADMIN_STATE_UP])
-
-        # Test that a user, without the load balancer member role, cannot
-        # update this load balancer
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.loadbalancer_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.update_loadbalancer,
-                              lb[const.ID], admin_state_up=True)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'loadbalancer_client', 'update_loadbalancer',
+                expected_allowed, None, None, lb[const.ID],
+                admin_state_up=True)
 
         # Assert we didn't go into PENDING_*
         lb_check = self.mem_lb_client.show_loadbalancer(lb[const.ID])
@@ -775,21 +827,24 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                      CONF.load_balancer.lb_build_interval,
                                      CONF.load_balancer.lb_build_timeout)
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this command
+        # Test that the appropriate users can see or not see the load
+        # balancer stats based on the API RBAC.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.get_loadbalancer_stats,
-                lb[const.ID])
-
-        # Test that a different user, with the load balancer role, cannot see
-        # the load balancer stats
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.loadbalancer_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.get_loadbalancer_stats,
-                              lb[const.ID])
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'loadbalancer_client', 'get_loadbalancer_stats',
+                expected_allowed, lb[const.ID])
 
         stats = self.mem_lb_client.get_loadbalancer_stats(lb[const.ID])
 
@@ -843,21 +898,24 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                          CONF.load_balancer.check_interval,
                                          CONF.load_balancer.check_timeout)
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this method
+        # Test that the appropriate users can see or not see the load
+        # balancer status based on the API RBAC.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.loadbalancer_client.get_loadbalancer_status,
-                lb[const.ID])
-
-        # Test that a different user, with load balancer role, cannot see
-        # the load balancer status
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.loadbalancer_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.get_loadbalancer_status,
-                              lb[const.ID])
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'loadbalancer_client', 'get_loadbalancer_status',
+                expected_allowed, lb[const.ID])
 
         status = self.mem_lb_client.get_loadbalancer_status(lb[const.ID])
 
@@ -916,6 +974,20 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             self.assertRaises(exceptions.Forbidden,
                               self.mem_lb_client.failover_loadbalancer,
                               lb[const.ID])
+
+        # Test that a user without the load balancer admin role cannot
+        # failover a load balancer.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'loadbalancer_client', 'failover_loadbalancer',
+                expected_allowed, None, None, lb[const.ID])
 
         # Assert we didn't go into PENDING_*
         lb = self.mem_lb_client.show_loadbalancer(lb[const.ID])

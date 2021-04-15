@@ -892,6 +892,24 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                 self.os_primary.member_client.create_member,
                 **member_kwargs)
 
+        # Test that a user without the loadbalancer role cannot
+        # create a member.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_create_RBAC_enforcement(
+                'member_client', 'create_member',
+                expected_allowed,
+                status_method=self.mem_lb_client.show_loadbalancer,
+                obj_id=self.lb_id, **member_kwargs)
+
         member = self.mem_member_client.create_member(**member_kwargs)
 
         waiters.wait_for_status(
@@ -1048,6 +1066,9 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         * List the members filtering to one of the three.
         * List the members filtered, one field, and sorted.
         """
+        # IDs of members created in the test
+        test_ids = []
+
         if (algorithm == const.LB_ALGORITHM_SOURCE_IP_PORT and not
             self.mem_listener_client.is_version_supported(
                 self.api_version, '2.13')):
@@ -1124,6 +1145,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.check_interval,
                                 CONF.load_balancer.check_timeout)
+        test_ids.append(member1[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -1162,6 +1184,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.check_interval,
                                 CONF.load_balancer.check_timeout)
+        test_ids.append(member2[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -1200,22 +1223,45 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.check_interval,
                                 CONF.load_balancer.check_timeout)
+        test_ids.append(member3[const.ID])
 
-        # Test that a different user cannot list members
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.member_client
-            self.assertRaises(
-                exceptions.Forbidden,
-                member2_client.list_members,
-                pool_id)
-
-        # Test that a user without the lb member role cannot list load
-        # balancers
+        # Test credentials that should see these members can see them.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.member_client.list_members,
-                pool_id)
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_member',
+                                'os_roles_lb_global_observer']
+        if expected_allowed:
+            self.check_list_IDs_RBAC_enforcement(
+                'member_client', 'list_members', expected_allowed,
+                test_ids, pool_id)
+
+        # Test that users without the lb member role cannot list members
+        # Note: The parent pool ID blocks non-owners from listing members.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        # Note: os_admin is here because it evaluaties to "project_admin"
+        #       in oslo_policy and since keystone considers "project_admin"
+        #       a superscope of "project_reader". This means it can read
+        #       objects in the "admin" credential's project.
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_system_admin',
+                                'os_system_reader', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'member_client', 'list_members', expected_allowed, pool_id)
 
         # Check the default sort order, created_at
         members = self.mem_member_client.list_members(pool_id)
@@ -1740,34 +1786,25 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         for item in equal_items:
             self.assertEqual(member_kwargs[item], member[item])
 
-        # Test that a user with lb_admin role can see the member
+        # Test that the appropriate users can see or not see the member
+        # based on the API RBAC.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            member_client = self.os_roles_lb_admin.member_client
-            member_adm = member_client.show_member(
-                member[const.ID], pool_id=pool_id)
-            self.assertEqual(member_name, member_adm[const.NAME])
-
-        # Test that a user with cloud admin role can see the member
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            adm = self.os_admin.member_client.show_member(
-                member[const.ID], pool_id=pool_id)
-            self.assertEqual(member_name, adm[const.NAME])
-
-        # Test that a different user, with load balancer member role, cannot
-        # see this member
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.member_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.show_member,
-                              member[const.ID], pool_id=pool_id)
-
-        # Test that a user, without the load balancer member role, cannot
-        # show members
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.member_client.show_member,
-                member[const.ID], pool_id=pool_id)
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'member_client', 'show_member',
+                expected_allowed, member[const.ID],
+                pool_id=pool_id)
 
     @decorators.idempotent_id('65680d48-1d49-4959-a7d1-677797e54f6b')
     def test_HTTP_LC_alt_monitor_member_update(self):
@@ -2206,30 +2243,22 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         for item in equal_items:
             self.assertEqual(member_kwargs[item], member[item])
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this command
+        # Test that a user, without the loadbalancer member role, cannot
+        # update this member.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.member_client.update_member,
-                member[const.ID], pool_id=pool_id, admin_state_up=True)
-
-        # Assert we didn't go into PENDING_*
-        member_check = self.mem_member_client.show_member(
-            member[const.ID], pool_id=pool_id)
-        self.assertEqual(const.ACTIVE,
-                         member_check[const.PROVISIONING_STATUS])
-        self.assertEqual(member_kwargs[const.ADMIN_STATE_UP],
-                         member_check[const.ADMIN_STATE_UP])
-
-        # Test that a user, without the load balancer member role, cannot
-        # update this member
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.member_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.update_member,
-                              member[const.ID], pool_id=pool_id,
-                              admin_state_up=True)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'member_client', 'update_member',
+                expected_allowed, None, None, member[const.ID],
+                pool_id=pool_id, admin_state_up=True)
 
         # Assert we didn't go into PENDING_*
         member_check = self.mem_member_client.show_member(
@@ -2672,12 +2701,21 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         member2_kwargs.pop(const.POOL_ID)
         batch_update_list = [member2_kwargs, member3_kwargs]
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this command
+        # Test that a user, without the loadbalancer member role, cannot
+        # batch update this member.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.member_client.update_members,
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'member_client', 'update_members',
+                expected_allowed, None, None,
                 pool_id=pool_id, members_list=batch_update_list)
 
         # Assert we didn't go into PENDING_*
@@ -2908,21 +2946,22 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
 
-        # Test that a user without the load balancer role cannot
-        # delete this member
+        # Test that a user without the loadbalancer role cannot delete this
+        # member.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.member_client.delete_member,
-                member[const.ID], pool_id=pool_id)
-
-        # Test that a different user, with the load balancer member role
-        # cannot delete this member
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.member_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.delete_member,
-                              member[const.ID], pool_id=pool_id)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_delete_RBAC_enforcement(
+                'member_client', 'delete_member',
+                expected_allowed, None, None, member[const.ID],
+                pool_id=pool_id)
 
         self.mem_member_client.delete_member(member[const.ID],
                                              pool_id=pool_id)

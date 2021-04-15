@@ -12,6 +12,7 @@
         - octavia-v2-dsvm-noop-api-stable-victoria
         - octavia-v2-dsvm-noop-api-stable-ussuri
         - octavia-v2-dsvm-noop-api-stable-train
+        - octavia-v2-dsvm-noop-api-scoped-tokens
         - octavia-v2-dsvm-scenario
         - octavia-v2-dsvm-scenario-stable-victoria
         - octavia-v2-dsvm-scenario-stable-ussuri
@@ -57,6 +58,7 @@
         - octavia-v2-dsvm-noop-api-stable-victoria
         - octavia-v2-dsvm-noop-api-stable-ussuri
         - octavia-v2-dsvm-noop-api-stable-train
+        - octavia-v2-dsvm-noop-api-scoped-tokens
         - octavia-v2-dsvm-scenario
         - octavia-v2-dsvm-scenario-stable-victoria
         - octavia-v2-dsvm-scenario-stable-ussuri

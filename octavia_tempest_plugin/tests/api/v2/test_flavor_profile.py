@@ -60,11 +60,17 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer admin role cannot
         # create a flavor profile
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.flavor_profile_client.create_flavor_profile,
-                **flavor_profile_kwargs)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if expected_allowed:
+            self.check_create_RBAC_enforcement(
+                'flavor_profile_client', 'create_flavor_profile',
+                expected_allowed, None, None, **flavor_profile_kwargs)
 
         # Happy path
         flavor_profile = (
@@ -174,10 +180,17 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer admin role cannot
         # list flavor profiles.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.flavor_profile_client.list_flavor_profiles)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'flavor_profile_client', 'list_flavor_profiles',
+                expected_allowed)
 
         # Check the default sort order (by ID)
         profiles = self.lb_admin_flavor_profile_client.list_flavor_profiles()
@@ -295,12 +308,18 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
             flavor_profile[const.ID])
 
         # Test that a user without the load balancer admin role cannot
-        # show a flavor profile
+        # show a flavor profile.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.flavor_profile_client.show_flavor_profile,
-                flavor_profile[const.ID])
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'flavor_profile_client', 'show_flavor_profile',
+                expected_allowed, flavor_profile[const.ID])
 
         result = (
             self.lb_admin_flavor_profile_client.show_flavor_profile(
@@ -367,12 +386,19 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
         }
 
         # Test that a user without the load balancer admin role cannot
-        # create a flavor profile
+        # update a flavor profile.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.flavor_profile_client.update_flavor_profile,
-                flavor_profile[const.ID], **flavor_profile_updated_kwargs)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'flavor_profile_client', 'update_flavor_profile',
+                expected_allowed, None, None, flavor_profile[const.ID],
+                **flavor_profile_updated_kwargs)
 
         result = self.lb_admin_flavor_profile_client.update_flavor_profile(
             flavor_profile[const.ID], **flavor_profile_updated_kwargs)
@@ -428,11 +454,17 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer admin role cannot
         # delete a flavor profile
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.flavor_profile_client.delete_flavor_profile,
-                flavor_profile[const.ID])
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if expected_allowed:
+            self.check_delete_RBAC_enforcement(
+                'flavor_profile_client', 'delete_flavor_profile',
+                expected_allowed, None, None, flavor_profile[const.ID])
 
         # Happy path
         self.lb_admin_flavor_profile_client.delete_flavor_profile(

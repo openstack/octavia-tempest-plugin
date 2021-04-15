@@ -33,6 +33,7 @@ import tenacity
 from octavia_tempest_plugin import clients
 from octavia_tempest_plugin.common import cert_utils
 from octavia_tempest_plugin.common import constants as const
+from octavia_tempest_plugin.tests import RBAC_tests
 from octavia_tempest_plugin.tests import validators
 from octavia_tempest_plugin.tests import waiters
 
@@ -45,15 +46,43 @@ RETRY_BACKOFF = 1
 RETRY_MAX = 5
 
 
-class LoadBalancerBaseTest(validators.ValidatorsMixin, test.BaseTestCase):
+class LoadBalancerBaseTest(validators.ValidatorsMixin,
+                           RBAC_tests.RBACTestsMixin, test.BaseTestCase):
     """Base class for load balancer tests."""
 
-    # Setup cls.os_roles_lb_member. cls.os_primary, cls.os_roles_lb_member,
-    # and cls.os_roles_lb_admin credentials.
-    credentials = ['admin', 'primary',
-                   ['lb_member', CONF.load_balancer.member_role],
-                   ['lb_member2', CONF.load_balancer.member_role],
-                   ['lb_admin', CONF.load_balancer.admin_role]]
+    if CONF.load_balancer.enforce_new_defaults:
+        credentials = [
+            'admin', 'primary', ['lb_admin', CONF.load_balancer.admin_role],
+            ['lb_observer', CONF.load_balancer.observer_role, 'reader'],
+            ['lb_global_observer', CONF.load_balancer.global_observer_role,
+             'reader'],
+            ['lb_member', CONF.load_balancer.member_role, 'member'],
+            ['lb_member2', CONF.load_balancer.member_role, 'member'],
+            ['lb_member_not_default_member', CONF.load_balancer.member_role]]
+    else:
+        credentials = [
+            'admin', 'primary', ['lb_admin', CONF.load_balancer.admin_role],
+            ['lb_observer', CONF.load_balancer.observer_role, 'reader'],
+            ['lb_global_observer', CONF.load_balancer.global_observer_role,
+             'reader'],
+            ['lb_member', CONF.load_balancer.member_role],
+            ['lb_member2', CONF.load_balancer.member_role]]
+
+    # If scope enforcement is enabled, add in the system scope credentials.
+    # The project scope is already handled by the above credentials.
+    if CONF.enforce_scope.octavia:
+        credentials.extend(['system_admin', 'system_reader'])
+
+    # A tuple of credentials that will be allocated by tempest using the
+    # 'credentials' list above. These are used to build RBAC test lists.
+    allocated_creds = []
+    for cred in credentials:
+        if isinstance(cred, list):
+            allocated_creds.append('os_roles_' + cred[0])
+        else:
+            allocated_creds.append('os_' + cred)
+    # Tests shall not mess with the list of allocated credentials
+    allocated_credentials = tuple(allocated_creds)
 
     client_manager = clients.ManagerV2
     webserver1_response = 1
@@ -101,6 +130,31 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin, test.BaseTestCase):
         # Do not auto create network resources
         cls.set_network_resources()
         super(LoadBalancerBaseTest, cls).setup_credentials()
+
+        # Log the user roles for this test run
+        role_name_cache = {}
+        for cred in cls.credentials:
+            user_roles = []
+            if isinstance(cred, list):
+                user_name = cred[0]
+                cred_obj = getattr(cls, 'os_roles_' + cred[0])
+            else:
+                user_name = cred
+                cred_obj = getattr(cls, 'os_' + cred)
+            params = {'user.id': cred_obj.credentials.user_id,
+                      'project.id': cred_obj.credentials.project_id}
+            roles = cls.os_admin.role_assignments_client.list_role_assignments(
+                **params)['role_assignments']
+            for role in roles:
+                role_id = role['role']['id']
+                try:
+                    role_name = role_name_cache[role_id]
+                except KeyError:
+                    role_name = cls.os_admin.roles_v3_client.show_role(
+                        role_id)['role']['name']
+                    role_name_cache[role_id] = role_name
+                user_roles.append([role_name, role['scope']])
+            LOG.info("User %s has roles: %s", user_name, user_roles)
 
     @classmethod
     def setup_clients(cls):

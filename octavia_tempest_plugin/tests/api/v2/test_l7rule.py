@@ -19,7 +19,6 @@ from dateutil import parser
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
-from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
@@ -141,13 +140,23 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                 const.TAGS: l7_rule_tags
             })
 
-        # Test that a user without the load balancer role cannot
-        # create a l7rule
+        # Test that a user without the loadbalancer role cannot
+        # create an L7 rule.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.l7rule_client.create_l7rule,
-                **l7rule_kwargs)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_create_RBAC_enforcement(
+                'l7rule_client', 'create_l7rule',
+                expected_allowed,
+                status_method=self.mem_lb_client.show_loadbalancer,
+                obj_id=self.lb_id, **l7rule_kwargs)
 
         l7rule = self.mem_l7rule_client.create_l7rule(**l7rule_kwargs)
         self.addClassResourceCleanup(
@@ -211,6 +220,9 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         * List the l7rules filtering to one of the three.
         * List the l7rules filtered, one field, and sorted.
         """
+        # IDs of L7 rules created in the test
+        test_ids = []
+
         l7policy_name = data_utils.rand_name("lb_member_l7policy2_l7rule-list")
         l7policy = self.mem_l7policy_client.create_l7policy(
             name=l7policy_name, listener_id=self.listener_id,
@@ -260,6 +272,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.check_interval,
                                 CONF.load_balancer.check_timeout)
+        test_ids.append(l7rule1[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -298,6 +311,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.check_interval,
                                 CONF.load_balancer.check_timeout)
+        test_ids.append(l7rule2[const.ID])
         # Time resolution for created_at is only to the second, and we need to
         # ensure that each object has a distinct creation time. Delaying one
         # second is both a simple and a reliable way to accomplish this.
@@ -336,22 +350,46 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 const.ACTIVE,
                                 CONF.load_balancer.check_interval,
                                 CONF.load_balancer.check_timeout)
+        test_ids.append(l7rule3[const.ID])
 
-        # Test that a different user cannot list l7rules
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.l7rule_client
-            self.assertRaises(
-                exceptions.Forbidden,
-                member2_client.list_l7rules,
-                l7policy_id)
-
-        # Test that a user without the lb l7rule role cannot list load
-        # balancers
+        # Test credentials that should see these L7 rules can see them.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.l7rule_client.list_l7rules,
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin', 'os_roles_lb_member',
+                                'os_roles_lb_global_observer']
+        if expected_allowed:
+            self.check_list_IDs_RBAC_enforcement(
+                'l7rule_client', 'list_l7rules', expected_allowed, test_ids,
                 l7policy_id)
+
+        # Test that users without the lb member role cannot list L7 rules.
+        # Note: The parent policy ID blocks non-owners from listing
+        #       L7 Rules.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        # Note: os_admin is here because it evaluaties to "project_admin"
+        #       in oslo_policy and since keystone considers "project_admin"
+        #       a superscope of "project_reader". This means it can read
+        #       objects in the "admin" credential's project.
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_admin', 'os_system_admin',
+                                'os_system_reader', 'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'l7rule_client', 'list_l7rules', expected_allowed, l7policy_id)
 
         # Check the default sort order, created_at
         l7rules = self.mem_l7rule_client.list_l7rules(l7policy_id)
@@ -521,34 +559,25 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         for item in equal_items:
             self.assertEqual(l7rule_kwargs[item], l7rule[item])
 
-        # Test that a user with lb_admin role can see the l7rule
+        # Test that the appropriate users can see or not see the L7 rule
+        # based on the API RBAC.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            l7rule_client = self.os_roles_lb_admin.l7rule_client
-            l7rule_adm = l7rule_client.show_l7rule(
-                l7rule[const.ID], l7policy_id=self.l7policy_id)
-            self.assertEqual(l7rule_kwargs[const.KEY], l7rule_adm[const.KEY])
-
-        # Test that a user with cloud admin role can see the l7rule
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            adm = self.os_admin.l7rule_client.show_l7rule(
-                l7rule[const.ID], l7policy_id=self.l7policy_id)
-            self.assertEqual(l7rule_kwargs[const.KEY], adm[const.KEY])
-
-        # Test that a different user, with load balancer member role, cannot
-        # see this l7rule
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.l7rule_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.show_l7rule,
-                              l7rule[const.ID], l7policy_id=self.l7policy_id)
-
-        # Test that a user, without the load balancer member role, cannot
-        # show l7rules
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.l7rule_client.show_l7rule,
-                l7rule[const.ID], l7policy_id=self.l7policy_id)
+            expected_allowed = ['os_system_admin', 'os_system_reader',
+                                'os_roles_lb_admin',
+                                'os_roles_lb_global_observer',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_show_RBAC_enforcement(
+                'l7rule_client', 'show_l7rule',
+                expected_allowed, l7rule[const.ID],
+                l7policy_id=self.l7policy_id)
 
     @decorators.idempotent_id('f8cee23b-89b6-4f3a-a842-1463daf42cf7')
     def test_l7rule_update(self):
@@ -618,29 +647,22 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
         for item in equal_items:
             self.assertEqual(l7rule_kwargs[item], l7rule[item])
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this command
+        # Test that a user, without the loadbalancer member role, cannot
+        # update this L7 rule.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.l7rule_client.update_l7rule,
-                l7rule[const.ID], l7policy_id=self.l7policy_id,
-                admin_state_up=True)
-
-        # Assert we didn't go into PENDING_*
-        l7rule_check = self.mem_l7rule_client.show_l7rule(
-            l7rule[const.ID], l7policy_id=self.l7policy_id)
-        self.assertEqual(const.ACTIVE, l7rule_check[const.PROVISIONING_STATUS])
-        self.assertFalse(l7rule_check[const.ADMIN_STATE_UP])
-
-        # Test that a user, without the load balancer member role, cannot
-        # update this l7rule
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.l7rule_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.update_l7rule,
-                              l7rule[const.ID], l7policy_id=self.l7policy_id,
-                              admin_state_up=True)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'l7rule_client', 'update_l7rule',
+                expected_allowed, None, None, l7rule[const.ID],
+                l7policy_id=self.l7policy_id, admin_state_up=True)
 
         # Assert we didn't go into PENDING_*
         l7rule_check = self.mem_l7rule_client.show_l7rule(
@@ -727,21 +749,22 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
 
-        # Test that a user without the load balancer role cannot
-        # delete this l7rule
+        # Test that a user without the loadbalancer role cannot delete this
+        # L7 rule.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.os_primary.l7rule_client.delete_l7rule,
-                l7rule[const.ID], l7policy_id=self.l7policy_id)
-
-        # Test that a different user, with the load balancer member role
-        # cannot delete this l7rule
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.os_roles_lb_member2.l7rule_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.delete_l7rule,
-                              l7rule[const.ID], l7policy_id=self.l7policy_id)
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_delete_RBAC_enforcement(
+                'l7rule_client', 'delete_l7rule',
+                expected_allowed, None, None, l7rule[const.ID],
+                l7policy_id=self.l7policy_id)
 
         self.mem_l7rule_client.delete_l7rule(l7rule[const.ID],
                                              l7policy_id=self.l7policy_id)

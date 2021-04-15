@@ -15,7 +15,6 @@
 
 from tempest import config
 from tempest.lib import decorators
-from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
@@ -45,13 +44,17 @@ class AvailabilityZoneCapabilitiesAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer admin role cannot
         # list provider availability zone capabilities.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            os_primary_capabilities_client = (
-                self.os_primary.availability_zone_capabilities_client)
-            self.assertRaises(
-                exceptions.Forbidden,
-                (os_primary_capabilities_client
-                 .list_availability_zone_capabilities),
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
+        if expected_allowed:
+            self.check_list_RBAC_enforcement(
+                'availability_zone_capabilities_client',
+                'list_availability_zone_capabilities', expected_allowed,
                 CONF.load_balancer.provider)
 
         # Check for an expected availability zone capability for the

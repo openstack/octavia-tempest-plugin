@@ -456,6 +456,23 @@
       - ^octavia_tempest_plugin/tests/(?!api/|\w+\.py).*
 
 - job:
+    name: octavia-v2-dsvm-noop-api-scoped-tokens
+    parent: octavia-v2-dsvm-noop-api
+    vars:
+      devstack_local_conf:
+        post-config:
+          $OCTAVIA_CONF:
+            oslo_policy:
+              enforce_scope: True
+              enforce_new_defaults: True
+        test-config:
+          "$TEMPEST_CONFIG":
+            enforce_scope:
+              octavia: True
+            load_balancer:
+              enforce_new_defaults: True
+
+- job:
     name: octavia-v2-dsvm-noop-py2-api
     parent: octavia-v2-dsvm-noop-api
     vars:
