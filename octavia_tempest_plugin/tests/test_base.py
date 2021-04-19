@@ -50,7 +50,12 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
                            RBAC_tests.RBACTestsMixin, test.BaseTestCase):
     """Base class for load balancer tests."""
 
-    if CONF.load_balancer.enforce_new_defaults:
+    if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+        credentials = [
+            'admin', 'primary', ['lb_admin', CONF.load_balancer.admin_role],
+            ['lb_member', CONF.load_balancer.member_role],
+            ['lb_member2', CONF.load_balancer.member_role]]
+    elif CONF.load_balancer.enforce_new_defaults:
         credentials = [
             'admin', 'primary', ['lb_admin', CONF.load_balancer.admin_role],
             ['lb_observer', CONF.load_balancer.observer_role, 'reader'],

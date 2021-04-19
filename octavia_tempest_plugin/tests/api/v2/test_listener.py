@@ -536,8 +536,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         # Test that a different users cannot see the lb_member listeners.
         expected_allowed = []
         if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_primary', 'os_roles_lb_member2',
-                                'os_roles_lb_observer']
+            expected_allowed = ['os_primary', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_primary',
                                 'os_roles_lb_member2', 'os_roles_lb_observer',
@@ -573,9 +572,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         expected_allowed = []
         if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
             expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
-                                'os_roles_lb_member', 'os_roles_lb_member2',
-                                'os_roles_lb_observer',
-                                'os_roles_lb_global_observer']
+                                'os_roles_lb_member', 'os_roles_lb_member2']
         # Note: os_admin is here because it evaluaties to "project_admin"
         #       in oslo_policy and since keystone considers "project_admin"
         #       a superscope of "project_reader". This means it can read
