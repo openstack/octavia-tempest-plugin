@@ -9,6 +9,16 @@
           - controller
 
 - nodeset:
+    name: octavia-single-node-ubuntu-focal
+    nodes:
+      - name: controller
+        label: nested-virt-ubuntu-focal
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
     name: octavia-single-node-centos-7
     nodes:
       - name: controller
@@ -32,9 +42,9 @@
     name: octavia-two-node
     nodes:
       - name: controller
-        label: nested-virt-ubuntu-bionic
+        label: nested-virt-ubuntu-focal
       - name: controller2
-        label: nested-virt-ubuntu-bionic
+        label: nested-virt-ubuntu-focal
     groups:
       - name: controller
         nodes:
@@ -179,7 +189,7 @@
 - job:
     name: octavia-dsvm-live-base
     parent: octavia-dsvm-base
-    nodeset: octavia-single-node-ubuntu-bionic
+    nodeset: octavia-single-node-ubuntu-focal
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -215,7 +225,7 @@
 - job:
     name: octavia-dsvm-live-base-ipv6-only
     parent: octavia-dsvm-base-ipv6-only
-    nodeset: octavia-single-node-ubuntu-bionic
+    nodeset: octavia-single-node-ubuntu-focal
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -487,11 +497,13 @@
 - job:
     name: octavia-v2-dsvm-noop-api-stable-ussuri
     parent: octavia-v2-dsvm-noop-api
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-noop-api-stable-train
     parent: octavia-v2-dsvm-noop-api
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/train
 
 - job:
@@ -556,11 +568,13 @@
 - job:
     name: octavia-v2-dsvm-scenario-stable-ussuri
     parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-scenario-stable-train
     parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/train
 
 # Legacy jobs for the transition to the act-stdby two node jobs
@@ -635,23 +649,12 @@
         OCTAVIA_AMP_IMAGE_SIZE: 3
 
 - job:
-    name: octavia-v2-dsvm-scenario-ubuntu-bionic
+    name: octavia-v2-dsvm-scenario-ubuntu-focal
     parent: octavia-v2-dsvm-scenario
     vars:
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: ubuntu
-        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: bionic
-
-- job:
-    name: octavia-v2-dsvm-scenario-ubuntu-xenial
-    parent: octavia-v2-dsvm-scenario
-    nodeset: openstack-single-node-xenial
-    vars:
-      devstack_localrc:
-        OCTAVIA_AMP_BASE_OS: ubuntu
-        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: xenial
-        USE_PYTHON3: false
-        TEMPEST_BRANCH: 23.0.0
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: focal
 
 - job:
     name: octavia-v2-dsvm-tls-barbican
@@ -686,11 +689,13 @@
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-ussuri
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-train
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/train
 
 - job:
@@ -738,11 +743,13 @@
 - job:
     name: octavia-v2-dsvm-spare-pool-stable-ussuri
     parent: octavia-v2-dsvm-spare-pool
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-spare-pool-stable-train
     parent: octavia-v2-dsvm-spare-pool
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/train
 
 - job:
@@ -882,11 +889,13 @@
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-ussuri
     parent: octavia-v2-act-stdby-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-train
     parent: octavia-v2-act-stdby-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-bionic
     override-checkout: stable/train
 
 ######### Third party jobs ##########
