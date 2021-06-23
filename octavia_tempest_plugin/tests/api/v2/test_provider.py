@@ -60,7 +60,7 @@ class ProviderAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'provider_client', 'list_providers', expected_allowed)
+                'ProviderClient', 'list_providers', expected_allowed)
 
         providers = self.mem_provider_client.list_providers()
 

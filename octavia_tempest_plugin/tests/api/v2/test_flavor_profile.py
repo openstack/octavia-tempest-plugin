@@ -69,7 +69,7 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'flavor_profile_client', 'create_flavor_profile',
+                'FlavorProfileClient', 'create_flavor_profile',
                 expected_allowed, None, None, **flavor_profile_kwargs)
 
         # Happy path
@@ -189,7 +189,7 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'flavor_profile_client', 'list_flavor_profiles',
+                'FlavorProfileClient', 'list_flavor_profiles',
                 expected_allowed)
 
         # Check the default sort order (by ID)
@@ -318,7 +318,7 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'flavor_profile_client', 'show_flavor_profile',
+                'FlavorProfileClient', 'show_flavor_profile',
                 expected_allowed, flavor_profile[const.ID])
 
         result = (
@@ -396,7 +396,7 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'flavor_profile_client', 'update_flavor_profile',
+                'FlavorProfileClient', 'update_flavor_profile',
                 expected_allowed, None, None, flavor_profile[const.ID],
                 **flavor_profile_updated_kwargs)
 
@@ -463,7 +463,7 @@ class FlavorProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'flavor_profile_client', 'delete_flavor_profile',
+                'FlavorProfileClient', 'delete_flavor_profile',
                 expected_allowed, None, None, flavor_profile[const.ID])
 
         # Happy path

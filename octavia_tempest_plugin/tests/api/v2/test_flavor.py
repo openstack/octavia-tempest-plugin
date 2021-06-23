@@ -97,7 +97,7 @@ class FlavorAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'flavor_client', 'create_flavor',
+                'FlavorClient', 'create_flavor',
                 expected_allowed, None, None, **flavor_kwargs)
 
         # Happy path
@@ -209,7 +209,7 @@ class FlavorAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'flavor_client', 'list_flavors', expected_allowed)
+                'FlavorClient', 'list_flavors', expected_allowed)
 
         # Check the default sort order (by ID)
         flavors = self.mem_flavor_client.list_flavors()
@@ -337,7 +337,7 @@ class FlavorAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'flavor_client', 'show_flavor', expected_allowed,
+                'FlavorClient', 'show_flavor', expected_allowed,
                 flavor[const.ID])
 
         result = self.mem_flavor_client.show_flavor(flavor[const.ID])
@@ -399,7 +399,7 @@ class FlavorAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'flavor_client', 'update_flavor', expected_allowed, None, None,
+                'FlavorClient', 'update_flavor', expected_allowed, None, None,
                 flavor[const.ID], **flavor_updated_kwargs)
 
         updated_flavor = self.lb_admin_flavor_client.update_flavor(
@@ -463,7 +463,7 @@ class FlavorAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'flavor_client', 'delete_flavor', expected_allowed,
+                'FlavorClient', 'delete_flavor', expected_allowed,
                 None, None, flavor[const.ID])
 
         # Happy path

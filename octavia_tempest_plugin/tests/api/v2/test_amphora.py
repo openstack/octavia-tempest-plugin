@@ -99,7 +99,7 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'amphora_client', 'list_amphorae', expected_allowed)
+                'AmphoraClient', 'list_amphorae', expected_allowed)
 
         # Get an actual list of the amphorae
         amphorae = self.lb_admin_amphora_client.list_amphorae()
@@ -119,7 +119,7 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
         # Test RBAC for show amphora
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'amphora_client', 'show_amphora', expected_allowed,
+                'AmphoraClient', 'show_amphora', expected_allowed,
                 amphora_id=amphorae[0][const.ID])
 
         show_amphora_response_fields = const.SHOW_AMPHORA_RESPONSE_FIELDS
@@ -187,7 +187,7 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'amphora_client', 'update_amphora_config', expected_allowed,
+                'AmphoraClient', 'update_amphora_config', expected_allowed,
                 None, None, amphora_1[const.ID])
 
         self.lb_admin_amphora_client.update_amphora_config(amphora_1[const.ID])
@@ -222,7 +222,7 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'amphora_client', 'amphora_failover', expected_allowed,
+                'AmphoraClient', 'amphora_failover', expected_allowed,
                 None, None, amphora_1[const.ID])
 
         self.lb_admin_amphora_client.amphora_failover(amphora_1[const.ID])

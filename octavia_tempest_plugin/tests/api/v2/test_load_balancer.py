@@ -96,7 +96,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'loadbalancer_client', 'create_loadbalancer',
+                'LoadbalancerClient', 'create_loadbalancer',
                 expected_allowed, None, None, **lb_kwargs_with_project_id)
 
         lb = self.mem_lb_client.create_loadbalancer(**lb_kwargs)
@@ -199,7 +199,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'loadbalancer_client', 'delete_loadbalancer',
+                'LoadbalancerClient', 'delete_loadbalancer',
                 expected_allowed, None, None, lb[const.ID])
 
         self.mem_lb_client.delete_loadbalancer(lb[const.ID])
@@ -248,7 +248,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'loadbalancer_client', 'delete_loadbalancer',
+                'LoadbalancerClient', 'delete_loadbalancer',
                 expected_allowed, None, None, lb[const.ID], cascade=True)
 
         self.mem_lb_client.delete_loadbalancer(lb[const.ID], cascade=True)
@@ -425,7 +425,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_roles_lb_observer', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement_count(
-                'loadbalancer_client', 'list_loadbalancers',
+                'LoadbalancerClient', 'list_loadbalancers',
                 expected_allowed, 0)
 
         # Test credentials that should see these load balancers can see them.
@@ -441,7 +441,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
-                'loadbalancer_client', 'list_loadbalancers',
+                'LoadbalancerClient', 'list_loadbalancers',
                 expected_allowed, test_ids)
 
         # Test that users without the lb member role cannot list load balancers
@@ -468,7 +468,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'loadbalancer_client', 'list_loadbalancers', expected_allowed)
+                'LoadbalancerClient', 'list_loadbalancers', expected_allowed)
 
         # Check the default sort order, created_at
         lbs = self.mem_lb_client.list_loadbalancers()
@@ -644,7 +644,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'loadbalancer_client', 'show_loadbalancer',
+                'LoadbalancerClient', 'show_loadbalancer',
                 expected_allowed, lb[const.ID])
 
         # Attempt to clean up so that one full test run doesn't start 10+
@@ -745,7 +745,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'loadbalancer_client', 'update_loadbalancer',
+                'LoadbalancerClient', 'update_loadbalancer',
                 expected_allowed, None, None, lb[const.ID],
                 admin_state_up=True)
 
@@ -840,7 +840,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'loadbalancer_client', 'get_loadbalancer_stats',
+                'LoadbalancerClient', 'get_loadbalancer_stats',
                 expected_allowed, lb[const.ID])
 
         stats = self.mem_lb_client.get_loadbalancer_stats(lb[const.ID])
@@ -911,7 +911,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'loadbalancer_client', 'get_loadbalancer_status',
+                'LoadbalancerClient', 'get_loadbalancer_status',
                 expected_allowed, lb[const.ID])
 
         status = self.mem_lb_client.get_loadbalancer_status(lb[const.ID])
@@ -983,7 +983,7 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'loadbalancer_client', 'failover_loadbalancer',
+                'LoadbalancerClient', 'failover_loadbalancer',
                 expected_allowed, None, None, lb[const.ID])
 
         # Assert we didn't go into PENDING_*
@@ -995,8 +995,9 @@ class LoadBalancerAPITest(test_base.LoadBalancerBaseTest):
                 query_params='{loadbalancer_id}={lb_id}'.format(
                     loadbalancer_id=const.LOADBALANCER_ID, lb_id=lb[const.ID]))
 
-        self.os_roles_lb_admin.loadbalancer_client.failover_loadbalancer(
-            lb[const.ID])
+        admin_lb_client = (
+            self.os_roles_lb_admin.load_balancer_v2.LoadbalancerClient())
+        admin_lb_client.failover_loadbalancer(lb[const.ID])
 
         lb = waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                      lb[const.ID], const.PROVISIONING_STATUS,

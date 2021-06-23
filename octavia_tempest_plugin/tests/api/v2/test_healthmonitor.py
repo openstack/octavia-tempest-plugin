@@ -288,7 +288,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'healthmonitor_client', 'create_healthmonitor',
+                'HealthMonitorClient', 'create_healthmonitor',
                 expected_allowed,
                 status_method=self.mem_lb_client.show_loadbalancer,
                 obj_id=self.lb_id, **hm_kwargs)
@@ -731,7 +731,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_roles_lb_observer', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement_count(
-                'healthmonitor_client', 'list_healthmonitors',
+                'HealthMonitorClient', 'list_healthmonitors',
                 expected_allowed, 0)
 
         # Test credentials that should see these healthmonitors can see them.
@@ -747,7 +747,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
-                'healthmonitor_client', 'list_healthmonitors',
+                'HealthMonitorClient', 'list_healthmonitors',
                 expected_allowed, test_ids)
 
         # Test that users without the lb member role cannot list healthmonitors
@@ -774,7 +774,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'healthmonitor_client', 'list_healthmonitors',
+                'HealthMonitorClient', 'list_healthmonitors',
                 expected_allowed)
 
         # Check the default sort order, created_at
@@ -1202,7 +1202,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'healthmonitor_client', 'show_healthmonitor',
+                'HealthMonitorClient', 'show_healthmonitor',
                 expected_allowed, hm[const.ID])
 
     @decorators.idempotent_id('2417164b-ec03-4488-afd2-60b096dc0077')
@@ -1481,7 +1481,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'healthmonitor_client', 'update_healthmonitor',
+                'HealthMonitorClient', 'update_healthmonitor',
                 expected_allowed, None, None, hm[const.ID],
                 admin_state_up=True)
 
@@ -1784,7 +1784,7 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'healthmonitor_client', 'delete_healthmonitor',
+                'HealthMonitorClient', 'delete_healthmonitor',
                 expected_allowed, None, None, hm[const.ID])
 
         self.mem_healthmonitor_client.delete_healthmonitor(hm[const.ID])

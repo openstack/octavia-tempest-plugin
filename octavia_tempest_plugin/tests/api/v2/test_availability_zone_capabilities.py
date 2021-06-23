@@ -53,7 +53,7 @@ class AvailabilityZoneCapabilitiesAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'availability_zone_capabilities_client',
+                'AvailabilityZoneCapabilitiesClient',
                 'list_availability_zone_capabilities', expected_allowed,
                 CONF.load_balancer.provider)
 

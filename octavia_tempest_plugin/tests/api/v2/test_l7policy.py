@@ -145,7 +145,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'l7policy_client', 'create_l7policy',
+                'L7PolicyClient', 'create_l7policy',
                 expected_allowed,
                 status_method=self.mem_lb_client.show_loadbalancer,
                 obj_id=self.lb_id, **l7policy_kwargs)
@@ -372,7 +372,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_roles_lb_observer', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement_count(
-                'l7policy_client', 'list_l7policies',
+                'L7PolicyClient', 'list_l7policies',
                 expected_allowed, 0)
 
         # Test credentials that should see these l7policies can see them.
@@ -388,7 +388,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
-                'l7policy_client', 'list_l7policies',
+                'L7PolicyClient', 'list_l7policies',
                 expected_allowed, test_ids,
                 query_params='listener_id={listener_id}'.format(
                     listener_id=listener_id))
@@ -417,7 +417,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'l7policy_client', 'list_l7policies',
+                'L7PolicyClient', 'list_l7policies',
                 expected_allowed)
 
         # Check the default sort order, created_at
@@ -661,7 +661,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'l7policy_client', 'show_l7policy',
+                'L7PolicyClient', 'show_l7policy',
                 expected_allowed, l7policy[const.ID])
 
     @decorators.idempotent_id('08f73b22-550b-4e5a-b3d6-2ec03251ca13')
@@ -767,7 +767,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'l7policy_client', 'update_l7policy',
+                'L7PolicyClient', 'update_l7policy',
                 expected_allowed, None, None, l7policy[const.ID],
                 admin_state_up=True)
 
@@ -878,7 +878,7 @@ class L7PolicyAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'l7policy_client', 'delete_l7policy',
+                'L7PolicyClient', 'delete_l7policy',
                 expected_allowed, None, None, l7policy[const.ID])
 
         self.mem_l7policy_client.delete_l7policy(l7policy[const.ID])

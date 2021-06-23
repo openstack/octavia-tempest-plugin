@@ -414,7 +414,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'pool_client', 'create_pool',
+                'PoolClient', 'create_pool',
                 expected_allowed,
                 status_method=self.mem_lb_client.show_loadbalancer,
                 obj_id=self.lb_id, **pool_kwargs)
@@ -762,7 +762,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_roles_lb_observer', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement_count(
-                'pool_client', 'list_pools', expected_allowed, 0,
+                'PoolClient', 'list_pools', expected_allowed, 0,
                 query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
 
         # Test credentials that should see these pools can see them.
@@ -778,7 +778,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
-                'pool_client', 'list_pools', expected_allowed, test_ids,
+                'PoolClient', 'list_pools', expected_allowed, test_ids,
                 query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
 
         # Test that users without the lb member role cannot list pools.
@@ -805,7 +805,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'pool_client', 'list_pools', expected_allowed,
+                'PoolClient', 'list_pools', expected_allowed,
                 query_params='loadbalancer_id={lb_id}'.format(lb_id=lb_id))
 
         # Check the default sort order, created_at
@@ -1138,7 +1138,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'pool_client', 'show_pool',
+                'PoolClient', 'show_pool',
                 expected_allowed, pool[const.ID])
 
     @decorators.idempotent_id('d73755fe-ba3a-4248-9543-8e167a5aa7f4')
@@ -1370,7 +1370,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'pool_client', 'update_pool',
+                'PoolClient', 'update_pool',
                 expected_allowed, None, None, pool[const.ID],
                 admin_state_up=True)
 
@@ -1667,7 +1667,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'pool_client', 'delete_pool',
+                'PoolClient', 'delete_pool',
                 expected_allowed, None, None, pool[const.ID])
 
         self.mem_pool_client.delete_pool(pool[const.ID])

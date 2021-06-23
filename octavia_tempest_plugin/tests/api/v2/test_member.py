@@ -887,9 +887,10 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         # Test that a user without the load balancer role cannot
         # create a member
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
+            member_client = self.os_primary.load_balancer_v2.MemberClient()
             self.assertRaises(
                 exceptions.Forbidden,
-                self.os_primary.member_client.create_member,
+                member_client.create_member,
                 **member_kwargs)
 
         # Test that a user without the loadbalancer role cannot
@@ -905,7 +906,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'member_client', 'create_member',
+                'MemberClient', 'create_member',
                 expected_allowed,
                 status_method=self.mem_lb_client.show_loadbalancer,
                 obj_id=self.lb_id, **member_kwargs)
@@ -1238,7 +1239,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
-                'member_client', 'list_members', expected_allowed,
+                'MemberClient', 'list_members', expected_allowed,
                 test_ids, pool_id)
 
         # Test that users without the lb member role cannot list members
@@ -1261,7 +1262,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'member_client', 'list_members', expected_allowed, pool_id)
+                'MemberClient', 'list_members', expected_allowed, pool_id)
 
         # Check the default sort order, created_at
         members = self.mem_member_client.list_members(pool_id)
@@ -1802,7 +1803,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'member_client', 'show_member',
+                'MemberClient', 'show_member',
                 expected_allowed, member[const.ID],
                 pool_id=pool_id)
 
@@ -2256,7 +2257,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'member_client', 'update_member',
+                'MemberClient', 'update_member',
                 expected_allowed, None, None, member[const.ID],
                 pool_id=pool_id, admin_state_up=True)
 
@@ -2714,7 +2715,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'member_client', 'update_members',
+                'MemberClient', 'update_members',
                 expected_allowed, None, None,
                 pool_id=pool_id, members_list=batch_update_list)
 
@@ -2959,7 +2960,7 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'member_client', 'delete_member',
+                'MemberClient', 'delete_member',
                 expected_allowed, None, None, member[const.ID],
                 pool_id=pool_id)
 

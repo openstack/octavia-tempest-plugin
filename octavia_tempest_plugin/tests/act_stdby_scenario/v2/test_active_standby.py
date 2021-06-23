@@ -183,6 +183,7 @@ class ActiveStandbyScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         * Sends traffic through the load balancer
         * Validates that the Backup has assumed the Master role
         """
+        amphora_client = self.os_admin.load_balancer_v2.AmphoraClient()
         # We have to do this here as the api_version and clients are not
         # setup in time to use a decorator or the skip_checks mixin
         if not self.mem_listener_client.is_version_supported(
@@ -197,7 +198,7 @@ class ActiveStandbyScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         self.check_members_balanced(self.lb_vip_address)
 
         # Get the amphorae associated with this load balancer
-        amphorae = self.os_admin.amphora_client.list_amphorae(
+        amphorae = amphora_client.list_amphorae(
             query_params='{loadbalancer_id}={lb_id}'.format(
                 loadbalancer_id=const.LOADBALANCER_ID,
                 lb_id=self.lb_id))
@@ -216,7 +217,7 @@ class ActiveStandbyScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         start = int(time.time())
         while True:
             for amp in amphorae:
-                amphora_stats = self.os_admin.amphora_client.get_amphora_stats(
+                amphora_stats = amphora_client.get_amphora_stats(
                     amp[const.ID])
                 for listener in amphora_stats:
                     if listener[const.TOTAL_CONNECTIONS] > 0:
@@ -243,7 +244,7 @@ class ActiveStandbyScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             else:
                 backup_amp = amp
         self.assertIsNotNone(backup_amp)
-        amphora_stats = self.os_admin.amphora_client.get_amphora_stats(
+        amphora_stats = amphora_client.get_amphora_stats(
             backup_amp[const.ID])
         for listener in amphora_stats:
             self.assertEqual(0, listener[const.TOTAL_CONNECTIONS])
@@ -265,7 +266,7 @@ class ActiveStandbyScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
             time.sleep(1)
 
         # Check that the Backup amphora is now Master
-        amphora_stats = self.os_admin.amphora_client.get_amphora_stats(
+        amphora_stats = amphora_client.get_amphora_stats(
             backup_amp[const.ID])
         connections = 0
         for listener in amphora_stats:

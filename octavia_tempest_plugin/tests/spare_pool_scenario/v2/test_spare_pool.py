@@ -57,10 +57,10 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
         * Send traffic through load balancer
         * Validate amphora spare pool size is restored
         """
-
+        amphora_client = self.os_admin.load_balancer_v2.AmphoraClient()
         # Check there is at least one amphora in spare pool
         spare_amps = waiters.wait_for_spare_amps(
-            self.os_admin.amphora_client.list_amphorae,
+            amphora_client.list_amphorae,
             CONF.load_balancer.lb_build_interval,
             CONF.load_balancer.lb_build_timeout)
 
@@ -100,7 +100,7 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Confirm the spare pool has changed since last check
         spare_amps_2 = waiters.wait_for_spare_amps(
-            self.os_admin.amphora_client.list_amphorae,
+            amphora_client.list_amphorae,
             CONF.load_balancer.lb_build_interval,
             CONF.load_balancer.lb_build_timeout)
         self.assertNotEqual(spare_amps, spare_amps_2)
@@ -180,12 +180,12 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Check there is at least one amphora in spare pool
         spare_amps = waiters.wait_for_spare_amps(
-            self.os_admin.amphora_client.list_amphorae,
+            amphora_client.list_amphorae,
             CONF.load_balancer.lb_build_interval,
             CONF.load_balancer.lb_build_timeout)
 
         # Delete amphora compute instance
-        amp = self.os_admin.amphora_client.list_amphorae(
+        amp = amphora_client.list_amphorae(
             query_params='{loadbalancer_id}={lb_id}'.format(
                 loadbalancer_id=const.LOADBALANCER_ID, lb_id=self.lb_id))
 
@@ -211,12 +211,12 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Confirm the spare pool has changed since last check
         spare_amps_2 = waiters.wait_for_spare_amps(
-            self.os_admin.amphora_client.list_amphorae,
+            amphora_client.list_amphorae,
             CONF.load_balancer.lb_build_interval,
             CONF.load_balancer.lb_build_timeout)
         self.assertNotEqual(spare_amps, spare_amps_2)
 
         # Check there is at least one amphora in spare pool
-        waiters.wait_for_spare_amps(self.os_admin.amphora_client.list_amphorae,
+        waiters.wait_for_spare_amps(amphora_client.list_amphorae,
                                     CONF.load_balancer.lb_build_interval,
                                     CONF.load_balancer.lb_build_timeout)

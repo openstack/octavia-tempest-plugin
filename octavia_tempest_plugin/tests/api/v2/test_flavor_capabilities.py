@@ -51,7 +51,7 @@ class FlavorCapabilitiesAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'flavor_capabilities_client',
+                'FlavorCapabilitiesClient',
                 'list_flavor_capabilities', expected_allowed,
                 CONF.load_balancer.provider)
 

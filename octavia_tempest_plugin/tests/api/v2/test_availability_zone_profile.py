@@ -85,7 +85,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'availability_zone_profile_client',
+                'AvailabilityZoneProfileClient',
                 'create_availability_zone_profile',
                 expected_allowed, **availability_zone_profile_kwargs)
 
@@ -240,7 +240,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'availability_zone_profile_client',
+                'AvailabilityZoneProfileClient',
                 'list_availability_zone_profiles', expected_allowed)
 
         # Check the default sort order (by ID)
@@ -401,7 +401,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'availability_zone_profile_client',
+                'AvailabilityZoneProfileClient',
                 'show_availability_zone_profile', expected_allowed,
                 availability_zone_profile[const.ID])
 
@@ -503,7 +503,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'availability_zone_profile_client',
+                'AvailabilityZoneProfileClient',
                 'update_availability_zone_profile', expected_allowed,
                 None, None, availability_zone_profile[const.ID],
                 **availability_zone_profile_updated_kwargs)
@@ -585,7 +585,7 @@ class AvailabilityZoneProfileAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'availability_zone_profile_client',
+                'AvailabilityZoneProfileClient',
                 'delete_availability_zone_profile', expected_allowed,
                 None, None, availability_zone_profile[const.ID])
 

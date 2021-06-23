@@ -153,7 +153,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'l7rule_client', 'create_l7rule',
+                'L7RuleClient', 'create_l7rule',
                 expected_allowed,
                 status_method=self.mem_lb_client.show_loadbalancer,
                 obj_id=self.lb_id, **l7rule_kwargs)
@@ -365,7 +365,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
-                'l7rule_client', 'list_l7rules', expected_allowed, test_ids,
+                'L7RuleClient', 'list_l7rules', expected_allowed, test_ids,
                 l7policy_id)
 
         # Test that users without the lb member role cannot list L7 rules.
@@ -389,7 +389,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'l7rule_client', 'list_l7rules', expected_allowed, l7policy_id)
+                'L7RuleClient', 'list_l7rules', expected_allowed, l7policy_id)
 
         # Check the default sort order, created_at
         l7rules = self.mem_l7rule_client.list_l7rules(l7policy_id)
@@ -575,7 +575,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'l7rule_client', 'show_l7rule',
+                'L7RuleClient', 'show_l7rule',
                 expected_allowed, l7rule[const.ID],
                 l7policy_id=self.l7policy_id)
 
@@ -660,7 +660,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'l7rule_client', 'update_l7rule',
+                'L7RuleClient', 'update_l7rule',
                 expected_allowed, None, None, l7rule[const.ID],
                 l7policy_id=self.l7policy_id, admin_state_up=True)
 
@@ -762,7 +762,7 @@ class L7RuleAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'l7rule_client', 'delete_l7rule',
+                'L7RuleClient', 'delete_l7rule',
                 expected_allowed, None, None, l7rule[const.ID],
                 l7policy_id=self.l7policy_id)
 

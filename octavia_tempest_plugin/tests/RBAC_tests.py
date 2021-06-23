@@ -28,12 +28,20 @@ LOG = logging.getLogger(__name__)
 
 class RBACTestsMixin(test.BaseTestCase):
 
+    def _get_client_method(self, cred_obj, client_str, method_str):
+        """Get requested method from registered clients in Tempest."""
+        lb_clients = getattr(cred_obj, 'load_balancer_v2')
+        client = getattr(lb_clients, client_str)
+        client_obj = client()
+        method = getattr(client_obj, method_str)
+        return method
+
     def _check_allowed(self, client_str, method_str, allowed_list,
                        *args, **kwargs):
         """Test an API call allowed RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param allowed_list: The list of credentials expected to be
@@ -62,8 +70,7 @@ class RBACTestsMixin(test.BaseTestCase):
                               'testing was not created by tempest '
                               'credentials setup. This is likely a bug in the '
                               'test.'.format(cred))
-            client = getattr(cred_obj, client_str)
-            method = getattr(client, method_str)
+            method = self._get_client_method(cred_obj, client_str, method_str)
             try:
                 method(*args, **kwargs)
             except exceptions.Forbidden as e:
@@ -76,7 +83,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API call disallowed RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param allowed_list: The list of credentials expected to be
@@ -98,8 +105,7 @@ class RBACTestsMixin(test.BaseTestCase):
                                set(allowed_list))
         for cred in expected_disallowed:
             cred_obj = getattr(self, cred)
-            client = getattr(cred_obj, client_str)
-            method = getattr(client, method_str)
+            method = self._get_client_method(cred_obj, client_str, method_str)
 
             # Unfortunately tempest uses testtools assertRaises[1] which means
             # we cannot use the unittest assertRaises context[2] with msg= to
@@ -133,7 +139,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API call RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -173,7 +179,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API show call RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -195,7 +201,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API list call RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -218,7 +224,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API create/update/delete call RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -259,7 +265,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API create call RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -286,7 +292,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API delete call RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -313,7 +319,7 @@ class RBACTestsMixin(test.BaseTestCase):
         """Test an API update call RBAC enforcement.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -347,7 +353,7 @@ class RBACTestsMixin(test.BaseTestCase):
         will validate that only the expected count of results are returned.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -391,8 +397,7 @@ class RBACTestsMixin(test.BaseTestCase):
                               'testing was not created by tempest '
                               'credentials setup. This is likely a bug in the '
                               'test.'.format(cred))
-            client = getattr(cred_obj, client_str)
-            method = getattr(client, method_str)
+            method = self._get_client_method(cred_obj, client_str, method_str)
             try:
                 result = method(*args, **kwargs)
             except exceptions.Forbidden as e:
@@ -416,7 +421,7 @@ class RBACTestsMixin(test.BaseTestCase):
         will validate that the expected object Ids in included in the results.
 
         :param client_str: The service client to use for the test, without the
-                           credential.  Example: 'amphora_client'
+                           credential.  Example: 'AmphoraClient'
         :param method_str: The method on the client to call for the test.
                            Example: 'list_amphorae'
         :param expected_allowed: The list of credentials expected to be
@@ -460,8 +465,7 @@ class RBACTestsMixin(test.BaseTestCase):
                               'testing was not created by tempest '
                               'credentials setup. This is likely a bug in the '
                               'test.'.format(cred))
-            client = getattr(cred_obj, client_str)
-            method = getattr(client, method_str)
+            method = self._get_client_method(cred_obj, client_str, method_str)
             try:
                 result = method(*args, **kwargs)
             except exceptions.Forbidden as e:

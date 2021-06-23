@@ -114,7 +114,7 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_create_RBAC_enforcement(
-                'availability_zone_client', 'create_availability_zone',
+                'AvailabilityZoneClient', 'create_availability_zone',
                 expected_allowed, **availability_zone_kwargs)
 
         # Happy path
@@ -243,7 +243,7 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
-                'availability_zone_client', 'list_availability_zones',
+                'AvailabilityZoneClient', 'list_availability_zones',
                 expected_allowed)
 
         # Check the default sort order (by ID)
@@ -396,7 +396,7 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
             self.check_show_RBAC_enforcement(
-                'availability_zone_client', 'show_availability_zone',
+                'AvailabilityZoneClient', 'show_availability_zone',
                 expected_allowed, availability_zone[const.NAME])
 
         result = self.mem_availability_zone_client.show_availability_zone(
@@ -463,7 +463,7 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_update_RBAC_enforcement(
-                'availability_zone_client', 'update_availability_zone',
+                'AvailabilityZoneClient', 'update_availability_zone',
                 expected_allowed, None, None, availability_zone[const.NAME],
                 **availability_zone_updated_kwargs)
 
@@ -540,7 +540,7 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
         if expected_allowed:
             self.check_delete_RBAC_enforcement(
-                'availability_zone_client', 'delete_availability_zone',
+                'AvailabilityZoneClient', 'delete_availability_zone',
                 expected_allowed, None, None, availability_zone[const.NAME])
 
         # Happy path

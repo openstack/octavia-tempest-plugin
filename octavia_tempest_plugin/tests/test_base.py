@@ -30,7 +30,6 @@ from tempest.lib import exceptions
 from tempest import test
 import tenacity
 
-from octavia_tempest_plugin import clients
 from octavia_tempest_plugin.common import cert_utils
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import RBAC_tests
@@ -89,7 +88,6 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
     # Tests shall not mess with the list of allocated credentials
     allocated_credentials = tuple(allocated_creds)
 
-    client_manager = clients.ManagerV2
     webserver1_response = 1
     webserver2_response = 5
     used_ips = []
@@ -165,6 +163,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
     def setup_clients(cls):
         """Setup client aliases."""
         super(LoadBalancerBaseTest, cls).setup_clients()
+        lb_admin_prefix = cls.os_roles_lb_admin.load_balancer_v2
         cls.lb_mem_float_ip_client = cls.os_roles_lb_member.floating_ips_client
         cls.lb_mem_keypairs_client = cls.os_roles_lb_member.keypairs_client
         cls.lb_mem_net_client = cls.os_roles_lb_member.networks_client
@@ -175,33 +174,41 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             cls.os_roles_lb_member.security_group_rules_client)
         cls.lb_mem_servers_client = cls.os_roles_lb_member.servers_client
         cls.lb_mem_subnet_client = cls.os_roles_lb_member.subnets_client
-        cls.mem_lb_client = cls.os_roles_lb_member.loadbalancer_client
-        cls.mem_listener_client = cls.os_roles_lb_member.listener_client
-        cls.mem_pool_client = cls.os_roles_lb_member.pool_client
-        cls.mem_member_client = cls.os_roles_lb_member.member_client
+        cls.mem_lb_client = (
+            cls.os_roles_lb_member.load_balancer_v2.LoadbalancerClient())
+        cls.mem_listener_client = (
+            cls.os_roles_lb_member.load_balancer_v2.ListenerClient())
+        cls.mem_pool_client = (
+            cls.os_roles_lb_member.load_balancer_v2.PoolClient())
+        cls.mem_member_client = (
+            cls.os_roles_lb_member.load_balancer_v2.MemberClient())
         cls.mem_healthmonitor_client = (
-            cls.os_roles_lb_member.healthmonitor_client)
-        cls.mem_l7policy_client = cls.os_roles_lb_member.l7policy_client
-        cls.mem_l7rule_client = cls.os_roles_lb_member.l7rule_client
-        cls.lb_admin_amphora_client = cls.os_roles_lb_admin.amphora_client
+            cls.os_roles_lb_member.load_balancer_v2.HealthMonitorClient())
+        cls.mem_l7policy_client = (
+            cls.os_roles_lb_member.load_balancer_v2.L7PolicyClient())
+        cls.mem_l7rule_client = (
+            cls.os_roles_lb_member.load_balancer_v2.L7RuleClient())
+        cls.lb_admin_amphora_client = lb_admin_prefix.AmphoraClient()
         cls.lb_admin_flavor_profile_client = (
-            cls.os_roles_lb_admin.flavor_profile_client)
-        cls.lb_admin_flavor_client = cls.os_roles_lb_admin.flavor_client
-        cls.mem_flavor_client = cls.os_roles_lb_member.flavor_client
-        cls.mem_provider_client = cls.os_roles_lb_member.provider_client
+            lb_admin_prefix.FlavorProfileClient())
+        cls.lb_admin_flavor_client = lb_admin_prefix.FlavorClient()
+        cls.mem_flavor_client = (
+            cls.os_roles_lb_member.load_balancer_v2.FlavorClient())
+        cls.mem_provider_client = (
+            cls.os_roles_lb_member.load_balancer_v2.ProviderClient())
         cls.os_admin_servers_client = cls.os_admin.servers_client
         cls.os_admin_routers_client = cls.os_admin.routers_client
         cls.os_admin_subnetpools_client = cls.os_admin.subnetpools_client
         cls.lb_admin_flavor_capabilities_client = (
-            cls.os_roles_lb_admin.flavor_capabilities_client)
+            lb_admin_prefix.FlavorCapabilitiesClient())
         cls.lb_admin_availability_zone_capabilities_client = (
-            cls.os_roles_lb_admin.availability_zone_capabilities_client)
+            lb_admin_prefix.AvailabilityZoneCapabilitiesClient())
         cls.lb_admin_availability_zone_profile_client = (
-            cls.os_roles_lb_admin.availability_zone_profile_client)
+            lb_admin_prefix.AvailabilityZoneProfileClient())
         cls.lb_admin_availability_zone_client = (
-            cls.os_roles_lb_admin.availability_zone_client)
+            lb_admin_prefix.AvailabilityZoneClient())
         cls.mem_availability_zone_client = (
-            cls.os_roles_lb_member.availability_zone_client)
+            cls.os_roles_lb_member.load_balancer_v2.AvailabilityZoneClient())
 
     @classmethod
     def resource_setup(cls):

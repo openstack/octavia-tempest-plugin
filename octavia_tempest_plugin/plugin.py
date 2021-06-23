@@ -19,6 +19,7 @@ from tempest import config
 from tempest.test_discover import plugins
 
 from octavia_tempest_plugin import config as project_config
+from octavia_tempest_plugin.services.load_balancer import v2 as lb_v2_services
 
 
 class OctaviaTempestPlugin(plugins.TempestPlugin):
@@ -57,10 +58,10 @@ class OctaviaTempestPlugin(plugins.TempestPlugin):
         )
 
         params = {
-            'name': 'load-balancer_v2',
+            'name': 'load_balancer_v2',
             'service_version': 'load-balancer.v2',
             'module_path': 'octavia_tempest_plugin.services.load_balancer.v2',
-            'client_names': ['LoadbalancerClient'],
+            'client_names': lb_v2_services.__all__,
         }
         params.update(octavia_config)
 
