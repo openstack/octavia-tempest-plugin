@@ -490,6 +490,11 @@
         USE_PYTHON3: False
 
 - job:
+    name: octavia-v2-dsvm-noop-api-stable-wallaby
+    parent: octavia-v2-dsvm-noop-api
+    override-checkout: stable/wallaby
+
+- job:
     name: octavia-v2-dsvm-noop-api-stable-victoria
     parent: octavia-v2-dsvm-noop-api
     override-checkout: stable/victoria
@@ -560,6 +565,10 @@
       - name: openstack/diskimage-builder
         override-checkout: 2.30.0
 
+- job:
+    name: octavia-v2-dsvm-scenario-stable-wallaby
+    parent: octavia-v2-dsvm-scenario
+    override-checkout: stable/wallaby
 - job:
     name: octavia-v2-dsvm-scenario-stable-victoria
     parent: octavia-v2-dsvm-scenario
@@ -682,6 +691,11 @@
       - ^octavia_tempest_plugin/tests/(?!barbican_scenario/|\w+\.py).*
 
 - job:
+    name: octavia-v2-dsvm-tls-barbican-stable-wallaby
+    parent: octavia-v2-dsvm-tls-barbican
+    override-checkout: stable/wallaby
+
+- job:
     name: octavia-v2-dsvm-tls-barbican-stable-victoria
     parent: octavia-v2-dsvm-tls-barbican
     override-checkout: stable/victoria
@@ -734,6 +748,11 @@
     required-projects:
       - name: openstack/diskimage-builder
         override-checkout: 2.30.0
+
+- job:
+    name: octavia-v2-dsvm-spare-pool-stable-wallaby
+    parent: octavia-v2-dsvm-spare-pool
+    override-checkout: stable/wallaby
 
 - job:
     name: octavia-v2-dsvm-spare-pool-stable-victoria
@@ -880,6 +899,11 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.act_stdby_scenario.v2.test_active_standby\.
       tox_envlist: all
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario-stable-wallaby
+    parent: octavia-v2-act-stdby-dsvm-scenario
+    override-checkout: stable/wallaby
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-victoria
