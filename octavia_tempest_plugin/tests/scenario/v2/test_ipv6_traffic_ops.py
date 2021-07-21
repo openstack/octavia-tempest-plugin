@@ -493,6 +493,8 @@ class IPv6TrafficOperationsScenarioTest(
         # wait until Neutron completes the SG update.
         # See https://bugs.launchpad.net/neutron/+bug/1866353.
         def expect_timeout_error(address, protocol, protocol_port):
+            if protocol != const.UDP:
+                address = "[{}]".format(address)
             try:
                 self.make_request(address, protocol=protocol,
                                   protocol_port=protocol_port)
