@@ -1020,7 +1020,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
     @decorators.idempotent_id('bd732c36-bdaa-4591-bf4e-28268874d22c')
     def test_UDP_RR_source_IP_pool_show(self):
         self._test_pool_show(
-            const.HTTP, const.LB_ALGORITHM_ROUND_ROBIN,
+            const.UDP, const.LB_ALGORITHM_ROUND_ROBIN,
             session_persistence=const.SESSION_PERSISTENCE_SOURCE_IP)
 
     def _test_pool_show(self, pool_protocol, algorithm,
@@ -1246,7 +1246,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
     @decorators.idempotent_id('28b90650-a612-4b10-981f-d3dd6a366e4f')
     def test_UDP_RR_source_IP_pool_update(self):
         self._test_pool_update(
-            const.HTTP, const.LB_ALGORITHM_ROUND_ROBIN,
+            const.UDP, const.LB_ALGORITHM_ROUND_ROBIN,
             session_persistence=const.SESSION_PERSISTENCE_SOURCE_IP)
 
     def _test_pool_update(self, pool_protocol, algorithm,
@@ -1590,7 +1590,7 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
     @decorators.idempotent_id('cc69c0d0-9191-4faf-a154-e33df880f44e')
     def test_UDP_RR_source_IP_pool_delete(self):
         self._test_pool_delete(
-            const.HTTP, const.LB_ALGORITHM_ROUND_ROBIN,
+            const.UDP, const.LB_ALGORITHM_ROUND_ROBIN,
             session_persistence=const.SESSION_PERSISTENCE_SOURCE_IP)
 
     def _test_pool_delete(self, pool_protocol, algorithm,
