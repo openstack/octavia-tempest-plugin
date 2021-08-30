@@ -463,6 +463,7 @@
 - job:
     name: octavia-v2-dsvm-noop-api
     parent: octavia-dsvm-noop-base
+    timeout: 10800
     vars:
       devstack_local_conf:
         post-config:
