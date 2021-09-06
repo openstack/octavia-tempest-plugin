@@ -981,7 +981,8 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         local_file = CONF.load_balancer.test_server_path
 
         linux_client = remote_client.RemoteClient(
-            ip_address, CONF.validation.image_ssh_user, pkey=ssh_key)
+            ip_address, CONF.validation.image_ssh_user, pkey=ssh_key,
+            ssh_key_type=CONF.validation.ssh_key_type)
         linux_client.validate_authentication()
 
         with tempfile.NamedTemporaryFile() as key:
@@ -1036,7 +1037,8 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
     def _enable_ipv6_nic_webserver(cls, ip_address, ssh_key,
                                    ipv6_address, ipv6_prefix):
         linux_client = remote_client.RemoteClient(
-            ip_address, CONF.validation.image_ssh_user, pkey=ssh_key)
+            ip_address, CONF.validation.image_ssh_user, pkey=ssh_key,
+            ssh_key_type=CONF.validation.ssh_key_type)
         linux_client.validate_authentication()
 
         linux_client.exec_command('sudo ip address add {0}/{1} dev '
