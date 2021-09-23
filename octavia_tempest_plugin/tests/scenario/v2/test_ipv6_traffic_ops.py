@@ -431,8 +431,9 @@ class IPv6TrafficOperationsScenarioTest(
             const.ADDRESS: self.webserver1_ipv6,
             const.PROTOCOL_PORT: 80,
         }
-        if self.lb_member_1_subnet:
-            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+        if self.lb_member_1_ipv6_subnet:
+            member1_kwargs[const.SUBNET_ID] = (
+                self.lb_member_1_ipv6_subnet[const.ID])
 
         member1 = self.mem_member_client.create_member(
             **member1_kwargs)
@@ -455,8 +456,9 @@ class IPv6TrafficOperationsScenarioTest(
             const.ADDRESS: self.webserver2_ipv6,
             const.PROTOCOL_PORT: 80,
         }
-        if self.lb_member_2_subnet:
-            member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
+        if self.lb_member_2_ipv6_subnet:
+            member2_kwargs[const.SUBNET_ID] = (
+                self.lb_member_2_ipv6_subnet[const.ID])
 
         member2 = self.mem_member_client.create_member(**member2_kwargs)
         self.addCleanup(
