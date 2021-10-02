@@ -32,6 +32,8 @@ class PoolClient(base_client.BaseLBaaSClient):
                     listener_id=Unset, name=Unset, description=Unset,
                     tags=Unset,
                     admin_state_up=Unset, session_persistence=Unset,
+                    ca_tls_container_ref=Unset, crl_container_ref=Unset,
+                    tls_enabled=Unset, tls_container_ref=Unset,
                     return_object_only=True):
         """Create a pool.
 
@@ -47,6 +49,18 @@ class PoolClient(base_client.BaseLBaaSClient):
         :param session_persistence: A JSON object specifying the session
                                     persistence for the pool or null for no
                                     session persistence.
+        :param ca_tls_container_ref: The key manager ref for a secret
+                                     containing the PEM encoded CA certificate
+                                     to validate pool members against.
+        :param crl_container_ref: The key manager ref for a secret containing
+                                  the PEM encoded CRL to use when validating
+                                  pool members.
+        :param tls_enabled: A boolean, True when the pool should connect to
+                            members using TLS.
+        :param tls_container_ref: The key manager ref for a secret containing
+                                  a PKCS12 bundle with the client
+                                  authentication certificate and key used
+                                  when connecting to pool members over TLS.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -164,7 +178,9 @@ class PoolClient(base_client.BaseLBaaSClient):
     @skip_if_not_implemented
     def update_pool(self, pool_id, lb_algorithm=Unset, name=Unset,
                     description=Unset, tags=Unset, admin_state_up=Unset,
-                    session_persistence=Unset, return_object_only=True):
+                    session_persistence=Unset, ca_tls_container_ref=Unset,
+                    crl_container_ref=Unset, tls_enabled=Unset,
+                    tls_container_ref=Unset, return_object_only=True):
         """Update a pool.
 
         :param pool_id: The pool ID to update.
@@ -177,6 +193,18 @@ class PoolClient(base_client.BaseLBaaSClient):
         :param session_persistence: A JSON object specifying the session
                                     persistence for the pool or null for no
                                     session persistence.
+        :param ca_tls_container_ref: The key manager ref for a secret
+                                     containing the PEM encoded CA certificate
+                                     to validate pool members against.
+        :param crl_container_ref: The key manager ref for a secret containing
+                                  the PEM encoded CRL to use when validating
+                                  pool members.
+        :param tls_enabled: A boolean, True when the pool should connect to
+                            members using TLS.
+        :param tls_container_ref: The key manager ref for a secret containing
+                                  a PKCS12 bundle with the client
+                                  authentication certificate and key used
+                                  when connecting to pool members over TLS.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.

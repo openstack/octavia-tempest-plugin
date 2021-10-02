@@ -99,6 +99,23 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         return new_cert, new_key, new_secret_ref
 
     @classmethod
+    def _load_pool_pki(cls):
+        # Create the pkcs12 bundle
+        pkcs12 = cert_utils.generate_pkcs12_bundle(cls.member_client_cert,
+                                                   cls.member_client_key)
+        LOG.debug('Pool client PKCS12 bundle: %s', base64.b64encode(pkcs12))
+
+        cls.pool_client_ref = cls._store_secret(cls.barbican_mgr, pkcs12)
+
+        cls.pool_CA_ref = cls._store_secret(
+            cls.barbican_mgr,
+            cls.member_ca_cert.public_bytes(serialization.Encoding.PEM))
+
+        cls.pool_CRL_ref = cls._store_secret(
+            cls.barbican_mgr,
+            cls.member_crl.public_bytes(serialization.Encoding.PEM))
+
+    @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
         super(TLSWithBarbicanTest, cls).resource_setup()
@@ -173,6 +190,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         cls.client_crl_ref = cls._store_secret(
             cls.barbican_mgr,
             cls.client_crl.public_bytes(serialization.Encoding.PEM))
+
+        cls._load_pool_pki()
 
         # Setup a load balancer for the tests to use
         lb_name = data_utils.rand_name("lb_member_lb1-tls")
@@ -1197,3 +1216,149 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
     def test_http_1_1_tls_traffic(self):
         self._test_http_versions_tls_traffic(
             'HTTP/1.1', ['http/1.1', 'http/1.0'])
+
+    @decorators.idempotent_id('ee0faf71-d11e-4323-8673-e5e15779749b')
+    def test_pool_reencryption(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.8'):
+            raise self.skipException('Pool re-encryption is only available on '
+                                     'Octavia API version 2.8 or newer.')
+        pool_name = data_utils.rand_name("lb_member_pool1-tls-reencrypt")
+        pool_kwargs = {
+            const.NAME: pool_name,
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: self.lb_algorithm,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.TLS_ENABLED: True
+        }
+        pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        pool_id = pool[const.ID]
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Set up Member 1 for Webserver 1
+        member1_name = data_utils.rand_name("lb_member_member1-tls-reencrypt")
+        member1_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member1_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 443,
+        }
+        if self.lb_member_1_subnet:
+            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        self.mem_member_client.create_member(**member1_kwargs)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 2 for Webserver 2
+        member2_name = data_utils.rand_name("lb_member_member2-tls-reencrypt")
+        member2_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member2_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver2_ip,
+            const.PROTOCOL_PORT: 443,
+        }
+        if self.lb_member_2_subnet:
+            member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
+
+        self.mem_member_client.create_member(**member2_kwargs)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        listener_name = data_utils.rand_name(
+            "lb_member_listener1-tls-reencrypt")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL_PORT: '84',
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: pool_id,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Test with no CA validation
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTP,
+                                    protocol_port=84)
+
+        # Test with CA validation - invalid CA
+        pool_update_kwargs = {
+            const.CA_TLS_CONTAINER_REF: self.client_ca_cert_ref
+        }
+
+        self.mem_pool_client.update_pool(pool_id, **pool_update_kwargs)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+        waiters.wait_for_status(
+            self.mem_pool_client.show_pool, pool_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        url = 'http://{0}:84'.format(self.lb_vip_address)
+        self.validate_URL_response(url, expected_status_code=503)
+
+        # Test with CA validation - valid CA
+        pool_update_kwargs = {
+            const.CA_TLS_CONTAINER_REF: self.pool_CA_ref
+        }
+
+        self.mem_pool_client.update_pool(pool_id, **pool_update_kwargs)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+        waiters.wait_for_status(
+            self.mem_pool_client.show_pool, pool_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTP,
+                                    protocol_port=84)
+
+        # Test with CRL including one webserver certificate revoked
+        pool_update_kwargs = {
+            const.CRL_CONTAINER_REF: self.pool_CRL_ref
+        }
+
+        self.mem_pool_client.update_pool(pool_id, **pool_update_kwargs)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+        waiters.wait_for_status(
+            self.mem_pool_client.show_pool, pool_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTP,
+                                    protocol_port=84, traffic_member_count=1)
