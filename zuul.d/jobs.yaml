@@ -49,6 +49,16 @@
           - controller
 
 - nodeset:
+    name: octavia-single-node-centos-9-stream
+    nodes:
+      - name: controller
+        label: nested-virt-centos-9-stream
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
     name: octavia-two-node
     nodes:
       - name: controller
@@ -704,6 +714,16 @@
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: centos
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 8-stream
+        OCTAVIA_AMP_IMAGE_SIZE: 3
+
+- job:
+    name: octavia-v2-dsvm-scenario-centos-9-stream
+    parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-centos-9-stream
+    vars:
+      devstack_localrc:
+        OCTAVIA_AMP_BASE_OS: centos
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 9-stream
         OCTAVIA_AMP_IMAGE_SIZE: 3
 
 - job:
