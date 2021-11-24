@@ -34,7 +34,7 @@ class PoolClient(base_client.BaseLBaaSClient):
                     admin_state_up=Unset, session_persistence=Unset,
                     ca_tls_container_ref=Unset, crl_container_ref=Unset,
                     tls_enabled=Unset, tls_container_ref=Unset,
-                    return_object_only=True):
+                    alpn_protocols=Unset, return_object_only=True):
         """Create a pool.
 
         :param protocol: The protocol for the resource.
@@ -61,6 +61,7 @@ class PoolClient(base_client.BaseLBaaSClient):
                                   a PKCS12 bundle with the client
                                   authentication certificate and key used
                                   when connecting to pool members over TLS.
+        :param alpn_protocols: A list of ALPN protocols for TLS enabled pools.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -180,7 +181,8 @@ class PoolClient(base_client.BaseLBaaSClient):
                     description=Unset, tags=Unset, admin_state_up=Unset,
                     session_persistence=Unset, ca_tls_container_ref=Unset,
                     crl_container_ref=Unset, tls_enabled=Unset,
-                    tls_container_ref=Unset, return_object_only=True):
+                    tls_container_ref=Unset, alpn_protocols=Unset,
+                    return_object_only=True):
         """Update a pool.
 
         :param pool_id: The pool ID to update.
@@ -205,6 +207,7 @@ class PoolClient(base_client.BaseLBaaSClient):
                                   a PKCS12 bundle with the client
                                   authentication certificate and key used
                                   when connecting to pool members over TLS.
+        :param alpn_protocols: A list of ALPN protocols for TLS enabled pools.
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.

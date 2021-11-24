@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added support for ALPN selection in the pools service client.
