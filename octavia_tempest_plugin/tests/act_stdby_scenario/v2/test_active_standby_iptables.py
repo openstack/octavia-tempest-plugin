@@ -186,7 +186,7 @@ class ActiveStandbyIptablesScenarioTest(
         linux_client = remote_client.RemoteClient(
             amp['lb_network_ip'], CONF.load_balancer.amphora_ssh_user,
             pkey=ssh_key,
-            ssh_key_type=CONF.validation.ssh_key_type)
+            **cls.remote_client_args())
         linux_client.validate_authentication()
 
         # Allow logging from non-init namespaces
@@ -204,7 +204,7 @@ class ActiveStandbyIptablesScenarioTest(
         ssh_key = cls._get_amphora_ssh_key()
         linux_client = remote_client.RemoteClient(
             ip_address, CONF.load_balancer.amphora_ssh_user, pkey=ssh_key,
-            ssh_key_type=CONF.validation.ssh_key_type)
+            **cls.remote_client_args())
         linux_client.validate_authentication()
 
         try:

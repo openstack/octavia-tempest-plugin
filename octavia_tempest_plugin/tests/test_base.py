@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 
 from cryptography.hazmat.primitives import serialization
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
 from tempest import config
@@ -582,6 +583,18 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
 
 class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
     @classmethod
+    def remote_client_args(cls):
+        # In case we're using octavia-tempest-plugin with old tempest releases
+        # (for instance on stable/train) that don't support ssh_key_type, catch
+        # the exception and don't pass any argument
+        args = {}
+        try:
+            args['ssh_key_type'] = CONF.validation.ssh_key_type
+        except cfg.NoSuchOptError:
+            pass
+        return args
+
+    @classmethod
     def resource_setup(cls):
         super(LoadBalancerBaseTestWithCompute, cls).resource_setup()
         # If validation is disabled in this cloud, we won't be able to
@@ -982,7 +995,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
 
         linux_client = remote_client.RemoteClient(
             ip_address, CONF.validation.image_ssh_user, pkey=ssh_key,
-            ssh_key_type=CONF.validation.ssh_key_type)
+            **cls.remote_client_args())
         linux_client.validate_authentication()
 
         with tempfile.NamedTemporaryFile() as key:
@@ -1038,7 +1051,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                                    ipv6_address, ipv6_prefix):
         linux_client = remote_client.RemoteClient(
             ip_address, CONF.validation.image_ssh_user, pkey=ssh_key,
-            ssh_key_type=CONF.validation.ssh_key_type)
+            **cls.remote_client_args())
         linux_client.validate_authentication()
 
         linux_client.exec_command('sudo ip address add {0}/{1} dev '
