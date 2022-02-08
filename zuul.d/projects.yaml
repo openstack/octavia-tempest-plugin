@@ -28,6 +28,8 @@
             voting: false
         - octavia-v2-dsvm-scenario-centos-8-stream:
             voting: false
+        - octavia-v2-dsvm-scenario-centos-9-stream:
+            voting: false
         - octavia-v2-act-stdby-dsvm-scenario-two-node:
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario:

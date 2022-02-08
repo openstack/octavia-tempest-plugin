@@ -15,6 +15,7 @@
 import ipaddress
 import os
 import random
+import re
 import shlex
 import string
 import subprocess
@@ -976,6 +977,31 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         return webserver_details
 
     @classmethod
+    def _get_openssh_version(cls):
+        p = subprocess.Popen(["ssh", "-V"],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        output = p.communicate()[1]
+
+        try:
+            m = re.match(r"OpenSSH_(\d+)\.(\d+)", output.decode('utf-8'))
+            version_maj = int(m.group(1))
+            version_min = int(m.group(2))
+            return version_maj, version_min
+        except Exception:
+            return None, None
+
+    @classmethod
+    def _need_scp_protocol(cls):
+        # When using scp >= 8.7, force the use of the SCP protocol,
+        # the new default (SFTP protocol) doesn't work with
+        # cirros VMs.
+        ssh_version = cls._get_openssh_version()
+        LOG.debug("ssh_version = {}".format(ssh_version))
+        return (ssh_version[0] > 8 or
+                (ssh_version[0] == 8 and ssh_version[1] >= 7))
+
+    @classmethod
     def _install_start_webserver(cls, ip_address, ssh_key, start_id,
                                  revoke_cert=False):
         local_file = CONF.load_balancer.test_server_path
@@ -988,14 +1014,20 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         with tempfile.NamedTemporaryFile() as key:
             key.write(ssh_key.encode('utf-8'))
             key.flush()
+            ssh_extra_args = (
+                "-o PubkeyAcceptedKeyTypes=+ssh-rsa")
+            if cls._need_scp_protocol():
+                ssh_extra_args += " -O"
             cmd = ("scp -v -o UserKnownHostsFile=/dev/null "
+                   "{7} "
                    "-o StrictHostKeyChecking=no "
                    "-o ConnectTimeout={0} -o ConnectionAttempts={1} "
                    "-i {2} {3} {4}@{5}:{6}").format(
                 CONF.load_balancer.scp_connection_timeout,
                 CONF.load_balancer.scp_connection_attempts,
                 key.name, local_file, CONF.validation.image_ssh_user,
-                ip_address, const.TEST_SERVER_BINARY)
+                ip_address, const.TEST_SERVER_BINARY,
+                ssh_extra_args)
             args = shlex.split(cmd)
             subprocess_args = {'stdout': subprocess.PIPE,
                                'stderr': subprocess.STDOUT,
@@ -1153,14 +1185,20 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             subprocess_args = {'stdout': subprocess.PIPE,
                                'stderr': subprocess.STDOUT,
                                'cwd': None}
+            ssh_extra_args = (
+                "-o PubkeyAcceptedKeyTypes=+ssh-rsa")
+            if cls._need_scp_protocol():
+                ssh_extra_args += " -O"
             cmd = ("scp -v -o UserKnownHostsFile=/dev/null "
+                   "{9} "
                    "-o StrictHostKeyChecking=no "
                    "-o ConnectTimeout={0} -o ConnectionAttempts={1} "
                    "-i {2} {3} {4} {5} {6}@{7}:{8}").format(
                 CONF.load_balancer.scp_connection_timeout,
                 CONF.load_balancer.scp_connection_attempts,
                 ssh_key.name, cert_filename, key_filename, client_ca_filename,
-                CONF.validation.image_ssh_user, ip_address, const.DEV_SHM_PATH)
+                CONF.validation.image_ssh_user, ip_address, const.DEV_SHM_PATH,
+                ssh_extra_args)
             args = shlex.split(cmd)
             proc = subprocess.Popen(args, **subprocess_args)
             stdout, stderr = proc.communicate()
