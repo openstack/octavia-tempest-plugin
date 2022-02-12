@@ -141,6 +141,8 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         cls.listener_pool_cache[listener_pool_key] = pool[const.ID]
         return pool[const.ID]
 
+
+class MemberAPITest1(MemberAPITest):
     @decorators.idempotent_id('0684575a-0970-4fa8-8006-10c2b39c5f2b')
     def test_ipv4_HTTP_LC_alt_monitor_member_create(self):
         pool_id = self._listener_pool_create(
@@ -1375,6 +1377,8 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             self.assertTrue(not any(["" in member[const.TAGS]
                                      for member in list_of_members]))
 
+
+class MemberAPITest2(MemberAPITest):
     @decorators.idempotent_id('2674b363-7922-494a-b121-cf415dbbb716')
     def test_HTTP_LC_alt_monitor_member_show(self):
         pool_id = self._listener_pool_create(
