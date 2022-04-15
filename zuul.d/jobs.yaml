@@ -530,6 +530,11 @@
         USE_PYTHON3: False
 
 - job:
+    name: octavia-v2-dsvm-noop-api-stable-yoga
+    parent: octavia-v2-dsvm-noop-api
+    override-checkout: stable/yoga
+
+- job:
     name: octavia-v2-dsvm-noop-api-stable-xena
     parent: octavia-v2-dsvm-noop-api
     override-checkout: stable/xena
@@ -543,12 +548,6 @@
     name: octavia-v2-dsvm-noop-api-stable-victoria
     parent: octavia-v2-dsvm-noop-api
     override-checkout: stable/victoria
-
-- job:
-    name: octavia-v2-dsvm-noop-api-stable-ussuri
-    parent: octavia-v2-dsvm-noop-api
-    nodeset: octavia-single-node-ubuntu-bionic
-    override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-scenario
@@ -605,6 +604,11 @@
         override-checkout: 2.30.0
 
 - job:
+    name: octavia-v2-dsvm-scenario-stable-yoga
+    parent: octavia-v2-dsvm-scenario
+    override-checkout: stable/yoga
+
+- job:
     name: octavia-v2-dsvm-scenario-stable-xena
     parent: octavia-v2-dsvm-scenario
     override-checkout: stable/xena
@@ -617,12 +621,6 @@
     name: octavia-v2-dsvm-scenario-stable-victoria
     parent: octavia-v2-dsvm-scenario
     override-checkout: stable/victoria
-
-- job:
-    name: octavia-v2-dsvm-scenario-stable-ussuri
-    parent: octavia-v2-dsvm-scenario
-    nodeset: octavia-single-node-ubuntu-bionic
-    override-checkout: stable/ussuri
 
 # Legacy jobs for the transition to the act-stdby two node jobs
 - job:
@@ -760,6 +758,11 @@
       - ^octavia_tempest_plugin/tests/(?!barbican_scenario/|\w+\.py).*
 
 - job:
+    name: octavia-v2-dsvm-tls-barbican-stable-yoga
+    parent: octavia-v2-dsvm-tls-barbican
+    override-checkout: stable/yoga
+
+- job:
     name: octavia-v2-dsvm-tls-barbican-stable-xena
     parent: octavia-v2-dsvm-tls-barbican
     override-checkout: stable/xena
@@ -824,6 +827,11 @@
         override-checkout: 2.30.0
 
 - job:
+    name: octavia-v2-dsvm-spare-pool-stable-yoga
+    parent: octavia-v2-dsvm-spare-pool
+    override-checkout: stable/yoga
+
+- job:
     name: octavia-v2-dsvm-spare-pool-stable-xena
     parent: octavia-v2-dsvm-spare-pool
     override-checkout: stable/xena
@@ -837,12 +845,6 @@
     name: octavia-v2-dsvm-spare-pool-stable-victoria
     parent: octavia-v2-dsvm-spare-pool
     override-checkout: stable/victoria
-
-- job:
-    name: octavia-v2-dsvm-spare-pool-stable-ussuri
-    parent: octavia-v2-dsvm-spare-pool
-    nodeset: octavia-single-node-ubuntu-bionic
-    override-checkout: stable/ussuri
 
 - job:
     name: octavia-v2-dsvm-cinder-amphora
@@ -974,6 +976,11 @@
       tox_envlist: all
 
 - job:
+    name: octavia-v2-act-stdby-dsvm-scenario-stable-yoga
+    parent: octavia-v2-act-stdby-dsvm-scenario
+    override-checkout: stable/yoga
+
+- job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-xena
     parent: octavia-v2-act-stdby-dsvm-scenario
     override-checkout: stable/xena
@@ -987,12 +994,6 @@
     name: octavia-v2-act-stdby-dsvm-scenario-stable-victoria
     parent: octavia-v2-act-stdby-dsvm-scenario
     override-checkout: stable/victoria
-
-- job:
-    name: octavia-v2-act-stdby-dsvm-scenario-stable-ussuri
-    parent: octavia-v2-act-stdby-dsvm-scenario
-    nodeset: octavia-single-node-ubuntu-bionic
-    override-checkout: stable/ussuri
 
 ######### Third party jobs ##########
 
