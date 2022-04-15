@@ -12,18 +12,15 @@
         - octavia-v2-dsvm-noop-api-stable-yoga
         - octavia-v2-dsvm-noop-api-stable-xena
         - octavia-v2-dsvm-noop-api-stable-wallaby
-        - octavia-v2-dsvm-noop-api-stable-victoria
         - octavia-v2-dsvm-noop-api-scoped-tokens
         - octavia-v2-dsvm-scenario
         - octavia-v2-dsvm-scenario-stable-yoga
         - octavia-v2-dsvm-scenario-stable-xena
         - octavia-v2-dsvm-scenario-stable-wallaby
-        - octavia-v2-dsvm-scenario-stable-victoria
         - octavia-v2-dsvm-tls-barbican
         - octavia-v2-dsvm-tls-barbican-stable-yoga
         - octavia-v2-dsvm-tls-barbican-stable-xena
         - octavia-v2-dsvm-tls-barbican-stable-wallaby
-        - octavia-v2-dsvm-tls-barbican-stable-victoria
         - octavia-v2-dsvm-scenario-ipv6-only:
             voting: false
         - octavia-v2-dsvm-scenario-centos-8-stream:
@@ -40,17 +37,7 @@
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario-stable-wallaby:
             voting: false
-        - octavia-v2-act-stdby-dsvm-scenario-stable-victoria:
-            voting: false
-        - octavia-v2-dsvm-spare-pool:
-            voting: false
-        - octavia-v2-dsvm-spare-pool-stable-yoga:
-            voting: false
-        - octavia-v2-dsvm-spare-pool-stable-xena:
-            voting: false
         - octavia-v2-dsvm-spare-pool-stable-wallaby:
-            voting: false
-        - octavia-v2-dsvm-spare-pool-stable-victoria:
             voting: false
         - octavia-v2-dsvm-cinder-amphora:
             voting: false
@@ -67,15 +54,12 @@
         - octavia-v2-dsvm-noop-api-stable-yoga
         - octavia-v2-dsvm-noop-api-stable-xena
         - octavia-v2-dsvm-noop-api-stable-wallaby
-        - octavia-v2-dsvm-noop-api-stable-victoria
         - octavia-v2-dsvm-noop-api-scoped-tokens
         - octavia-v2-dsvm-scenario
         - octavia-v2-dsvm-scenario-stable-yoga
         - octavia-v2-dsvm-scenario-stable-xena
         - octavia-v2-dsvm-scenario-stable-wallaby
-        - octavia-v2-dsvm-scenario-stable-victoria
         - octavia-v2-dsvm-tls-barbican
         - octavia-v2-dsvm-tls-barbican-stable-yoga
         - octavia-v2-dsvm-tls-barbican-stable-xena
         - octavia-v2-dsvm-tls-barbican-stable-wallaby
-        - octavia-v2-dsvm-tls-barbican-stable-victoria
