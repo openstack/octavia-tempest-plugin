@@ -1004,35 +1004,24 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 self.api_version, '2.12'):
             self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
-        # Test that a user, without the load balancer member role, cannot
-        # use this command
+        # Test that a user without the loadbalancer role cannot
+        # update a listener.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.listener_client.update_listener,
-                listener[const.ID], admin_state_up=True)
-
-        # Assert we didn't go into PENDING_*
-        listener_check = self.mem_listener_client.show_listener(
-            listener[const.ID])
-        self.assertEqual(const.ACTIVE,
-                         listener_check[const.PROVISIONING_STATUS])
-        self.assertFalse(listener_check[const.ADMIN_STATE_UP])
-
-        # Test that a user, without the load balancer member role, cannot
-        # update this listener
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.member2_listener_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.update_listener,
-                              listener[const.ID], admin_state_up=True)
-
-        # Assert we didn't go into PENDING_*
-        listener_check = self.mem_listener_client.show_listener(
-            listener[const.ID])
-        self.assertEqual(const.ACTIVE,
-                         listener_check[const.PROVISIONING_STATUS])
-        self.assertFalse(listener_check[const.ADMIN_STATE_UP])
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'ListenerClient', 'update_listener',
+                expected_allowed,
+                status_method=self.mem_listener_client.show_listener,
+                obj_id=listener[const.ID], listener_id=listener[const.ID],
+                admin_state_up=True)
 
         new_name = data_utils.rand_name("lb_member_listener1-UPDATED")
         new_description = data_utils.arbitrary_string(size=255,
@@ -1188,21 +1177,23 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             CONF.load_balancer.build_interval,
             CONF.load_balancer.build_timeout)
 
-        # Test that a user without the load balancer role cannot
-        # delete this listener
+        # Test that a user without the loadbalancer role cannot
+        # delete a listener.
+        expected_allowed = []
+        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            expected_allowed = ['os_system_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            self.assertRaises(
-                exceptions.Forbidden,
-                self.listener_client.delete_listener,
-                listener[const.ID])
-
-        # Test that a different user, with the load balancer member role
-        # cannot delete this listener
-        if not CONF.load_balancer.RBAC_test_type == const.NONE:
-            member2_client = self.member2_listener_client
-            self.assertRaises(exceptions.Forbidden,
-                              member2_client.delete_listener,
-                              listener[const.ID])
+            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        if expected_allowed:
+            self.check_update_RBAC_enforcement(
+                'ListenerClient', 'delete_listener',
+                expected_allowed,
+                status_method=self.mem_listener_client.show_listener,
+                obj_id=listener[const.ID], listener_id=listener[const.ID])
 
         self.mem_listener_client.delete_listener(listener[const.ID])
 
