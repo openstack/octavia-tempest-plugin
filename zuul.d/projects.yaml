@@ -46,9 +46,9 @@
             voting: false
         - neutron-ovn-provider-v2-scenario:
             voting: false
+    queue: octavia
     gate:
       fail-fast: true
-      queue: octavia
       jobs:
         - octavia-v2-dsvm-noop-api
         - octavia-v2-dsvm-noop-api-stable-yoga
