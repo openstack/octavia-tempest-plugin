@@ -545,11 +545,6 @@
     override-checkout: stable/wallaby
 
 - job:
-    name: octavia-v2-dsvm-noop-api-stable-victoria
-    parent: octavia-v2-dsvm-noop-api
-    override-checkout: stable/victoria
-
-- job:
     name: octavia-v2-dsvm-scenario
     parent: octavia-dsvm-live-base
     vars:
@@ -617,10 +612,6 @@
     name: octavia-v2-dsvm-scenario-stable-wallaby
     parent: octavia-v2-dsvm-scenario
     override-checkout: stable/wallaby
-- job:
-    name: octavia-v2-dsvm-scenario-stable-victoria
-    parent: octavia-v2-dsvm-scenario
-    override-checkout: stable/victoria
 
 # Legacy jobs for the transition to the act-stdby two node jobs
 - job:
@@ -790,18 +781,6 @@
     override-checkout: stable/train
 
 - job:
-    name: octavia-v2-dsvm-tls-barbican-stable-rocky
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: openstack-single-node-xenial
-    override-checkout: stable/rocky
-
-- job:
-    name: octavia-v2-dsvm-tls-barbican-stable-queens
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: openstack-single-node-xenial
-    override-checkout: stable/queens
-
-- job:
     name: octavia-v2-dsvm-spare-pool
     parent: octavia-v2-dsvm-scenario
     vars:
@@ -827,24 +806,9 @@
         override-checkout: 2.30.0
 
 - job:
-    name: octavia-v2-dsvm-spare-pool-stable-yoga
-    parent: octavia-v2-dsvm-spare-pool
-    override-checkout: stable/yoga
-
-- job:
-    name: octavia-v2-dsvm-spare-pool-stable-xena
-    parent: octavia-v2-dsvm-spare-pool
-    override-checkout: stable/xena
-
-- job:
     name: octavia-v2-dsvm-spare-pool-stable-wallaby
     parent: octavia-v2-dsvm-spare-pool
     override-checkout: stable/wallaby
-
-- job:
-    name: octavia-v2-dsvm-spare-pool-stable-victoria
-    parent: octavia-v2-dsvm-spare-pool
-    override-checkout: stable/victoria
 
 - job:
     name: octavia-v2-dsvm-cinder-amphora
@@ -989,11 +953,6 @@
     name: octavia-v2-act-stdby-dsvm-scenario-stable-wallaby
     parent: octavia-v2-act-stdby-dsvm-scenario
     override-checkout: stable/wallaby
-
-- job:
-    name: octavia-v2-act-stdby-dsvm-scenario-stable-victoria
-    parent: octavia-v2-act-stdby-dsvm-scenario
-    override-checkout: stable/victoria
 
 ######### Third party jobs ##########
 
