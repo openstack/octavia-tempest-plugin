@@ -337,7 +337,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                 return False
             return True
 
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_cb)
         ca_store = context.get_cert_store()
@@ -473,7 +476,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
             return True
 
         # Test that the default certificate is used with no SNI host request
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_server_cb)
         ca_store = context.get_cert_store()
@@ -485,7 +491,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         sock.do_handshake()
 
         # Test that the default certificate is used with bogus SNI host request
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.TLSv1_2_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_server_cb)
         ca_store = context.get_cert_store()
@@ -498,7 +507,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         sock.do_handshake()
 
         # Test that the SNI1 certificate is used when SNI1 host is specified
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.TLSv1_2_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_SNI1_cb)
         ca_store = context.get_cert_store()
@@ -512,7 +524,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         sock.do_handshake()
 
         # Test that the SNI2 certificate is used when SNI2 host is specified
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_SNI2_cb)
         ca_store = context.get_cert_store()
@@ -634,7 +649,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
             return True
 
         # Test that the default certificate is used with no SNI host request
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_server_cb)
         ca_store = context.get_cert_store()
@@ -646,7 +664,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         sock.do_handshake()
 
         # Test that the SNI1 certificate is used when SNI1 host is specified
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.TLSv1_2_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_SNI1_cb)
         ca_store = context.get_cert_store()
@@ -660,7 +681,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         sock.do_handshake()
 
         # Test that the default certificate is used when SNI2 host is specified
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_server_cb)
         ca_store = context.get_cert_store()
@@ -675,7 +699,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test that the SNI2 certificate is used with no SNI host request
         # on listener 2, SNI2 is the default cert for listener 2
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_SNI2_cb)
         ca_store = context.get_cert_store()
@@ -688,7 +715,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test that the SNI2 certificate is used with listener 1 host request
         # on listener 2, SNI2 is the default cert for listener 2
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_SNI2_cb)
         ca_store = context.get_cert_store()
@@ -703,7 +733,10 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Test that the SNI2 certificate is used with SNI1 host request
         # on listener 2, SNI2 is the default cert for listener 2
-        context = SSL.Context(SSL.TLS_METHOD)
+        try:
+            context = SSL.Context(SSL.TLS_METHOD)
+        except AttributeError:
+            context = SSL.Context(SSL.SSLv23_METHOD)
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
                            _verify_SNI2_cb)
         ca_store = context.get_cert_store()
