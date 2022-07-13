@@ -118,11 +118,25 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                           const.LB_ALGORITHM_LEAST_CONNECTIONS)
         self._test_listener_CRUD(const.HTTP, pool1, pool2)
 
+    @decorators.idempotent_id('d6d729ba-b03f-496c-8e0f-53704cd4994d')
+    def test_http_least_connections_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.HTTP,
+                                          const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_listener_CRUD(const.HTTP, pool1, pool2,
+                                 use_allowed_cidrs=False)
+
     @decorators.idempotent_id('0681b2ac-8301-4e6c-bf29-b35244864af3')
     def test_tcp_least_connections_listener_CRUD(self):
         pool1, pool2 = self._create_pools(const.TCP,
                                           const.LB_ALGORITHM_LEAST_CONNECTIONS)
         self._test_listener_CRUD(const.TCP, pool1, pool2)
+
+    @decorators.idempotent_id('10c5ecc8-533d-403c-9eb1-e3ca83586781')
+    def test_tcp_least_connections_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.TCP,
+                                          const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_listener_CRUD(const.TCP, pool1, pool2,
+                                 use_allowed_cidrs=False)
 
     @decorators.idempotent_id('27a2ba7d-6147-46e4-886a-47c1ba63bf89')
     def test_udp_least_connections_listener_CRUD(self):
@@ -130,11 +144,25 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                           const.LB_ALGORITHM_LEAST_CONNECTIONS)
         self._test_listener_CRUD(const.UDP, pool1, pool2)
 
+    @decorators.idempotent_id('76776488-b38d-418e-9804-e0be4a443b51')
+    def test_udp_least_connections_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.UDP,
+                                          const.LB_ALGORITHM_LEAST_CONNECTIONS)
+        self._test_listener_CRUD(const.UDP, pool1, pool2,
+                                 use_allowed_cidrs=False)
+
     @decorators.idempotent_id('4a874014-b7d1-49a4-ac9a-2400b3434700')
     def test_http_round_robin_listener_CRUD(self):
         pool1, pool2 = self._create_pools(const.HTTP,
                                           const.LB_ALGORITHM_ROUND_ROBIN)
         self._test_listener_CRUD(const.HTTP, pool1, pool2)
+
+    @decorators.idempotent_id('a2d8e2ca-5104-41b0-b011-819782e01054')
+    def test_http_round_robin_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.HTTP,
+                                          const.LB_ALGORITHM_ROUND_ROBIN)
+        self._test_listener_CRUD(const.HTTP, pool1, pool2,
+                                 use_allowed_cidrs=False)
 
     @decorators.idempotent_id('2b888812-d916-44f0-b620-8d83dbb45975')
     def test_tcp_round_robin_listener_CRUD(self):
@@ -142,11 +170,25 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                           const.LB_ALGORITHM_ROUND_ROBIN)
         self._test_listener_CRUD(const.TCP, pool1, pool2)
 
+    @decorators.idempotent_id('1b2bfce6-29f9-4af6-87f2-329654c03c3d')
+    def test_tcp_round_robin_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.TCP,
+                                          const.LB_ALGORITHM_ROUND_ROBIN)
+        self._test_listener_CRUD(const.TCP, pool1, pool2,
+                                 use_allowed_cidrs=False)
+
     @decorators.idempotent_id('dd913f74-c6a6-4998-9bed-095babb9cb47')
     def test_udp_round_robin_listener_CRUD(self):
         pool1, pool2 = self._create_pools(const.UDP,
                                           const.LB_ALGORITHM_ROUND_ROBIN)
         self._test_listener_CRUD(const.UDP, pool1, pool2)
+
+    @decorators.idempotent_id('4a938409-eb79-4a9b-b003-44115153163d')
+    def test_udp_round_robin_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.UDP,
+                                          const.LB_ALGORITHM_ROUND_ROBIN)
+        self._test_listener_CRUD(const.UDP, pool1, pool2,
+                                 use_allowed_cidrs=False)
 
     @decorators.idempotent_id('b2ae8604-7a4f-477c-9658-fac27734671a')
     def test_http_source_ip_listener_CRUD(self):
@@ -154,11 +196,25 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                           const.LB_ALGORITHM_SOURCE_IP)
         self._test_listener_CRUD(const.HTTP, pool1, pool2)
 
+    @decorators.idempotent_id('baa747b1-0b3c-4f56-a1d1-b5550ec69c6e')
+    def test_http_source_ip_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.HTTP,
+                                          const.LB_ALGORITHM_SOURCE_IP)
+        self._test_listener_CRUD(const.HTTP, pool1, pool2,
+                                 use_allowed_cidrs=False)
+
     @decorators.idempotent_id('0ad3fdee-e8c2-4c44-9690-b8a838fbc7a5')
     def test_tcp_source_ip_listener_CRUD(self):
         pool1, pool2 = self._create_pools(const.TCP,
                                           const.LB_ALGORITHM_SOURCE_IP)
         self._test_listener_CRUD(const.TCP, pool1, pool2)
+
+    @decorators.idempotent_id('3778e729-8c5b-4634-876a-8bacba0976c2')
+    def test_tcp_source_ip_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.TCP,
+                                          const.LB_ALGORITHM_SOURCE_IP)
+        self._test_listener_CRUD(const.TCP, pool1, pool2,
+                                 use_allowed_cidrs=False)
 
     @decorators.idempotent_id('7830aba8-12ca-40d9-9d9b-a63f7a43b287')
     def test_udp_source_ip_listener_CRUD(self):
@@ -166,12 +222,34 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                                           const.LB_ALGORITHM_SOURCE_IP)
         self._test_listener_CRUD(const.UDP, pool1, pool2)
 
+    @decorators.idempotent_id('8d98b27b-f775-4f1b-8b74-88ec2e60e39f')
+    def test_udp_source_ip_listener_CRUD_no_allowed_cidrs(self):
+        pool1, pool2 = self._create_pools(const.UDP,
+                                          const.LB_ALGORITHM_SOURCE_IP)
+        self._test_listener_CRUD(const.UDP, pool1, pool2,
+                                 use_allowed_cidrs=False)
+
     @decorators.idempotent_id('807a421e-5e99-4556-b0eb-512d39b25eac')
     def test_http_source_ip_port_listener_CRUD(self):
         try:
             pool1, pool2 = self._create_pools(
                 const.HTTP, const.LB_ALGORITHM_SOURCE_IP_PORT)
             self._test_listener_CRUD(const.HTTP, pool1, pool2)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
+    @decorators.idempotent_id('1d522a51-4fa0-4b8e-9f72-292e0f145bf1')
+    def test_http_source_ip_port_listener_CRUD_no_allowed_cidrs(self):
+        try:
+            pool1, pool2 = self._create_pools(
+                const.HTTP, const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_listener_CRUD(const.HTTP, pool1, pool2,
+                                     use_allowed_cidrs=False)
         except exceptions.NotImplemented as e:
             message = ("The configured provider driver '{driver}' "
                        "does not support a feature required for this "
@@ -194,6 +272,21 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                 message = e.resp_body.get('faultstring', message)
             raise testtools.TestCase.skipException(message)
 
+    @decorators.idempotent_id('a66d32f9-2186-437e-a145-139f5a1b0786')
+    def test_tcp_source_ip_port_listener_CRUD_no_allowed_cidrs(self):
+        try:
+            pool1, pool2 = self._create_pools(
+                const.TCP, const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_listener_CRUD(const.TCP, pool1, pool2,
+                                     use_allowed_cidrs=False)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
     @decorators.idempotent_id('3f9a2de9-5012-437d-a907-a25e1f68ccfb')
     def test_udp_source_ip_port_listener_CRUD(self):
         try:
@@ -208,7 +301,23 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                 message = e.resp_body.get('faultstring', message)
             raise testtools.TestCase.skipException(message)
 
-    def _test_listener_CRUD(self, protocol, pool1_id, pool2_id):
+    @decorators.idempotent_id('dff6d829-9122-47cb-9ce5-f2def7fcf902')
+    def test_udp_source_ip_port_listener_CRUD_no_allowed_cidrs(self):
+        try:
+            pool1, pool2 = self._create_pools(
+                const.UDP, const.LB_ALGORITHM_SOURCE_IP_PORT)
+            self._test_listener_CRUD(const.UDP, pool1, pool2,
+                                     use_allowed_cidrs=False)
+        except exceptions.NotImplemented as e:
+            message = ("The configured provider driver '{driver}' "
+                       "does not support a feature required for this "
+                       "test.".format(driver=CONF.load_balancer.provider))
+            if hasattr(e, 'resp_body'):
+                message = e.resp_body.get('faultstring', message)
+            raise testtools.TestCase.skipException(message)
+
+    def _test_listener_CRUD(self, protocol, pool1_id, pool2_id,
+                            use_allowed_cidrs=True):
         """Tests listener create, read, update, delete
 
         * Create a fully populated listener.
@@ -249,8 +358,9 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                 const.TIMEOUT_MEMBER_DATA: 1000,
                 const.TIMEOUT_TCP_INSPECT: 50,
             })
-        if self.mem_listener_client.is_version_supported(
-                self.api_version, '2.12'):
+        if (use_allowed_cidrs and
+                self.mem_listener_client.is_version_supported(
+                    self.api_version, '2.12')):
             listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
@@ -295,8 +405,9 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_CONNECT])
             self.assertEqual(1000, listener[const.TIMEOUT_MEMBER_DATA])
             self.assertEqual(50, listener[const.TIMEOUT_TCP_INSPECT])
-        if self.mem_listener_client.is_version_supported(
-                self.api_version, '2.12'):
+        if (use_allowed_cidrs and
+                self.mem_listener_client.is_version_supported(
+                    self.api_version, '2.12')):
             self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
         # Listener update
@@ -328,9 +439,9 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
                 const.TIMEOUT_MEMBER_DATA: 2000,
                 const.TIMEOUT_TCP_INSPECT: 100,
             })
-
-        if self.mem_listener_client.is_version_supported(
-                self.api_version, '2.12'):
+        if (use_allowed_cidrs and
+                self.mem_listener_client.is_version_supported(
+                    self.api_version, '2.12')):
             new_cidrs = ['192.0.2.0/24']
             if CONF.load_balancer.test_with_ipv6:
                 new_cidrs = ['2001:db8::/64']
@@ -382,8 +493,9 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
             self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_CONNECT])
             self.assertEqual(2000, listener[const.TIMEOUT_MEMBER_DATA])
             self.assertEqual(100, listener[const.TIMEOUT_TCP_INSPECT])
-        if self.mem_listener_client.is_version_supported(
-                self.api_version, '2.12'):
+        if (use_allowed_cidrs and
+                self.mem_listener_client.is_version_supported(
+                    self.api_version, '2.12')):
             expected_cidrs = ['192.0.2.0/24']
             if CONF.load_balancer.test_with_ipv6:
                 expected_cidrs = ['2001:db8::/64']
