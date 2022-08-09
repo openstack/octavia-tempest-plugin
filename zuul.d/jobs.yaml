@@ -714,6 +714,13 @@
         OCTAVIA_AMP_BASE_OS: centos
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 9-stream
         OCTAVIA_AMP_IMAGE_SIZE: 3
+        OCTAVIA_SSH_KEY_TYPE: ecdsa
+        OCTAVIA_SSH_KEY_BITS: 256
+      devstack_local_conf:
+        test-config:
+          "$TEMPEST_CONFIG":
+            validation:
+              ssh_key_type: ecdsa
 
 - job:
     name: octavia-v2-dsvm-scenario-ubuntu-focal
