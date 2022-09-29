@@ -67,3 +67,6 @@ etc/octavia.tempest.conf.sample
 # Others
 .stestr
 tempest.log
+
+# Git
+*.orig
