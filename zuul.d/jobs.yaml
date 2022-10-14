@@ -19,6 +19,16 @@
           - controller
 
 - nodeset:
+    name: octavia-single-node-ubuntu-jammy
+    nodes:
+      - name: controller
+        label: nested-virt-ubuntu-jammy
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
     name: octavia-single-node-centos-7
     nodes:
       - name: controller
@@ -62,9 +72,9 @@
     name: octavia-two-node
     nodes:
       - name: controller
-        label: nested-virt-ubuntu-focal
+        label: nested-virt-ubuntu-jammy
       - name: controller2
-        label: nested-virt-ubuntu-focal
+        label: nested-virt-ubuntu-jammy
     groups:
       - name: controller
         nodes:
@@ -209,7 +219,7 @@
 - job:
     name: octavia-dsvm-live-base
     parent: octavia-dsvm-base
-    nodeset: octavia-single-node-ubuntu-focal
+    nodeset: octavia-single-node-ubuntu-jammy
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -245,7 +255,7 @@
 - job:
     name: octavia-dsvm-live-base-ipv6-only
     parent: octavia-dsvm-base-ipv6-only
-    nodeset: octavia-single-node-ubuntu-focal
+    nodeset: octavia-single-node-ubuntu-jammy
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -534,16 +544,19 @@
 - job:
     name: octavia-v2-dsvm-noop-api-stable-yoga
     parent: octavia-v2-dsvm-noop-api
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/yoga
 
 - job:
     name: octavia-v2-dsvm-noop-api-stable-xena
     parent: octavia-v2-dsvm-noop-api
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/xena
 
 - job:
     name: octavia-v2-dsvm-noop-api-stable-wallaby
     parent: octavia-v2-dsvm-noop-api
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/wallaby
 
 - job:
@@ -603,16 +616,19 @@
 - job:
     name: octavia-v2-dsvm-scenario-stable-yoga
     parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/yoga
 
 - job:
     name: octavia-v2-dsvm-scenario-stable-xena
     parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/xena
 
 - job:
     name: octavia-v2-dsvm-scenario-stable-wallaby
     parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/wallaby
 
 # Legacy jobs for the transition to the act-stdby two node jobs
@@ -737,12 +753,12 @@
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
 
 - job:
-    name: octavia-v2-dsvm-scenario-ubuntu-focal
+    name: octavia-v2-dsvm-scenario-ubuntu-jammy
     parent: octavia-v2-dsvm-scenario
     vars:
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: ubuntu
-        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: focal
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: jammy
 
 - job:
     name: octavia-v2-dsvm-tls-barbican
@@ -785,21 +801,25 @@
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-yoga
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/yoga
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-xena
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/xena
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-wallaby
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/wallaby
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-victoria
     parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/victoria
 
 - job:
@@ -842,6 +862,7 @@
 - job:
     name: octavia-v2-dsvm-spare-pool-stable-wallaby
     parent: octavia-v2-dsvm-spare-pool
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/wallaby
 
 - job:
@@ -976,16 +997,19 @@
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-yoga
     parent: octavia-v2-act-stdby-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/yoga
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-xena
     parent: octavia-v2-act-stdby-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/xena
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-wallaby
     parent: octavia-v2-act-stdby-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/wallaby
 
 ######### Third party jobs ##########
