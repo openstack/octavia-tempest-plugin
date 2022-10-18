@@ -269,6 +269,11 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
         }
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
 
+        self.addClassResourceCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -294,6 +299,11 @@ class HealthMonitorScenarioTest(test_base.LoadBalancerBaseTest):
                               const.EXPECTED_CODES: '200'})
 
         hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
+
+        self.addClassResourceCleanup(
+            self.mem_healthmonitor_client.cleanup_healthmonitor,
+            hm[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,

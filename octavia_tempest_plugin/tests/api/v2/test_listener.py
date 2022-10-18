@@ -187,6 +187,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
 
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -900,6 +905,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
 
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1067,6 +1077,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
+
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -1293,6 +1308,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.LOADBALANCER_ID: self.lb_id,
         }
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
+
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer,

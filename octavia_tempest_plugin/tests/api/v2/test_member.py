@@ -104,6 +104,11 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
         cls.current_listener_port += 1
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
 
+        cls.addClassResourceCleanup(
+            cls.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -132,6 +137,11 @@ class MemberAPITest(test_base.LoadBalancerBaseTest):
             if hasattr(e, 'resp_body'):
                 message = e.resp_body.get('faultstring', message)
             raise testtools.TestCase.skipException(message)
+
+        cls.addClassResourceCleanup(
+            cls.mem_pool_client.cleanup_pool,
+            pool[const.ID],
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
@@ -915,6 +925,11 @@ class MemberAPITest1(MemberAPITest):
                 obj_id=self.lb_id, **member_kwargs)
 
         member = self.mem_member_client.create_member(**member_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -1756,6 +1771,11 @@ class MemberAPITest2(MemberAPITest):
 
         member = self.mem_member_client.create_member(**member_kwargs)
 
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -2198,6 +2218,11 @@ class MemberAPITest2(MemberAPITest):
                 const.ID]
 
         member = self.mem_member_client.create_member(**member_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
@@ -2642,6 +2667,11 @@ class MemberAPITest2(MemberAPITest):
                 const.ID]
         member1 = self.mem_member_client.create_member(**member1_kwargs)
 
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member1[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id,
                                 const.PROVISIONING_STATUS,
@@ -2673,6 +2703,11 @@ class MemberAPITest2(MemberAPITest):
                 const.ID]
 
         member2 = self.mem_member_client.create_member(**member2_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member2[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id,
@@ -2946,6 +2981,11 @@ class MemberAPITest2(MemberAPITest):
             const.PROTOCOL_PORT: self.member_port.increment(),
         }
         member = self.mem_member_client.create_member(**member_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer,

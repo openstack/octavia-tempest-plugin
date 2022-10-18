@@ -240,6 +240,11 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
         cls.pool_id = pool[const.ID]
 
+        cls.addClassResourceCleanup(
+            cls.mem_pool_client.cleanup_pool,
+            cls.pool_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -258,7 +263,13 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if cls.lb_member_1_subnet:
             member1_kwargs[const.SUBNET_ID] = cls.lb_member_1_subnet[const.ID]
 
-        cls.mem_member_client.create_member(**member1_kwargs)
+        member1 = cls.mem_member_client.create_member(**member1_kwargs)
+
+        cls.addClassResourceCleanup(
+            cls.mem_member_client.cleanup_member,
+            member1[const.ID], cls.pool_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
         waiters.wait_for_status(
             cls.mem_lb_client.show_loadbalancer, cls.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -277,7 +288,13 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if cls.lb_member_2_subnet:
             member2_kwargs[const.SUBNET_ID] = cls.lb_member_2_subnet[const.ID]
 
-        cls.mem_member_client.create_member(**member2_kwargs)
+        member2 = cls.mem_member_client.create_member(**member2_kwargs)
+
+        cls.addClassResourceCleanup(
+            cls.mem_member_client.cleanup_member,
+            member2[const.ID], cls.pool_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
         waiters.wait_for_status(
             cls.mem_lb_client.show_loadbalancer, cls.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1268,6 +1285,11 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
         pool_id = pool[const.ID]
 
+        self.addClassResourceCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -1286,7 +1308,13 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_1_subnet:
             member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
 
-        self.mem_member_client.create_member(**member1_kwargs)
+        member1 = self.mem_member_client.create_member(**member1_kwargs)
+
+        self.addClassResourceCleanup(
+            self.mem_member_client.cleanup_member,
+            member1[const.ID], pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1305,7 +1333,13 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_2_subnet:
             member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
 
-        self.mem_member_client.create_member(**member2_kwargs)
+        member2 = self.mem_member_client.create_member(**member2_kwargs)
+
+        self.addClassResourceCleanup(
+            self.mem_member_client.cleanup_member,
+            member2[const.ID], pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1323,6 +1357,11 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         }
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.listener_id = listener[const.ID]
+
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
@@ -1420,6 +1459,11 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         pool = self.mem_pool_client.create_pool(**pool_kwargs)
         pool_id = pool[const.ID]
 
+        self.addClassResourceCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -1472,6 +1516,12 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
             member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
 
         member1 = self.mem_member_client.create_member(**member1_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member1[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1492,6 +1542,12 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
             member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
 
         member2 = self.mem_member_client.create_member(**member2_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member2[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1509,6 +1565,11 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         }
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.listener_id = listener[const.ID]
+
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
 
         waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
                                 self.lb_id, const.PROVISIONING_STATUS,

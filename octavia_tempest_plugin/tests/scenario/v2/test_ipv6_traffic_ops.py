@@ -104,6 +104,11 @@ class IPv6TrafficOperationsScenarioTest(
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
         cls.listener_ids[protocol] = listener[const.ID]
 
+        cls.addClassResourceCleanup(
+            cls.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -119,6 +124,11 @@ class IPv6TrafficOperationsScenarioTest(
         }
         pool = cls.mem_pool_client.create_pool(**pool_kwargs)
         cls.pool_ids[protocol] = pool[const.ID]
+
+        cls.addClassResourceCleanup(
+            cls.mem_pool_client.cleanup_pool,
+            pool[const.ID],
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,

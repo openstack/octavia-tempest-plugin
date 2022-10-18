@@ -61,6 +61,11 @@ class L7RuleScenarioTest(test_base.LoadBalancerBaseTest):
         listener = cls.mem_listener_client.create_listener(**listener_kwargs)
         cls.listener_id = listener[const.ID]
 
+        cls.addClassResourceCleanup(
+            cls.mem_listener_client.cleanup_listener,
+            cls.listener_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -75,6 +80,11 @@ class L7RuleScenarioTest(test_base.LoadBalancerBaseTest):
         }
         l7policy = cls.mem_l7policy_client.create_l7policy(**l7policy_kwargs)
         cls.l7policy_id = l7policy[const.ID]
+
+        cls.addClassResourceCleanup(
+            cls.mem_l7policy_client.cleanup_l7policy,
+            cls.l7policy_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,

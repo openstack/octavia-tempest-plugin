@@ -76,6 +76,11 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         pool1 = cls.mem_pool_client.create_pool(**pool1_kwargs)
         pool1_id = pool1[const.ID]
 
+        cls.addClassResourceCleanup(
+            cls.mem_pool_client.cleanup_pool,
+            pool1_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
+
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
                                 const.ACTIVE,
@@ -91,6 +96,11 @@ class ListenerScenarioTest(test_base.LoadBalancerBaseTest):
         }
         pool2 = cls.mem_pool_client.create_pool(**pool2_kwargs)
         pool2_id = pool2[const.ID]
+
+        cls.addClassResourceCleanup(
+            cls.mem_pool_client.cleanup_pool,
+            pool2_id,
+            lb_client=cls.mem_lb_client, lb_id=cls.lb_id)
 
         waiters.wait_for_status(cls.mem_lb_client.show_loadbalancer,
                                 cls.lb_id, const.PROVISIONING_STATUS,
