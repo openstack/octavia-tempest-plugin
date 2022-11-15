@@ -80,11 +80,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_create(const.TCP, 8002)
 
     @decorators.idempotent_id('7b53f336-47bc-45ae-bbd7-4342ef0673fc')
-    # Skipping due to a status update bug in the amphora driver.
-    @decorators.skip_because(
-        bug='2007979',
-        bug_type='storyboard',
-        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
     def test_udp_listener_create(self):
         self._test_listener_create(const.UDP, 8003)
 
@@ -374,11 +369,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_list(const.TCP, 8030)
 
     @decorators.idempotent_id('c08fb77e-b317-4d6f-b430-91f5b27ebac6')
-    # Skipping due to a status update bug in the amphora driver.
-    @decorators.skip_because(
-        bug='2007979',
-        bug_type='storyboard',
-        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
     def test_udp_listener_list(self):
         self._test_listener_list(const.UDP, 8040)
 
@@ -740,11 +730,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_show(const.TCP, 8052)
 
     @decorators.idempotent_id('1dea3a6b-c95b-4e91-b591-1aa9cbcd0d1d')
-    # Skipping due to a status update bug in the amphora driver.
-    @decorators.skip_because(
-        bug='2007979',
-        bug_type='storyboard',
-        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
     def test_udp_listener_show(self):
         self._test_listener_show(const.UDP, 8053)
 
@@ -893,11 +878,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_update(const.TCP, 8062)
 
     @decorators.idempotent_id('fd02dbfd-39ce-41c2-b181-54fc7ad91707')
-    # Skipping due to a status update bug in the amphora driver.
-    @decorators.skip_because(
-        bug='2007979',
-        bug_type='storyboard',
-        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
     def test_udp_listener_update(self):
         self._test_listener_update(const.UDP, 8063)
 
@@ -1144,11 +1124,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_delete(const.TCP, 8072)
 
     @decorators.idempotent_id('86bd9717-e3e9-41e3-86c4-888c64455926')
-    # Skipping due to a status update bug in the amphora driver.
-    @decorators.skip_because(
-        bug='2007979',
-        bug_type='storyboard',
-        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
     def test_udp_listener_delete(self):
         self._test_listener_delete(const.UDP, 8073)
 
@@ -1223,11 +1198,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_show_stats(const.TCP, 8082)
 
     @decorators.idempotent_id('a4c1f199-923b-41e4-a134-c91e590e20c4')
-    # Skipping due to a status update bug in the amphora driver.
-    @decorators.skip_because(
-        bug='2007979',
-        bug_type='storyboard',
-        condition=CONF.load_balancer.provider in const.AMPHORA_PROVIDERS)
     def test_udp_listener_show_stats(self):
         self._test_listener_show_stats(const.UDP, 8083)
 
