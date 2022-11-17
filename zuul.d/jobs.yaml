@@ -733,12 +733,13 @@
 - job:
     name: octavia-v2-dsvm-tls-barbican
     parent: octavia-v2-dsvm-scenario
+    branches: ^(?!stable/(train|ussuri)).*$
     required-projects:
       - openstack/barbican
       - openstack/diskimage-builder
       - openstack/python-barbicanclient
       - openstack/barbican-tempest-plugin
-    vars:
+    vars: &octavia-v2-dsvm-tls-barbican-vars
       tempest_test_regex: ^octavia_tempest_plugin.tests.barbican_scenario.v2
       devstack_services:
         barbican: true
@@ -754,6 +755,18 @@
       - ^etc/.*$
       - ^releasenotes/.*$
       - ^octavia_tempest_plugin/tests/(?!barbican_scenario/|\w+\.py).*
+
+- job:
+    name: octavia-v2-dsvm-tls-barbican
+    parent: octavia-v2-dsvm-scenario
+    branches: ^(stable/(train|ussuri)).*$
+    required-projects:
+      - openstack/barbican
+      - openstack/diskimage-builder
+      - openstack/python-barbicanclient
+      - name: openstack/barbican-tempest-plugin
+        override-checkout: 1.6.0
+    vars: *octavia-v2-dsvm-tls-barbican-vars
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-yoga
