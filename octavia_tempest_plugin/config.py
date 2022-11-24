@@ -285,6 +285,8 @@ LBFeatureEnabledGroup = [
                 help="Whether the log offload tests will run. These require "
                      "the tempest instance have access to the log files "
                      "specified in the tempest configuration."),
+    cfg.BoolOpt('prometheus_listener_enabled', default=True,
+                help="Whether the PROMETHEUS listener tests will run."),
 ]
 
 # Extending this enforce_scope group defined in tempest

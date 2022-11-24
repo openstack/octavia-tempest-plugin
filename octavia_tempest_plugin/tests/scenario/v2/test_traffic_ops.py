@@ -1557,3 +1557,65 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                     CONF.load_balancer.check_interval,
                     CONF.load_balancer.check_timeout,
                     error_ok=True, pool_id=pool_id)
+
+    @decorators.idempotent_id('05e99fb3-2b37-478e-889b-77f1c731a471')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.prometheus_listener_enabled,
+        'PROMETHEUS listener tests are disabled in the tempest configuration.')
+    def test_prometheus_listener_metrics_page(self):
+        """Tests PROMETHEUS listener create and metrics endpoint is available
+
+        * Create PROMETHEUS listener.
+        * Query the metrics endpoint on the load balancer.
+        """
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.25'):
+            raise self.skipException('PROMETHEUS listeners are only available '
+                                     'on Octavia API version 2.25 or newer.')
+
+        # Listener create
+        listener_name = data_utils.rand_name("lb_member_prometheus_listener")
+        listener_description = data_utils.arbitrary_string(size=255)
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.DESCRIPTION: listener_description,
+            const.ADMIN_STATE_UP: True,
+            const.PROTOCOL: const.PROMETHEUS,
+            const.PROTOCOL_PORT: 8080,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.CONNECTION_LIMIT: 200,
+        }
+
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.1'):
+            listener_kwargs.update({
+                const.TIMEOUT_CLIENT_DATA: 1000,
+                const.TIMEOUT_MEMBER_CONNECT: 1000,
+                const.TIMEOUT_MEMBER_DATA: 1000,
+                const.TIMEOUT_TCP_INSPECT: 50,
+            })
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.12'):
+            listener_kwargs.update({const.ALLOWED_CIDRS: ['0.0.0.0/0']})
+
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        listener = waiters.wait_for_status(
+            self.mem_listener_client.show_listener,
+            listener[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        # Make a request to the stats page
+        URL = 'http://{0}:{1}/metrics'.format(self.lb_vip_address, '8080')
+        self.validate_URL_response(URL, expected_status_code=200)

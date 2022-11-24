@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added API and scenario tests for PROMETHEUS listeners.
