@@ -136,6 +136,9 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
         cls.set_network_resources()
         super(LoadBalancerBaseTest, cls).setup_credentials()
 
+        if not CONF.load_balancer.log_user_roles:
+            return
+
         # Log the user roles for this test run
         role_name_cache = {}
         for cred in cls.credentials:
