@@ -61,6 +61,9 @@ OctaviaGroup = [
     cfg.StrOpt('octavia_svc_username', default='admin',
                help='The service_auth username the Octavia services are using'
                     'to access other OpenStack services.'),
+    cfg.BoolOpt('log_user_roles',
+                default=True,
+                help='Log the user roles at the start of every test.'),
     # load-balancer specific options
     cfg.FloatOpt('check_interval',
                  default=5,
