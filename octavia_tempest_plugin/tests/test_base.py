@@ -71,8 +71,10 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             ['lb_observer', CONF.load_balancer.observer_role, 'reader'],
             ['lb_global_observer', CONF.load_balancer.global_observer_role,
              'reader'],
-            ['lb_member', CONF.load_balancer.member_role],
-            ['lb_member2', CONF.load_balancer.member_role]]
+            # Note: Some projects are now requiring the 'member' role by
+            # default (nova for example) so make sure our creds have this role
+            ['lb_member', CONF.load_balancer.member_role, 'member'],
+            ['lb_member2', CONF.load_balancer.member_role, 'member']]
 
     # If scope enforcement is enabled, add in the system scope credentials.
     # The project scope is already handled by the above credentials.
