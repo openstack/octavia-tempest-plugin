@@ -155,15 +155,14 @@ class RBACTestsMixin(test.BaseTestCase):
         """
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # os_admin is a special case as it is valid with the old defaults,
-        # but will not be with the new defaults and/or token scoping.
-        # The old keystone role "admin" becomes project scoped "admin"
-        # instead of being a global admin.
-        # To keep the tests simple, handle that edge case here.
-        # TODO(johnsom) Once token scope is default, remove this.
-        if ('os_system_admin' in expected_allowed and
-                not CONF.load_balancer.enforce_new_defaults and
-                not CONF.enforce_scope.octavia):
+        # The legacy admin behavior changed during the sRBAC development,
+        # os_admin is still a valid admin [0]
+        # [0] https://governance.openstack.org/tc/goals/selected/
+        #       consistent-and-secure-rbac.html
+        #       #legacy-admin-continues-to-work-as-it-is
+        # TODO(gthiemonge) we may have to revisit it in the future if the
+        # legacy admin scope changes.
+        if 'os_system_admin' in expected_allowed:
             allowed_list.append('os_admin')
 
         # #### Test that disallowed credentials cannot access the API.
@@ -244,15 +243,14 @@ class RBACTestsMixin(test.BaseTestCase):
         """
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # os_admin is a special case as it is valid with the old defaults,
-        # but will not be with the new defaults and/or token scoping.
-        # The old keystone role "admin" becomes project scoped "admin"
-        # instead of being a global admin.
-        # To keep the tests simple, handle that edge case here.
-        # TODO(johnsom) Once token scope is default, remove this.
-        if ('os_system_admin' in expected_allowed and
-                not CONF.load_balancer.enforce_new_defaults and
-                not CONF.enforce_scope.octavia):
+        # The legacy admin behavior changed during the sRBAC development,
+        # os_admin is still a valid admin [0]
+        # [0] https://governance.openstack.org/tc/goals/selected/
+        #       consistent-and-secure-rbac.html
+        #       #legacy-admin-continues-to-work-as-it-is
+        # TODO(gthiemonge) we may have to revisit it in the future if the
+        # legacy admin scope changes.
+        if 'os_system_admin' in expected_allowed:
             allowed_list.append('os_admin')
 
         # #### Test that disallowed credentials cannot access the API.
@@ -371,15 +369,14 @@ class RBACTestsMixin(test.BaseTestCase):
         """
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # os_admin is a special case as it is valid with the old defaults,
-        # but will not be with the new defaults and/or token scoping.
-        # The old keystone role "admin" becomes project scoped "admin"
-        # instead of being a global admin.
-        # To keep the tests simple, handle that edge case here.
-        # TODO(johnsom) Once token scope is default, remove this.
-        if ('os_system_admin' in expected_allowed and
-                not CONF.load_balancer.enforce_new_defaults and
-                not CONF.enforce_scope.octavia):
+        # The legacy admin behavior changed during the sRBAC development,
+        # os_admin is still a valid admin [0]
+        # [0] https://governance.openstack.org/tc/goals/selected/
+        #       consistent-and-secure-rbac.html
+        #       #legacy-admin-continues-to-work-as-it-is
+        # TODO(gthiemonge) we may have to revisit it in the future if the
+        # legacy admin scope changes.
+        if 'os_system_admin' in expected_allowed:
             allowed_list.append('os_admin')
 
         for cred in allowed_list:
@@ -439,15 +436,14 @@ class RBACTestsMixin(test.BaseTestCase):
         """
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # os_admin is a special case as it is valid with the old defaults,
-        # but will not be with the new defaults and/or token scoping.
-        # The old keystone role "admin" becomes project scoped "admin"
-        # instead of being a global admin.
-        # To keep the tests simple, handle that edge case here.
-        # TODO(johnsom) Once token scope is default, remove this.
-        if ('os_system_admin' in expected_allowed and
-                not CONF.load_balancer.enforce_new_defaults and
-                not CONF.enforce_scope.octavia):
+        # The legacy admin behavior changed during the sRBAC development,
+        # os_admin is still a valid admin [0]
+        # [0] https://governance.openstack.org/tc/goals/selected/
+        #       consistent-and-secure-rbac.html
+        #       #legacy-admin-continues-to-work-as-it-is
+        # TODO(gthiemonge) we may have to revisit it in the future if the
+        # legacy admin scope changes.
+        if 'os_system_admin' in expected_allowed:
             allowed_list.append('os_admin')
 
         for cred in allowed_list:
