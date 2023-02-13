@@ -69,6 +69,16 @@
           - controller
 
 - nodeset:
+    name: octavia-single-node-rockylinux-9
+    nodes:
+      - name: controller
+        label: nested-virt-rockylinux-9
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
     name: octavia-two-node
     nodes:
       - name: controller
@@ -767,6 +777,38 @@
 - job:
     name: octavia-v2-dsvm-scenario-centos-9-stream-non-traffic-ops
     parent: octavia-v2-dsvm-scenario-centos-9-stream
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
+
+- job:
+    name: octavia-v2-dsvm-scenario-rockylinux-9
+    parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-rockylinux-9
+    vars:
+      devstack_localrc:
+        OCTAVIA_AMP_BASE_OS: rocky
+        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 9
+        OCTAVIA_AMP_IMAGE_SIZE: 3
+        OCTAVIA_SSH_KEY_TYPE: ecdsa
+        OCTAVIA_SSH_KEY_BITS: 256
+        # Temporary workaround to fix centos 9 stream and rocky, they don't
+        # work with the new default value of GLOBAL_VENV in devstack
+        GLOBAL_VENV: false
+      devstack_local_conf:
+        test-config:
+          "$TEMPEST_CONFIG":
+            validation:
+              ssh_key_type: ecdsa
+
+- job:
+    name: octavia-v2-dsvm-scenario-rockylinux-9-traffic-ops
+    parent: octavia-v2-dsvm-scenario-rockylinux-9
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
+
+- job:
+    name: octavia-v2-dsvm-scenario-rockylinux-9-non-traffic-ops
+    parent: octavia-v2-dsvm-scenario-rockylinux-9
     vars:
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
 
