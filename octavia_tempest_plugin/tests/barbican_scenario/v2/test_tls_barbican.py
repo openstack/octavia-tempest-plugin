@@ -1541,6 +1541,163 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         self.check_members_balanced(self.lb_vip_address, protocol=const.HTTP,
                                     protocol_port=85)
 
+    @decorators.idempotent_id('d3e4c5fe-1726-49e4-b0b0-7a5a47749fc9')
+    def test_basic_h2_listener_http_listener_pool_reencryption(self):
+        """Test both h2 and HTTP traffic on the same load balancer.
+
+        In this test we deploy the following Octavia resources:
+            HTTPS_TERMINATED listener with h2 alpn protocols
+            HTTP listener
+            HTTP pool with both h2 alpn protocols and backend re-encryption
+
+        we send both h2 and http traffic from a client to the load balancer vip
+        and we make sure h2 traffic was negotiated when it was sent on 443 port
+        :raises self.skipException: ALPN support for pools not available prior
+        to v2.24.
+        """
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.24'):
+            raise self.skipException('ALPN protocols are only available on '
+                                     'pools in Octavia API version 2.24 or'
+                                     ' newer.')
+        pool_name = data_utils.rand_name("lb_member_pool1-tls-alpn")
+        pool_kwargs = {
+            const.NAME: pool_name,
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: self.lb_algorithm,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.TLS_ENABLED: True,
+            const.ALPN_PROTOCOLS: ['h2', 'http/1.1'],
+        }
+
+        pool = self.mem_pool_client.create_pool(**pool_kwargs)
+        pool_id = pool[const.ID]
+
+        self.addCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        # Set up Member 1 for Webserver 1
+        member1_name = data_utils.rand_name("lb_member_member1-tls-reencrypt")
+        member1_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member1_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver1_ip,
+            const.PROTOCOL_PORT: 443,
+        }
+        if self.lb_member_1_subnet:
+            member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
+
+        member1 = self.mem_member_client.create_member(**member1_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member1[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client,
+            lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        # Set up Member 2 for Webserver 2
+        member2_name = data_utils.rand_name("lb_member_member2-tls-reencrypt")
+        member2_kwargs = {
+            const.POOL_ID: pool_id,
+            const.NAME: member2_name,
+            const.ADMIN_STATE_UP: True,
+            const.ADDRESS: self.webserver2_ip,
+            const.PROTOCOL_PORT: 443,
+        }
+        if self.lb_member_2_subnet:
+            member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
+
+        member2 = self.mem_member_client.create_member(**member2_kwargs)
+
+        self.addCleanup(
+            self.mem_member_client.cleanup_member,
+            member2[const.ID], pool_id=pool_id,
+            lb_client=self.mem_lb_client,
+            lb_id=self.lb_id)
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout)
+
+        listener_name = data_utils.rand_name(
+            "lb_member_listener1-tls-terminated-alpn")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: '443',
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: pool_id,
+            const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+            const.ALPN_PROTOCOLS: ['h2', 'http/1.1']
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client,
+            lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        listener_name = data_utils.rand_name(
+            "lb_member_listener1-http")
+        listener_kwargs = {
+            const.NAME: listener_name,
+            const.PROTOCOL: const.HTTP,
+            const.PROTOCOL_PORT: 80,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.DEFAULT_POOL_ID: pool_id,
+        }
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.listener_id = listener[const.ID]
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            self.listener_id,
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+
+        waiters.wait_for_status(self.mem_lb_client.show_loadbalancer,
+                                self.lb_id, const.PROVISIONING_STATUS,
+                                const.ACTIVE,
+                                CONF.load_balancer.build_interval,
+                                CONF.load_balancer.build_timeout)
+
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        context.set_alpn_protocols(['h2', 'http/1.1'])
+        s = socket.socket()
+        ssl_sock = context.wrap_socket(s)
+        ssl_sock.connect((self.lb_vip_address, 443))
+        selected_proto = ssl_sock.selected_alpn_protocol()
+        self.assertEqual('h2', selected_proto)
+
+        # Test HTTPS listener load balancing.
+        self.check_members_balanced(self.lb_vip_address, protocol=const.HTTPS,
+                                    HTTPS_verify=False, protocol_port=443)
+
+        # Test HTTP listener load balancing.
+        self.check_members_balanced(self.lb_vip_address)
+
     @decorators.idempotent_id('7d9dcae6-3e2c-4eae-9bfb-1ef0d00aa530')
     @testtools.skipUnless(
         CONF.loadbalancer_feature_enabled.prometheus_listener_enabled,
