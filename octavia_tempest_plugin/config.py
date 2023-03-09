@@ -244,7 +244,11 @@ OctaviaGroup = [
                 help='Does the load-balancer service API policies enforce '
                      'the new keystone default roles? This configuration '
                      'value should be same as octavia.conf: '
-                     '[oslo_policy].enforce_new_defaults option.'),
+                     '[oslo_policy].enforce_new_defaults option.',
+                deprecated_for_removal=True,
+                deprecated_reason='Consolidated into the RBAC_test_type '
+                                  'setting.',
+                deprecated_since='bobcat'),
 ]
 
 lb_feature_enabled_group = cfg.OptGroup(name='loadbalancer-feature-enabled',

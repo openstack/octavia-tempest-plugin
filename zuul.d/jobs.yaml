@@ -506,21 +506,23 @@
       - ^octavia_tempest_plugin/tests/(?!api/|\w+\.py).*
 
 - job:
-    name: octavia-v2-dsvm-noop-api-scoped-tokens
+    name: octavia-v2-dsvm-noop-api-keystone-default-roles
     parent: octavia-v2-dsvm-noop-api
     vars:
+      devstack_localrc:
+        OCTAVIA_USE_KEYSTONE_DEFAULT_ROLES: True
       devstack_local_conf:
         post-config:
           $OCTAVIA_CONF:
             oslo_policy:
-              enforce_scope: True
+              enforce_scope: False
               enforce_new_defaults: True
         test-config:
           "$TEMPEST_CONFIG":
             enforce_scope:
-              octavia: True
+              octavia: False
             load_balancer:
-              enforce_new_defaults: True
+              RBAC_test_type: keystone_default_roles
 
 - job:
     name: octavia-v2-dsvm-noop-py2-api
