@@ -725,6 +725,18 @@
               ssh_key_type: ecdsa
 
 - job:
+    name: octavia-v2-dsvm-scenario-centos-9-stream-traffic-ops
+    parent: octavia-v2-dsvm-scenario-centos-9-stream
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
+
+- job:
+    name: octavia-v2-dsvm-scenario-centos-9-stream-non-traffic-ops
+    parent: octavia-v2-dsvm-scenario-centos-9-stream
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
+
+- job:
     name: octavia-v2-dsvm-scenario-ubuntu-focal
     parent: octavia-v2-dsvm-scenario
     vars:
