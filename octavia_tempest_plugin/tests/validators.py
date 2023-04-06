@@ -412,7 +412,7 @@ class ValidatorsMixin(test.BaseTestCase):
                     return
             except Exception:
                 LOG.warning('Server is not passing initial traffic. Waiting.')
-                time.sleep(1)
+            time.sleep(request_interval)
 
         LOG.debug('Loadbalancer wait for load balancer response totals: %s',
                   response_counts)
