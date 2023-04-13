@@ -1471,7 +1471,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_1_subnet:
             member1_kwargs[const.SUBNET_ID] = self.lb_member_1_subnet[const.ID]
 
-        self.mem_member_client.create_member(**member1_kwargs)
+        member1 = self.mem_member_client.create_member(**member1_kwargs)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1491,7 +1491,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         if self.lb_member_2_subnet:
             member2_kwargs[const.SUBNET_ID] = self.lb_member_2_subnet[const.ID]
 
-        self.mem_member_client.create_member(**member2_kwargs)
+        member2 = self.mem_member_client.create_member(**member2_kwargs)
         waiters.wait_for_status(
             self.mem_lb_client.show_loadbalancer, self.lb_id,
             const.PROVISIONING_STATUS, const.ACTIVE,
@@ -1537,6 +1537,19 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
             const.PROVISIONING_STATUS, const.ACTIVE,
             CONF.load_balancer.check_interval,
             CONF.load_balancer.check_timeout)
+
+        # Make sure the health monitor has brought the members up after the
+        # the pool update.
+        waiters.wait_for_status(
+            self.mem_member_client.show_member, member1[const.ID],
+            const.OPERATING_STATUS, const.ONLINE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout, error_ok=True, pool_id=pool_id)
+        waiters.wait_for_status(
+            self.mem_member_client.show_member, member2[const.ID],
+            const.OPERATING_STATUS, const.ONLINE,
+            CONF.load_balancer.check_interval,
+            CONF.load_balancer.check_timeout, error_ok=True, pool_id=pool_id)
 
         self.check_members_balanced(self.lb_vip_address, protocol=const.HTTP,
                                     protocol_port=85)
