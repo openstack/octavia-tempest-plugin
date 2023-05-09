@@ -560,7 +560,7 @@
     override-checkout: stable/wallaby
 
 - job:
-    name: octavia-v2-dsvm-scenario
+    name: octavia-v2-dsvm-scenario-base
     parent: octavia-dsvm-live-base
     vars:
       devstack_local_conf:
@@ -582,6 +582,24 @@
       - ^etc/.*$
       - ^releasenotes/.*$
       - ^octavia_tempest_plugin/tests/(?!scenario/|\w+\.py).*
+
+- job:
+    name: octavia-v2-dsvm-scenario
+    parent: octavia-v2-dsvm-scenario-base
+    branches: ^(?!stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+    nodeset: octavia-single-node-ubuntu-jammy
+
+- job:
+    name: octavia-v2-dsvm-scenario
+    parent: octavia-v2-dsvm-scenario-base
+    branches: ^(stable/(victoria|wallaby|xena|yoga|zed))
+    nodeset: octavia-single-node-ubuntu-focal
+
+- job:
+    name: octavia-v2-dsvm-scenario
+    parent: octavia-v2-dsvm-scenario-base
+    branches: ^(stable/(train|ussuri))
+    nodeset: octavia-single-node-ubuntu-bionic
 
 - job:
     name: octavia-v2-dsvm-scenario-ipv6-only
@@ -761,15 +779,14 @@
         OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: jammy
 
 - job:
-    name: octavia-v2-dsvm-tls-barbican
+    name: octavia-v2-dsvm-tls-barbican-base
     parent: octavia-v2-dsvm-scenario
-    branches: ^(?!stable/(train|ussuri)).*$
     required-projects:
       - openstack/barbican
       - openstack/diskimage-builder
       - openstack/python-barbicanclient
       - openstack/barbican-tempest-plugin
-    vars: &octavia-v2-dsvm-tls-barbican-vars
+    vars:
       tempest_test_regex: ^octavia_tempest_plugin.tests.barbican_scenario.v2
       devstack_services:
         barbican: true
@@ -788,15 +805,27 @@
 
 - job:
     name: octavia-v2-dsvm-tls-barbican
-    parent: octavia-v2-dsvm-scenario
-    branches: ^(stable/(train|ussuri)).*$
+    parent: octavia-v2-dsvm-tls-barbican-base
+    branches: ^(?!stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+    nodeset: octavia-single-node-ubuntu-jammy
+
+- job:
+    name: octavia-v2-dsvm-tls-barbican
+    parent: octavia-v2-dsvm-tls-barbican-base
+    branches: ^(stable/(victoria|wallaby|xena|yoga|zed))
+    nodeset: octavia-single-node-ubuntu-focal
+
+- job:
+    name: octavia-v2-dsvm-tls-barbican
+    parent: octavia-v2-dsvm-tls-barbican-base
+    branches: ^(stable/(train|ussuri))
+    nodeset: octavia-single-node-ubuntu-bionic
     required-projects:
       - openstack/barbican
       - openstack/diskimage-builder
       - openstack/python-barbicanclient
       - name: openstack/barbican-tempest-plugin
         override-checkout: 1.6.0
-    vars: *octavia-v2-dsvm-tls-barbican-vars
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-yoga
@@ -978,7 +1007,7 @@
               amphora_ssh_user: centos
 
 - job:
-    name: octavia-v2-act-stdby-dsvm-scenario
+    name: octavia-v2-act-stdby-dsvm-scenario-base
     parent: octavia-dsvm-live-base
     vars:
       devstack_local_conf:
@@ -993,6 +1022,24 @@
       tempest_concurrency: 2
       tempest_test_regex: ^octavia_tempest_plugin.tests.act_stdby_scenario.v2.test_active_standby\.
       tox_envlist: all
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario
+    parent: octavia-v2-act-stdby-dsvm-scenario-base
+    branches: ^(?!stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+    nodeset: octavia-single-node-ubuntu-jammy
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario
+    parent: octavia-v2-act-stdby-dsvm-scenario-base
+    branches: ^(stable/(victoria|wallaby|xena|yoga|zed))
+    nodeset: octavia-single-node-ubuntu-focal
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario
+    parent: octavia-v2-act-stdby-dsvm-scenario-base
+    branches: ^(stable/(train|ussuri))
+    nodeset: octavia-single-node-ubuntu-bionic
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-yoga
