@@ -13,10 +13,14 @@
         - octavia-v2-dsvm-noop-api-stable-xena
         - octavia-v2-dsvm-noop-api-stable-wallaby
         - octavia-v2-dsvm-noop-api-keystone-default-roles
-        - octavia-v2-dsvm-scenario
-        - octavia-v2-dsvm-scenario-stable-yoga
-        - octavia-v2-dsvm-scenario-stable-xena
-        - octavia-v2-dsvm-scenario-stable-wallaby
+        - octavia-v2-dsvm-scenario-traffic-ops
+        - octavia-v2-dsvm-scenario-non-traffic-ops
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-yoga
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-yoga
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-xena
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-xena
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-wallaby
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-wallaby
         - octavia-v2-dsvm-tls-barbican
         - octavia-v2-dsvm-tls-barbican-stable-yoga
         - octavia-v2-dsvm-tls-barbican-stable-xena
@@ -57,10 +61,14 @@
         - octavia-v2-dsvm-noop-api-stable-xena
         - octavia-v2-dsvm-noop-api-stable-wallaby
         - octavia-v2-dsvm-noop-api-keystone-default-roles
-        - octavia-v2-dsvm-scenario
-        - octavia-v2-dsvm-scenario-stable-yoga
-        - octavia-v2-dsvm-scenario-stable-xena
-        - octavia-v2-dsvm-scenario-stable-wallaby
+        - octavia-v2-dsvm-scenario-traffic-ops
+        - octavia-v2-dsvm-scenario-non-traffic-ops
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-yoga
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-yoga
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-xena
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-xena
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-wallaby
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-wallaby
         - octavia-v2-dsvm-tls-barbican
         - octavia-v2-dsvm-tls-barbican-stable-yoga
         - octavia-v2-dsvm-tls-barbican-stable-xena

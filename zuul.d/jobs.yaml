@@ -602,6 +602,18 @@
     nodeset: octavia-single-node-ubuntu-bionic
 
 - job:
+    name: octavia-v2-dsvm-scenario-traffic-ops
+    parent: octavia-v2-dsvm-scenario
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
+
+- job:
+    name: octavia-v2-dsvm-scenario-non-traffic-ops
+    parent: octavia-v2-dsvm-scenario
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
+
+- job:
     name: octavia-v2-dsvm-scenario-ipv6-only
     parent: octavia-dsvm-live-base-ipv6-only
     vars:
@@ -638,16 +650,53 @@
     override-checkout: stable/yoga
 
 - job:
+    name: octavia-v2-dsvm-scenario-traffic-ops-stable-yoga
+    parent: octavia-v2-dsvm-scenario-stable-yoga
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
+
+- job:
+    name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-yoga
+    parent: octavia-v2-dsvm-scenario-stable-yoga
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
+
+
+- job:
     name: octavia-v2-dsvm-scenario-stable-xena
     parent: octavia-v2-dsvm-scenario
     nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/xena
 
 - job:
+    name: octavia-v2-dsvm-scenario-traffic-ops-stable-xena
+    parent: octavia-v2-dsvm-scenario-stable-xena
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
+
+- job:
+    name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-xena
+    parent: octavia-v2-dsvm-scenario-stable-xena
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
+
+- job:
     name: octavia-v2-dsvm-scenario-stable-wallaby
     parent: octavia-v2-dsvm-scenario
     nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/wallaby
+
+- job:
+    name: octavia-v2-dsvm-scenario-traffic-ops-stable-wallaby
+    parent: octavia-v2-dsvm-scenario-stable-wallaby
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
+
+- job:
+    name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-wallaby
+    parent: octavia-v2-dsvm-scenario-stable-wallaby
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
 
 # Legacy jobs for the transition to the act-stdby two node jobs
 - job:
