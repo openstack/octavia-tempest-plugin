@@ -9,6 +9,7 @@
     check:
       jobs:
         - octavia-v2-dsvm-noop-api
+        - octavia-v2-dsvm-noop-api-stable-2023-1
         - octavia-v2-dsvm-noop-api-stable-zed
         - octavia-v2-dsvm-noop-api-stable-yoga
         - octavia-v2-dsvm-noop-api-stable-xena
@@ -16,6 +17,8 @@
         - octavia-v2-dsvm-noop-api-keystone-default-roles
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-2023-1
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2023-1
         - octavia-v2-dsvm-scenario-traffic-ops-stable-zed
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-zed
         - octavia-v2-dsvm-scenario-traffic-ops-stable-yoga
@@ -25,6 +28,7 @@
         - octavia-v2-dsvm-scenario-traffic-ops-stable-wallaby
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-wallaby
         - octavia-v2-dsvm-tls-barbican
+        - octavia-v2-dsvm-tls-barbican-stable-2023-1
         - octavia-v2-dsvm-tls-barbican-stable-zed
         - octavia-v2-dsvm-tls-barbican-stable-yoga
         - octavia-v2-dsvm-tls-barbican-stable-xena
@@ -40,6 +44,8 @@
         - octavia-v2-act-stdby-dsvm-scenario-two-node:
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario:
+            voting: false
+        - octavia-v2-act-stdby-dsvm-scenario-stable-2023-1:
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario-stable-zed:
             voting: false
@@ -63,6 +69,7 @@
       fail-fast: true
       jobs:
         - octavia-v2-dsvm-noop-api
+        - octavia-v2-dsvm-noop-api-stable-2023-1
         - octavia-v2-dsvm-noop-api-stable-zed
         - octavia-v2-dsvm-noop-api-stable-yoga
         - octavia-v2-dsvm-noop-api-stable-xena
@@ -70,6 +77,8 @@
         - octavia-v2-dsvm-noop-api-keystone-default-roles
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-2023-1
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2023-1
         - octavia-v2-dsvm-scenario-traffic-ops-stable-zed
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-zed
         - octavia-v2-dsvm-scenario-traffic-ops-stable-yoga
@@ -79,6 +88,7 @@
         - octavia-v2-dsvm-scenario-traffic-ops-stable-wallaby
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-wallaby
         - octavia-v2-dsvm-tls-barbican
+        - octavia-v2-dsvm-tls-barbican-stable-2023-1
         - octavia-v2-dsvm-tls-barbican-stable-zed
         - octavia-v2-dsvm-tls-barbican-stable-yoga
         - octavia-v2-dsvm-tls-barbican-stable-xena

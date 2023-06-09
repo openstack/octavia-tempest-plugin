@@ -542,6 +542,12 @@
         USE_PYTHON3: False
 
 - job:
+    name: octavia-v2-dsvm-noop-api-stable-2023-1
+    parent: octavia-v2-dsvm-noop-api
+    nodeset: octavia-single-node-ubuntu-jammy
+    override-checkout: stable/2023.1
+
+- job:
     name: octavia-v2-dsvm-noop-api-stable-zed
     parent: octavia-v2-dsvm-noop-api
     nodeset: octavia-single-node-ubuntu-focal
@@ -648,6 +654,24 @@
     required-projects:
       - name: openstack/diskimage-builder
         override-checkout: 2.30.0
+
+- job:
+    name: octavia-v2-dsvm-scenario-stable-2023-1
+    parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-jammy
+    override-checkout: stable/2023.1
+
+- job:
+    name: octavia-v2-dsvm-scenario-traffic-ops-stable-2023-1
+    parent: octavia-v2-dsvm-scenario-stable-2023-1
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
+
+- job:
+    name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-2023-1
+    parent: octavia-v2-dsvm-scenario-stable-2023-1
+    vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
 
 - job:
     name: octavia-v2-dsvm-scenario-stable-zed
@@ -901,6 +925,12 @@
         override-checkout: 1.6.0
 
 - job:
+    name: octavia-v2-dsvm-tls-barbican-stable-2023-1
+    parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-jammy
+    override-checkout: stable/2023-1
+
+- job:
     name: octavia-v2-dsvm-tls-barbican-stable-zed
     parent: octavia-v2-dsvm-tls-barbican
     nodeset: octavia-single-node-ubuntu-focal
@@ -1119,6 +1149,12 @@
     parent: octavia-v2-act-stdby-dsvm-scenario-base
     branches: ^(stable/(train|ussuri))
     nodeset: octavia-single-node-ubuntu-bionic
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario-stable-2023-1
+    parent: octavia-v2-act-stdby-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-jammy
+    override-checkout: stable/2023-1
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-zed
