@@ -560,18 +560,6 @@
     override-checkout: stable/yoga
 
 - job:
-    name: octavia-v2-dsvm-noop-api-stable-xena
-    parent: octavia-v2-dsvm-noop-api
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/xena
-
-- job:
-    name: octavia-v2-dsvm-noop-api-stable-wallaby
-    parent: octavia-v2-dsvm-noop-api
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/wallaby
-
-- job:
     name: octavia-v2-dsvm-scenario-base
     parent: octavia-dsvm-live-base
     vars:
@@ -706,43 +694,6 @@
 - job:
     name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-yoga
     parent: octavia-v2-dsvm-scenario-stable-yoga
-    vars:
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
-
-
-- job:
-    name: octavia-v2-dsvm-scenario-stable-xena
-    parent: octavia-v2-dsvm-scenario
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/xena
-
-- job:
-    name: octavia-v2-dsvm-scenario-traffic-ops-stable-xena
-    parent: octavia-v2-dsvm-scenario-stable-xena
-    vars:
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
-
-- job:
-    name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-xena
-    parent: octavia-v2-dsvm-scenario-stable-xena
-    vars:
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
-
-- job:
-    name: octavia-v2-dsvm-scenario-stable-wallaby
-    parent: octavia-v2-dsvm-scenario
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/wallaby
-
-- job:
-    name: octavia-v2-dsvm-scenario-traffic-ops-stable-wallaby
-    parent: octavia-v2-dsvm-scenario-stable-wallaby
-    vars:
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
-
-- job:
-    name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-wallaby
-    parent: octavia-v2-dsvm-scenario-stable-wallaby
     vars:
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
 
@@ -942,30 +893,7 @@
     nodeset: octavia-single-node-ubuntu-focal
     override-checkout: stable/yoga
 
-- job:
-    name: octavia-v2-dsvm-tls-barbican-stable-xena
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/xena
-
-- job:
-    name: octavia-v2-dsvm-tls-barbican-stable-wallaby
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/wallaby
-
-- job:
-    name: octavia-v2-dsvm-tls-barbican-stable-victoria
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/victoria
-
-- job:
-    name: octavia-v2-dsvm-tls-barbican-stable-ussuri
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: octavia-single-node-ubuntu-bionic
-    override-checkout: stable/ussuri
-
+# Still used by barbican
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-train
     parent: octavia-v2-dsvm-tls-barbican
