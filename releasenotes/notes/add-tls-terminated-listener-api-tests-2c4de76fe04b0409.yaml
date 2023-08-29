@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added HTTPS-terminated Listener API tests. Note: the new tests require the noop_cert_manager when using noop.

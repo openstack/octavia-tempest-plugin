@@ -12,18 +12,24 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
 import time
 from uuid import UUID
+
+from cryptography.hazmat.primitives import serialization
 
 from dateutil import parser
 from oslo_log import log as logging
 from oslo_utils import strutils
+from oslo_utils import uuidutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions
 import testtools
 
+from octavia_tempest_plugin.common import barbican_client_mgr
+from octavia_tempest_plugin.common import cert_utils
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
 from octavia_tempest_plugin.tests import waiters
@@ -36,9 +42,174 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
     """Test the listener object API."""
 
     @classmethod
+    def _store_secret(cls, barbican_mgr, secret):
+        new_secret_ref = barbican_mgr.store_secret(secret)
+        cls.addClassResourceCleanup(barbican_mgr.delete_secret,
+                                    new_secret_ref)
+
+        # Set the barbican ACL if the Octavia API version doesn't do it
+        # automatically.
+        if not cls.mem_lb_client.is_version_supported(
+                cls.api_version, '2.1'):
+            user_list = cls.os_admin.users_v3_client.list_users(
+                name=CONF.load_balancer.octavia_svc_username)
+            msg = 'Only one user named "{0}" should exist, {1} found.'.format(
+                CONF.load_balancer.octavia_svc_username,
+                len(user_list['users']))
+            cls.assertEqual(1, len(user_list['users']), msg)
+            barbican_mgr.add_acl(new_secret_ref, user_list['users'][0]['id'])
+        return new_secret_ref
+
+    @classmethod
+    def _generate_load_certificate(cls, barbican_mgr, ca_cert, ca_key, name):
+        new_cert, new_key = cert_utils.generate_server_cert_and_key(
+            ca_cert, ca_key, name)
+
+        LOG.debug('%s Cert: %s', name, new_cert.public_bytes(
+            serialization.Encoding.PEM))
+        LOG.debug('%s private Key: %s', name, new_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()))
+        new_public_key = new_key.public_key()
+        LOG.debug('%s public Key: %s', name, new_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo))
+
+        # Create the pkcs12 bundle
+        pkcs12 = cert_utils.generate_pkcs12_bundle(new_cert, new_key)
+        LOG.debug('%s PKCS12 bundle: %s', name, base64.b64encode(pkcs12))
+
+        new_secret_ref = cls._store_secret(barbican_mgr, pkcs12)
+
+        return new_cert, new_key, new_secret_ref
+
+    @classmethod
+    def _load_pool_pki(cls):
+        # Create the member client authentication CA
+        cls.member_client_ca_cert, member_client_ca_key = (
+            cert_utils.generate_ca_cert_and_key())
+
+        # Create client cert and key
+        cls.member_client_cn = uuidutils.generate_uuid()
+        cls.member_client_cert, cls.member_client_key = (
+            cert_utils.generate_client_cert_and_key(
+                cls.member_client_ca_cert, member_client_ca_key,
+                cls.member_client_cn))
+
+        # Create the pkcs12 bundle
+        pkcs12 = cert_utils.generate_pkcs12_bundle(cls.member_client_cert,
+                                                   cls.member_client_key)
+        LOG.debug('Pool client PKCS12 bundle: %s', base64.b64encode(pkcs12))
+
+        cls.pool_client_ref = cls._store_secret(cls.barbican_mgr, pkcs12)
+
+        cls.member_ca_cert, cls.member_ca_key = (
+            cert_utils.generate_ca_cert_and_key())
+
+        cert, key = cert_utils.generate_server_cert_and_key(
+            cls.member_ca_cert, cls.member_ca_key, cls.server_uuid)
+
+        cls.pool_CA_ref = cls._store_secret(
+            cls.barbican_mgr,
+            cls.member_ca_cert.public_bytes(serialization.Encoding.PEM))
+
+        cls.member_crl = cert_utils.generate_certificate_revocation_list(
+            cls.member_ca_cert, cls.member_ca_key, cert)
+
+        cls.pool_CRL_ref = cls._store_secret(
+            cls.barbican_mgr,
+            cls.member_crl.public_bytes(serialization.Encoding.PEM))
+
+    @classmethod
+    def should_apply_terminated_https(cls, protocol=None):
+        if protocol and protocol != const.TERMINATED_HTTPS:
+            return False
+        return CONF.load_balancer.test_with_noop or getattr(
+            CONF.service_available, 'barbican', False)
+
+    @classmethod
     def resource_setup(cls):
         """Setup resources needed by the tests."""
         super(ListenerAPITest, cls).resource_setup()
+
+        if CONF.load_balancer.test_with_noop:
+            cls.server_secret_ref = uuidutils.generate_uuid()
+            cls.SNI1_secret_ref = uuidutils.generate_uuid()
+            cls.SNI2_secret_ref = uuidutils.generate_uuid()
+        elif getattr(CONF.service_available, 'barbican', False):
+            # Create a CA self-signed cert and key
+            cls.ca_cert, ca_key = cert_utils.generate_ca_cert_and_key()
+
+            LOG.debug('CA Cert: %s', cls.ca_cert.public_bytes(
+                serialization.Encoding.PEM))
+            LOG.debug('CA private Key: %s', ca_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption()))
+            LOG.debug('CA public Key: %s', ca_key.public_key().public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo))
+
+            # Load the secret into the barbican service under the
+            # os_roles_lb_member tenant
+            cls.barbican_mgr = barbican_client_mgr.BarbicanClientManager(
+                cls.os_roles_lb_member)
+
+            # Create a server cert and key
+            # This will be used as the "default certificate" in SNI tests.
+            cls.server_uuid = uuidutils.generate_uuid()
+            LOG.debug('Server (default) UUID: %s', cls.server_uuid)
+
+            server_cert, server_key, cls.server_secret_ref = (
+                cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
+                                               ca_key, cls.server_uuid))
+
+            # Create the SNI1 cert and key
+            cls.SNI1_uuid = uuidutils.generate_uuid()
+            LOG.debug('SNI1 UUID: %s', cls.SNI1_uuid)
+
+            SNI1_cert, SNI1_key, cls.SNI1_secret_ref = (
+                cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
+                                               ca_key, cls.SNI1_uuid))
+
+            # Create the SNI2 cert and key
+            cls.SNI2_uuid = uuidutils.generate_uuid()
+            LOG.debug('SNI2 UUID: %s', cls.SNI2_uuid)
+
+            SNI2_cert, SNI2_key, cls.SNI2_secret_ref = (
+                cls._generate_load_certificate(cls.barbican_mgr, cls.ca_cert,
+                                               ca_key, cls.SNI2_uuid))
+
+            # Create the client authentication CA
+            cls.client_ca_cert, client_ca_key = (
+                cert_utils.generate_ca_cert_and_key())
+
+            cls.client_ca_cert_ref = cls._store_secret(
+                cls.barbican_mgr,
+                cls.client_ca_cert.public_bytes(serialization.Encoding.PEM))
+
+            # Create client cert and key
+            cls.client_cn = uuidutils.generate_uuid()
+            cls.client_cert, cls.client_key = (
+                cert_utils.generate_client_cert_and_key(
+                    cls.client_ca_cert, client_ca_key, cls.client_cn))
+
+            # Create revoked client cert and key
+            cls.revoked_client_cn = uuidutils.generate_uuid()
+            cls.revoked_client_cert, cls.revoked_client_key = (
+                cert_utils.generate_client_cert_and_key(
+                    cls.client_ca_cert, client_ca_key, cls.revoked_client_cn))
+
+            # Create certificate revocation list and revoke cert
+            cls.client_crl = cert_utils.generate_certificate_revocation_list(
+                cls.client_ca_cert, client_ca_key, cls.revoked_client_cert)
+
+            cls.client_crl_ref = cls._store_secret(
+                cls.barbican_mgr,
+                cls.client_crl.public_bytes(serialization.Encoding.PEM))
+
+            cls._load_pool_pki()
 
         lb_name = data_utils.rand_name("lb_member_lb1_listener")
         lb_kwargs = {const.PROVIDER: CONF.load_balancer.provider,
@@ -93,6 +264,18 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                                      'on Octavia API version 2.25 or newer.')
         self._test_listener_create(const.PROMETHEUS, 8090)
 
+    @decorators.idempotent_id('df9861c5-4a2a-4122-8d8f-5556156e343e')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_create(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_create(const.TERMINATED_HTTPS, 8095)
+
     @decorators.idempotent_id('7b53f336-47bc-45ae-bbd7-4342ef0673fc')
     def test_udp_listener_create(self):
         self._test_listener_create(const.UDP, 8003)
@@ -127,10 +310,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             # but this will allow us to test that the field isn't mandatory,
             # as well as not conflate pool failures with listener test failures
             # const.DEFAULT_POOL_ID: self.pool_id,
-
-            # TODO(rm_work): need to add TLS related stuff
-            # const.DEFAULT_TLS_CONTAINER_REF: '',
-            # const.SNI_CONTAINER_REFS: [],
         }
         if protocol == const.HTTP:
             listener_kwargs[const.INSERT_HEADERS] = {
@@ -138,6 +317,15 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.X_FORWARDED_PORT: "true",
                 const.X_FORWARDED_PROTO: "true",
             }
+
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
+
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             listener_kwargs.update({
@@ -244,6 +432,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertTrue(strutils.bool_from_string(
                 insert_headers[const.X_FORWARDED_PROTO]))
 
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            self.assertEqual(self.server_secret_ref,
+                             listener[const.DEFAULT_TLS_CONTAINER_REF])
+            self.assertEqual(sorted([self.SNI1_secret_ref,
+                                     self.SNI2_secret_ref]),
+                             sorted(listener[const.SNI_CONTAINER_REFS]))
+
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.5'):
             self.assertCountEqual(listener_kwargs[const.TAGS],
@@ -276,6 +472,34 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_create_on_same_port(const.TCP, const.UDP,
                                                 const.SCTP,
                                                 const.HTTPS, 8013)
+
+    @decorators.idempotent_id('128dabd0-3a9b-4c11-9ef5-8d189a290f17')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_http_udp_sctp_terminated_https_listener_create_on_same_port(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_create_on_same_port(const.HTTP, const.UDP,
+                                                const.SCTP,
+                                                const.TERMINATED_HTTPS, 8014)
+
+    @decorators.idempotent_id('21da2598-c79e-4548-8fe0-b47749027010')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_tcp_udp_sctp_terminated_https_listener_create_on_same_port(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_create_on_same_port(const.TCP, const.UDP,
+                                                const.SCTP,
+                                                const.TERMINATED_HTTPS, 8015)
 
     def _test_listener_create_on_same_port(self, protocol1, protocol2,
                                            protocol3, protocol4,
@@ -436,6 +660,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.CONNECTION_LIMIT: 200,
             }
 
+            # Add terminated_https args
+            if self.should_apply_terminated_https(protocol=protocol4):
+                listener5_kwargs.update({
+                    const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                    const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                               self.SNI2_secret_ref],
+                })
+
             self.assertRaises(
                 exceptions.Conflict,
                 self.mem_listener_client.create_listener,
@@ -471,6 +703,18 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
     @decorators.idempotent_id('0abc3998-aacd-4edd-88f5-c5c35557646f')
     def test_sctp_listener_list(self):
         self._test_listener_list(const.SCTP, 8041)
+
+    @decorators.idempotent_id('aed69f58-fe69-401d-bf07-37b0d6d8437f')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_list(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_list(const.TERMINATED_HTTPS, 8042)
 
     def _test_listener_list(self, protocol, protocol_port_base):
         """Tests listener list API and field filtering.
@@ -523,6 +767,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                               "Marketing", "Creativity"]
             listener1_kwargs.update({const.TAGS: listener1_tags})
 
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener1_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
+
         listener1 = self.mem_listener_client.create_listener(
             **listener1_kwargs)
         self.addCleanup(
@@ -562,6 +814,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                               "Soft_skills", "Creativity"]
             listener2_kwargs.update({const.TAGS: listener2_tags})
 
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener2_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
+
         listener2 = self.mem_listener_client.create_listener(
             **listener2_kwargs)
         self.addCleanup(
@@ -600,6 +860,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             listener3_tags = ["English", "Project_management",
                               "Communication", "Creativity"]
             listener3_kwargs.update({const.TAGS: listener3_tags})
+
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener3_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
 
         listener3 = self.mem_listener_client.create_listener(
             **listener3_kwargs)
@@ -850,6 +1118,18 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
     def test_sctp_listener_show(self):
         self._test_listener_show(const.SCTP, 8054)
 
+    @decorators.idempotent_id('2c2e7146-0efc-44b6-8401-f1c69c2422fe')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_show(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_show(const.TERMINATED_HTTPS, 8055)
+
     def _test_listener_show(self, protocol, protocol_port):
         """Tests listener show API.
 
@@ -871,10 +1151,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_POOL_ID: '',
-            # const.DEFAULT_TLS_CONTAINER_REF: '',
-            # const.SNI_CONTAINER_REFS: [],
         }
         if protocol == const.HTTP:
             listener_kwargs[const.INSERT_HEADERS] = {
@@ -882,6 +1159,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.X_FORWARDED_PORT: "true",
                 const.X_FORWARDED_PROTO: "true",
             }
+
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
@@ -957,6 +1242,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertTrue(strutils.bool_from_string(
                 insert_headers[const.X_FORWARDED_PROTO]))
 
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            self.assertEqual(self.server_secret_ref,
+                             listener[const.DEFAULT_TLS_CONTAINER_REF])
+            self.assertEqual(sorted([self.SNI1_secret_ref,
+                                     self.SNI2_secret_ref]),
+                             sorted(listener[const.SNI_CONTAINER_REFS]))
+
         parser.parse(listener[const.CREATED_AT])
         parser.parse(listener[const.UPDATED_AT])
         UUID(listener[const.ID])
@@ -1020,6 +1313,18 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
     def test_sctp_listener_update(self):
         self._test_listener_update(const.SCTP, 8064)
 
+    @decorators.idempotent_id('2ae08e10-fbf8-46d8-a073-15f90454d718')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_update(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_update(const.TERMINATED_HTTPS, 8065)
+
     def _test_listener_update(self, protocol, protocol_port):
         """Tests listener update and show APIs.
 
@@ -1044,10 +1349,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
-            # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_POOL_ID: '',
-            # const.DEFAULT_TLS_CONTAINER_REF: '',
-            # const.SNI_CONTAINER_REFS: [],
         }
         if protocol == const.HTTP:
             listener_kwargs[const.INSERT_HEADERS] = {
@@ -1055,6 +1357,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.X_FORWARDED_PORT: "true",
                 const.X_FORWARDED_PROTO: "true"
             }
+
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
@@ -1114,6 +1424,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 insert_headers[const.X_FORWARDED_PORT]))
             self.assertTrue(strutils.bool_from_string(
                 insert_headers[const.X_FORWARDED_PROTO]))
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            self.assertEqual(self.server_secret_ref,
+                             listener[const.DEFAULT_TLS_CONTAINER_REF])
+            self.assertEqual(sorted([self.SNI1_secret_ref,
+                                     self.SNI2_secret_ref]),
+                             sorted(listener[const.SNI_CONTAINER_REFS]))
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             self.assertEqual(1000, listener[const.TIMEOUT_CLIENT_DATA])
@@ -1160,8 +1477,6 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.CONNECTION_LIMIT: 400,
             # TODO(rm_work): need to finish the rest of this stuff
             # const.DEFAULT_POOL_ID: '',
-            # const.DEFAULT_TLS_CONTAINER_REF: '',
-            # const.SNI_CONTAINER_REFS: [],
         }
         if protocol == const.HTTP:
             listener_update_kwargs[const.INSERT_HEADERS] = {
@@ -1169,6 +1484,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.X_FORWARDED_PORT: "false",
                 const.X_FORWARDED_PROTO: "false"
             }
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener_update_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.SNI2_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.server_secret_ref],
+            })
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             listener_update_kwargs.update({
@@ -1239,6 +1561,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 insert_headers[const.X_FORWARDED_PORT]))
             self.assertFalse(strutils.bool_from_string(
                 insert_headers[const.X_FORWARDED_PROTO]))
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            self.assertEqual(self.SNI2_secret_ref,
+                             listener[const.DEFAULT_TLS_CONTAINER_REF])
+            self.assertEqual(sorted([self.SNI1_secret_ref,
+                                     self.server_secret_ref]),
+                             sorted(listener[const.SNI_CONTAINER_REFS]))
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])
@@ -1289,6 +1618,18 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
     def test_sctp_listener_delete(self):
         self._test_listener_delete(const.SCTP, 8074)
 
+    @decorators.idempotent_id('ef357dcc-c9a0-40fe-a15c-b368f15d7187')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_delete(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_delete(const.TERMINATED_HTTPS, 8075)
+
     def _test_listener_delete(self, protocol, protocol_port):
         """Tests listener create and delete APIs.
 
@@ -1307,6 +1648,15 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.PROTOCOL_PORT: protocol_port,
             const.LOADBALANCER_ID: self.lb_id,
         }
+
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
+
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
 
         self.addCleanup(
@@ -1375,6 +1725,18 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
     def test_sctp_listener_show_stats(self):
         self._test_listener_show_stats(const.SCTP, 8084)
 
+    @decorators.idempotent_id('c39c996f-9633-4d81-a5f1-e94643f0c650')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_show_stats(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        self._test_listener_show_stats(const.TERMINATED_HTTPS, 8085)
+
     def _test_listener_show_stats(self, protocol, protocol_port):
         """Tests listener show statistics API.
 
@@ -1398,6 +1760,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             const.LOADBALANCER_ID: self.lb_id,
             const.CONNECTION_LIMIT: 200,
         }
+
+        # Add terminated_https args
+        if self.should_apply_terminated_https(protocol=protocol):
+            listener_kwargs.update({
+                const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
+                const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
+                                           self.SNI2_secret_ref],
+            })
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.addCleanup(
