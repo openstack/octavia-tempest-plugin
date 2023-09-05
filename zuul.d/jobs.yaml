@@ -586,7 +586,9 @@
 - job:
     name: octavia-v2-dsvm-scenario
     parent: octavia-v2-dsvm-scenario-base
-    branches: ^(?!stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+    branches:
+      regex: ^(stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+      negate: true
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
@@ -854,7 +856,9 @@
 - job:
     name: octavia-v2-dsvm-tls-barbican
     parent: octavia-v2-dsvm-tls-barbican-base
-    branches: ^(?!stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+    branches:
+      regex: ^(stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+      negate: true
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
@@ -1063,7 +1067,9 @@
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario
     parent: octavia-v2-act-stdby-dsvm-scenario-base
-    branches: ^(?!stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+    branches:
+      regex: ^(stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+      negate: true
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
