@@ -879,7 +879,7 @@
     name: octavia-v2-dsvm-tls-barbican-stable-2023-1
     parent: octavia-v2-dsvm-tls-barbican
     nodeset: octavia-single-node-ubuntu-jammy
-    override-checkout: stable/2023-1
+    override-checkout: stable/2023.1
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-zed
@@ -1082,7 +1082,7 @@
     name: octavia-v2-act-stdby-dsvm-scenario-stable-2023-1
     parent: octavia-v2-act-stdby-dsvm-scenario
     nodeset: octavia-single-node-ubuntu-jammy
-    override-checkout: stable/2023-1
+    override-checkout: stable/2023.1
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-zed
