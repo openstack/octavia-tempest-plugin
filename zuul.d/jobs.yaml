@@ -130,13 +130,6 @@
               debug: True
       devstack_services:
         c-bak: false
-        ceilometer-acentral: false
-        ceilometer-acompute: false
-        ceilometer-alarm-evaluator: false
-        ceilometer-alarm-notifier: false
-        ceilometer-anotification: false
-        ceilometer-api: false
-        ceilometer-collector: false
         c-sch: false
         c-api: false
         c-vol: false
@@ -187,13 +180,6 @@
               debug: True
       devstack_services:
         c-bak: false
-        ceilometer-acentral: false
-        ceilometer-acompute: false
-        ceilometer-alarm-evaluator: false
-        ceilometer-alarm-notifier: false
-        ceilometer-anotification: false
-        ceilometer-api: false
-        ceilometer-collector: false
         c-sch: false
         c-api: false
         c-vol: false
@@ -956,13 +942,6 @@
               volume_size: 2
       devstack_services:
         c-bak: true
-        ceilometer-acentral: false
-        ceilometer-acompute: false
-        ceilometer-alarm-evaluator: false
-        ceilometer-alarm-notifier: false
-        ceilometer-anotification: false
-        ceilometer-api: false
-        ceilometer-collector: false
         c-sch: true
         c-api: true
         c-vol: true
