@@ -21,7 +21,6 @@ from cryptography.hazmat.primitives.serialization import NoEncryption
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography import x509
 from cryptography.x509.oid import NameOID
-import OpenSSL
 
 
 def generate_ca_cert_and_key():
@@ -176,38 +175,13 @@ def generate_client_cert_and_key(ca_cert, ca_key, client_uuid):
 def generate_pkcs12_bundle(server_cert, server_key):
     """Creates a pkcs12 formated bundle.
 
-    Note: This uses pyOpenSSL as the cryptography package does not yet
-          support creating pkcs12 bundles. The currently un-released
-          2.5 version of cryptography supports reading pkcs12, but not
-          creation. This method should be updated to only use
-          cryptography once it supports creating pkcs12 bundles.
-
     :param server_cert: A cryptography certificate (x509) object.
     :param server_key: A cryptography key (x509) object.
     :returns: A pkcs12 bundle.
     """
-    # Use the PKCS12 serialization function from cryptography if it exists
-    # (>=3.0), otherwise use the pyOpenSSL module.
-    #
-    # The PKCS12 class of the pyOpenSSL module is not compliant with FIPS.
-    # It uses the SHA1 function [0] which is not allowed when generating
-    # digital signatures [1]
-    #
-    # [0] https://github.com/pyca/pyopenssl/blob/
-    #       65ca53a7a06a7c78c1749200a6b3a007e47d3214/src/OpenSSL/
-    #       crypto.py#L2748-L2749
-    # [1] https://nvlpubs.nist.gov/nistpubs/SpecialPublications/
-    #       NIST.SP.800-131Ar1.pdf
-    if hasattr(pkcs12, 'serialize_key_and_certificates'):
-        p12 = pkcs12.serialize_key_and_certificates(
-            b'', server_key, server_cert,
-            cas=None, encryption_algorithm=NoEncryption())
-    else:
-        p12 = OpenSSL.crypto.PKCS12()
-        p12.set_privatekey(
-            OpenSSL.crypto.PKey.from_cryptography_key(server_key))
-        p12.set_certificate(OpenSSL.crypto.X509.from_cryptography(server_cert))
-        p12 = p12.export()
+    p12 = pkcs12.serialize_key_and_certificates(
+        b'', server_key, server_cert,
+        cas=None, encryption_algorithm=NoEncryption())
     return p12
 
 
