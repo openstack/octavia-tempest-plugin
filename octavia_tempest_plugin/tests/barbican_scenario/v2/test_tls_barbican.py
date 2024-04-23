@@ -1222,7 +1222,8 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
 
         self.assertEqual(expected_proto, selected_proto)
 
-    def _test_http_versions_tls_traffic(self, http_version, alpn_protos):
+    def _test_http_versions_tls_traffic(self, http_version, alpn_protos,
+                                        hsts: bool = False):
         if not self.mem_listener_client.is_version_supported(
                 self.api_version, '2.20'):
             raise self.skipException('ALPN protocols are only available on '
@@ -1237,6 +1238,12 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
             const.DEFAULT_TLS_CONTAINER_REF: self.server_secret_ref,
             const.ALPN_PROTOCOLS: alpn_protos,
         }
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.27'):
+            listener_kwargs[const.HSTS_MAX_AGE] = 100 if hsts else None
+            listener_kwargs[const.HSTS_INCLUDE_SUBDOMAINS] = hsts
+            listener_kwargs[const.HSTS_PRELOAD] = hsts
+
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
         self.listener_id = listener[const.ID]
         self.addCleanup(
@@ -1258,6 +1265,12 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
         client = httpx.Client(http2=(http_version == 'HTTP/2'), verify=context)
         r = client.get(url)
         self.assertEqual(http_version, r.http_version)
+        if hsts:
+            self.assertIn('strict-transport-security', r.headers)
+            self.assertEqual('max-age=100; includeSubDomains; preload;',
+                             r.headers['strict-transport-security'])
+        else:
+            self.assertNotIn('strict-transport-security', r.headers)
 
     @decorators.idempotent_id('9965828d-24af-4fa0-91ae-21c6bc47ab4c')
     def test_http_2_tls_traffic(self):
@@ -1267,6 +1280,15 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
     def test_http_1_1_tls_traffic(self):
         self._test_http_versions_tls_traffic(
             'HTTP/1.1', ['http/1.1', 'http/1.0'])
+
+    @decorators.idempotent_id('7436c6b7-44be-4544-a40b-31d2b7b2ad0b')
+    def test_http_1_1_tls_hsts_traffic(self):
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.27'):
+            raise self.skipException('HSTS is only available on '
+                                     'Octavia API version 2.27 or newer.')
+        self._test_http_versions_tls_traffic(
+            'HTTP/1.1', ['http/1.1', 'http/1.0'], hsts=True)
 
     @decorators.idempotent_id('ee0faf71-d11e-4323-8673-e5e15779749b')
     def test_pool_reencryption(self):

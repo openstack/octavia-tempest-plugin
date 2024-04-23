@@ -297,6 +297,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         listener_name = data_utils.rand_name("lb_member_listener1-create")
         listener_description = data_utils.arbitrary_string(size=255)
+        hsts_supported = self.mem_listener_client.is_version_supported(
+            self.api_version, '2.27') and protocol == const.TERMINATED_HTTPS
 
         listener_kwargs = {
             const.NAME: listener_name,
@@ -351,8 +353,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 exceptions.BadRequest,
                 self.mem_listener_client.create_listener,
                 **listener_kwargs)
-
             listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
+
+        if hsts_supported:
+            listener_kwargs[const.HSTS_PRELOAD] = True
+            listener_kwargs[const.HSTS_MAX_AGE] = 10000
+            listener_kwargs[const.HSTS_INCLUDE_SUBDOMAINS] = True
 
         # Test that a user without the loadbalancer role cannot
         # create a listener.
@@ -410,6 +416,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             equal_items.append(const.TIMEOUT_MEMBER_CONNECT)
             equal_items.append(const.TIMEOUT_MEMBER_DATA)
             equal_items.append(const.TIMEOUT_TCP_INSPECT)
+
+        if hsts_supported:
+            equal_items.append(const.HSTS_PRELOAD)
+            equal_items.append(const.HSTS_MAX_AGE)
+            equal_items.append(const.HSTS_INCLUDE_SUBDOMAINS)
 
         for item in equal_items:
             self.assertEqual(listener_kwargs[item], listener[item])
@@ -1010,6 +1021,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.12'):
             show_listener_response_fields.append('allowed_cidrs')
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.27'):
+            show_listener_response_fields.append(const.HSTS_PRELOAD)
+            show_listener_response_fields.append(const.HSTS_MAX_AGE)
+            show_listener_response_fields.append(const.HSTS_INCLUDE_SUBDOMAINS)
         for field in show_listener_response_fields:
             if field in (const.DEFAULT_POOL_ID, const.L7_POLICIES):
                 continue
@@ -1142,6 +1158,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         listener_name = data_utils.rand_name("lb_member_listener1-show")
         listener_description = data_utils.arbitrary_string(size=255)
+        hsts_supported = self.mem_listener_client.is_version_supported(
+            self.api_version, '2.27') and protocol == const.TERMINATED_HTTPS
 
         listener_kwargs = {
             const.NAME: listener_name,
@@ -1167,6 +1185,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 const.SNI_CONTAINER_REFS: [self.SNI1_secret_ref,
                                            self.SNI2_secret_ref],
             })
+
+        if hsts_supported:
+            listener_kwargs[const.HSTS_PRELOAD] = True
+            listener_kwargs[const.HSTS_MAX_AGE] = 10000
+            listener_kwargs[const.HSTS_INCLUDE_SUBDOMAINS] = True
 
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
@@ -1263,6 +1286,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 self.api_version, '2.12'):
             self.assertEqual(self.allowed_cidrs, listener[const.ALLOWED_CIDRS])
 
+        if hsts_supported:
+            self.assertTrue(listener[const.HSTS_PRELOAD])
+            self.assertEqual(10000, listener[const.HSTS_MAX_AGE])
+            self.assertTrue(listener[const.HSTS_INCLUDE_SUBDOMAINS])
+
         # Test that the appropriate users can see or not see the listener
         # based on the API RBAC.
         expected_allowed = []
@@ -1340,6 +1368,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         listener_name = data_utils.rand_name("lb_member_listener1-update")
         listener_description = data_utils.arbitrary_string(size=255)
+        hsts_supported = self.mem_listener_client.is_version_supported(
+            self.api_version, '2.27') and protocol == const.TERMINATED_HTTPS
 
         listener_kwargs = {
             const.NAME: listener_name,
@@ -1522,6 +1552,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 new_cidrs = ['2001:db8::/64']
             listener_update_kwargs.update({const.ALLOWED_CIDRS: new_cidrs})
 
+        if hsts_supported:
+            listener_update_kwargs[const.HSTS_PRELOAD] = False
+            listener_update_kwargs[const.HSTS_MAX_AGE] = 0
+            listener_update_kwargs[const.HSTS_INCLUDE_SUBDOMAINS] = False
+
         listener = self.mem_listener_client.update_listener(
             listener[const.ID], **listener_update_kwargs)
 
@@ -1586,6 +1621,11 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             if CONF.load_balancer.test_with_ipv6:
                 expected_cidrs = ['2001:db8::/64']
             self.assertEqual(expected_cidrs, listener[const.ALLOWED_CIDRS])
+
+        if hsts_supported:
+            self.assertFalse(listener[const.HSTS_PRELOAD])
+            self.assertEqual(0, listener[const.HSTS_MAX_AGE])
+            self.assertFalse(listener[const.HSTS_INCLUDE_SUBDOMAINS])
 
     @decorators.idempotent_id('16f11c82-f069-4592-8954-81b35a98e3b7')
     def test_http_listener_delete(self):

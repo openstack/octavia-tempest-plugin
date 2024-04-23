@@ -41,7 +41,8 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         sni_container_refs=Unset, client_authentication=Unset,
                         client_ca_tls_container_ref=Unset,
                         client_crl_container_ref=Unset, allowed_cidrs=Unset,
-                        alpn_protocols=Unset,
+                        alpn_protocols=Unset, hsts_max_age=Unset,
+                        hsts_include_subdomains=Unset, hsts_preload=Unset,
                         return_object_only=True):
         """Create a listener.
 
@@ -92,6 +93,12 @@ class ListenerClient(base_client.BaseLBaaSClient):
         :param allowed_cidrs: A list of IPv4 or IPv6 CIDRs.
         :param alpn_protocols: A list of ALPN protocols for TERMINATED_HTTPS
                                listeners.
+        :param hsts_include_subdomains: Defines whether the
+            `include_subdomains` directive is used for HSTS or not
+        :param hsts_max_age: Enables HTTP Strict Transport Security (HSTS)
+            and sets the `max_age` directive to given value
+        :param hsts_preload: Defines whether the `hsts_preload` directive
+            is used for HSTS or not
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -218,7 +225,8 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         sni_container_refs=Unset, client_authentication=Unset,
                         client_ca_tls_container_ref=Unset,
                         client_crl_container_ref=Unset, allowed_cidrs=Unset,
-                        alpn_protocols=Unset,
+                        alpn_protocols=Unset, hsts_max_age=Unset,
+                        hsts_include_subdomains=Unset, hsts_preload=Unset,
                         return_object_only=True):
         """Update a listener.
 
@@ -267,6 +275,12 @@ class ListenerClient(base_client.BaseLBaaSClient):
         :param allowed_cidrs: A list of IPv4 or IPv6 CIDRs.
         :param alpn_protocols: A list of ALPN protocols for TERMINATED_HTTPS
                                listeners.
+        :param hsts_include_subdomains: Defines whether the
+            `include_subdomains` directive is used for HSTS or not
+        :param hsts_max_age: Enables HTTP Strict Transport Security (HSTS)
+            and sets the `max_age` directive to given value
+        :param hsts_preload: Defines whether the `hsts_preload` directive
+            is used for HSTS or not
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.

@@ -34,6 +34,7 @@ import tenacity
 
 from octavia_tempest_plugin.common import cert_utils
 from octavia_tempest_plugin.common import constants as const
+import octavia_tempest_plugin.services.load_balancer.v2 as lbv2
 from octavia_tempest_plugin.tests import RBAC_tests
 from octavia_tempest_plugin.tests import validators
 from octavia_tempest_plugin.tests import waiters
@@ -182,27 +183,29 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             cls.os_roles_lb_member.security_group_rules_client)
         cls.lb_mem_servers_client = cls.os_roles_lb_member.servers_client
         cls.lb_mem_subnet_client = cls.os_roles_lb_member.subnets_client
-        cls.mem_lb_client = (
+        cls.mem_lb_client: lbv2.LoadbalancerClient = (
             cls.os_roles_lb_member.load_balancer_v2.LoadbalancerClient())
-        cls.mem_listener_client = (
+        cls.mem_listener_client: lbv2.ListenerClient = (
             cls.os_roles_lb_member.load_balancer_v2.ListenerClient())
-        cls.mem_pool_client = (
+        cls.mem_pool_client: lbv2.PoolClient = (
             cls.os_roles_lb_member.load_balancer_v2.PoolClient())
-        cls.mem_member_client = (
+        cls.mem_member_client: lbv2.MemberClient = (
             cls.os_roles_lb_member.load_balancer_v2.MemberClient())
-        cls.mem_healthmonitor_client = (
+        cls.mem_healthmonitor_client: lbv2.HealthMonitorClient = (
             cls.os_roles_lb_member.load_balancer_v2.HealthMonitorClient())
-        cls.mem_l7policy_client = (
+        cls.mem_l7policy_client: lbv2.L7PolicyClient = (
             cls.os_roles_lb_member.load_balancer_v2.L7PolicyClient())
-        cls.mem_l7rule_client = (
+        cls.mem_l7rule_client: lbv2.L7RuleClient = (
             cls.os_roles_lb_member.load_balancer_v2.L7RuleClient())
-        cls.lb_admin_amphora_client = lb_admin_prefix.AmphoraClient()
-        cls.lb_admin_flavor_profile_client = (
+        cls.lb_admin_amphora_client: lbv2.AmphoraClient = (
+            lb_admin_prefix.AmphoraClient())
+        cls.lb_admin_flavor_profile_client: lbv2.FlavorProfileClient = (
             lb_admin_prefix.FlavorProfileClient())
-        cls.lb_admin_flavor_client = lb_admin_prefix.FlavorClient()
-        cls.mem_flavor_client = (
+        cls.lb_admin_flavor_client: lbv2.FlavorClient = (
+            lb_admin_prefix.FlavorClient())
+        cls.mem_flavor_client: lbv2.FlavorClient = (
             cls.os_roles_lb_member.load_balancer_v2.FlavorClient())
-        cls.mem_provider_client = (
+        cls.mem_provider_client: lbv2.ProviderClient = (
             cls.os_roles_lb_member.load_balancer_v2.ProviderClient())
         cls.os_admin_servers_client = cls.os_admin.servers_client
         cls.os_admin_routers_client = cls.os_admin.routers_client
