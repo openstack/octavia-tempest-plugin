@@ -24,6 +24,7 @@ from tempest.lib import decorators
 from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
+from octavia_tempest_plugin.services.load_balancer import v2
 from octavia_tempest_plugin.tests import test_base
 from octavia_tempest_plugin.tests import waiters
 
@@ -35,6 +36,7 @@ LOG = logging.getLogger(__name__)
     CONF.validation.run_validation,
     'Active-Standby tests will not work without run_validation enabled.')
 class ActiveStandbyScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
+    mem_listener_client: v2.ListenerClient
 
     @classmethod
     def resource_setup(cls):
