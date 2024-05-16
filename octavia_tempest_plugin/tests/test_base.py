@@ -25,7 +25,9 @@ from cryptography.hazmat.primitives import serialization
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import uuidutils
+from tempest import clients
 from tempest import config
+from tempest.lib import auth
 from tempest.lib.common.utils import data_utils
 from tempest.lib.common.utils.linux import remote_client
 from tempest.lib import exceptions
@@ -60,13 +62,12 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
     elif CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
         credentials = [
             'admin', 'primary',
-            ['lb_admin', CONF.load_balancer.admin_role, 'admin'],
-            ['lb_observer', CONF.load_balancer.observer_role, 'reader'],
-            ['lb_global_observer', CONF.load_balancer.global_observer_role,
-             'reader'],
-            ['lb_member', CONF.load_balancer.member_role, 'member'],
-            ['lb_member2', CONF.load_balancer.member_role, 'member'],
-            ['lb_member_not_default_member', CONF.load_balancer.member_role]]
+            ['lb_admin', 'admin'],
+            ['lb_observer', 'reader'],
+            ['lb_global_observer', 'reader'],
+            ['lb_member', 'member'],
+            ['lb_member2', 'member']]
+        # Note: an additional non-member user is added in setup_credentials
     else:
         credentials = [
             'admin', 'primary', ['lb_admin', CONF.load_balancer.admin_role],
@@ -134,18 +135,74 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             raise cls.skipException(msg)
 
     @classmethod
+    def _setup_new_user_role_client(cls, project_id, role_name):
+        user = {
+            'name': data_utils.rand_name('user'),
+            'password': data_utils.rand_password()
+        }
+        user_id = cls.os_admin.users_v3_client.create_user(
+            **user)['user']['id']
+        cls._created_users.append(user_id)
+        roles = cls.os_admin.roles_v3_client.list_roles(
+            name=role_name)['roles']
+        if len(roles) == 0:
+            role = {
+                'name': role_name
+            }
+            role_id = cls.os_admin.roles_v3_client.create_role(
+                **role)['role']['id']
+            cls._created_roles.append(role_id)
+        else:
+            role_id = roles[0]['id']
+        cls.os_admin.roles_v3_client.create_user_role_on_project(
+            project_id, user_id, role_id
+        )
+        creds = auth.KeystoneV3Credentials(
+            user_id=user_id,
+            password=user['password'],
+            project_id=project_id
+        )
+        auth_provider = clients.get_auth_provider(creds)
+        creds = auth_provider.fill_credentials()
+        return clients.Manager(credentials=creds)
+
+    @classmethod
     def setup_credentials(cls):
         """Setup test credentials and network resources."""
         # Do not auto create network resources
         cls.set_network_resources()
         super(LoadBalancerBaseTest, cls).setup_credentials()
 
+        cls._created_projects = []
+        cls._created_users = []
+        cls._created_roles = []
+
+        non_dyn_users = []
+
+        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
+            # Create a non-member user for keystone_default_roles
+            # When using dynamic credentials, tempest cannot create a user
+            # without a role, it always adds at least the "member" role.
+            # We manually create the user with a temporary role
+            project_id = cls.os_admin.projects_client.create_project(
+                data_utils.rand_name()
+            )['project']['id']
+            cls._created_projects.append(project_id)
+            cls.os_not_member = cls._setup_new_user_role_client(
+                project_id,
+                data_utils.rand_name('role'))
+            cls.allocated_creds.append('os_not_member')
+            non_dyn_users.append('not_member')
+
+        # Tests shall not mess with the list of allocated credentials
+        cls.allocated_credentials = tuple(cls.allocated_creds)
+
         if not CONF.load_balancer.log_user_roles:
             return
 
         # Log the user roles for this test run
         role_name_cache = {}
-        for cred in cls.credentials:
+        for cred in cls.credentials + non_dyn_users:
             user_roles = []
             if isinstance(cred, list):
                 user_name = cred[0]
@@ -167,6 +224,16 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
                     role_name_cache[role_id] = role_name
                 user_roles.append([role_name, role['scope']])
             LOG.info("User %s has roles: %s", user_name, user_roles)
+
+    @classmethod
+    def clear_credentials(cls):
+        for user_id in cls._created_users:
+            cls.os_admin.users_v3_client.delete_user(user_id)
+        for project_id in cls._created_projects:
+            cls.os_admin.projects_client.delete_project(project_id)
+        for role_id in cls._created_roles:
+            cls.os_admin.roles_v3_client.delete_role(role_id)
+        super().clear_credentials()
 
     @classmethod
     def setup_clients(cls):
