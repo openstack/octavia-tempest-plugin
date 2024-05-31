@@ -1,0 +1,9 @@
+---
+other:
+  - |
+    When using the ``keystone_default_roles`` RBAC tests, the
+    ``load-balancer_*`` roles are no longer used by tempest, it relies only on
+    the keystone ``admin``, ``member``, ``reader`` roles. The
+    ``[load_balancer].member_role``, ``[load_balancer].admin_role``,
+    ``[load_balancer].observer_role`` and
+    ``[load_balancer].global_observer_role`` settings are ignored.
