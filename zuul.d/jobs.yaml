@@ -525,7 +525,10 @@
       - ^doc/.*$
       - ^etc/.*$
       - ^releasenotes/.*$
-      - ^octavia_tempest_plugin/tests/(?!api/|\w+\.py).*
+      - ^octavia_tempest_plugin/tests/act_stdby_scenario/.*
+      - ^octavia_tempest_plugin/tests/barbican_scenario/.*
+      - ^octavia_tempest_plugin/tests/scenario/.*
+      - ^octavia_tempest_plugin/tests/spare_pool_scenario/.*  # TODO: remove
 
 - job:
     name: octavia-v2-dsvm-noop-api-keystone-default-roles
@@ -593,7 +596,10 @@
       - ^doc/.*$
       - ^etc/.*$
       - ^releasenotes/.*$
-      - ^octavia_tempest_plugin/tests/(?!scenario/|\w+\.py).*
+      - ^octavia_tempest_plugin/tests/act_stdby_scenario/.*
+      - ^octavia_tempest_plugin/tests/api/.*
+      - ^octavia_tempest_plugin/tests/barbican_scenario/.*
+      - ^octavia_tempest_plugin/tests/spare_pool_scenario/.*  # TODO: remove
 
 - job:
     name: octavia-v2-dsvm-scenario
@@ -633,7 +639,10 @@
       - ^doc/.*$
       - ^etc/.*$
       - ^releasenotes/.*$
-      - ^octavia_tempest_plugin/tests/(?!scenario/|\w+\.py).*
+      - ^octavia_tempest_plugin/tests/act_stdby_scenario/.*
+      - ^octavia_tempest_plugin/tests/api/.*
+      - ^octavia_tempest_plugin/tests/barbican_scenario/.*
+      - ^octavia_tempest_plugin/tests/spare_pool_scenario/.*  # TODO: remove
 
 - job:
     name: octavia-v2-dsvm-py2-scenario
@@ -713,7 +722,10 @@
       - ^doc/.*$
       - ^etc/.*$
       - ^releasenotes/.*$
-      - ^octavia_tempest_plugin/tests/(?!scenario/|\w+\.py).*
+      - ^octavia_tempest_plugin/tests/act_stdby_scenario/.*
+      - ^octavia_tempest_plugin/tests/api/.*
+      - ^octavia_tempest_plugin/tests/barbican_scenario/.*
+      - ^octavia_tempest_plugin/tests/spare_pool_scenario/.*  # TODO: remove
 
 - job:
     name: octavia-v2-dsvm-py2-scenario-two-node
@@ -883,7 +895,10 @@
       - ^doc/.*$
       - ^etc/.*$
       - ^releasenotes/.*$
-      - ^octavia_tempest_plugin/tests/(?!barbican_scenario/|\w+\.py).*
+      - ^octavia_tempest_plugin/tests/act_stdby_scenario/.*
+      - ^octavia_tempest_plugin/tests/api/.*
+      - ^octavia_tempest_plugin/tests/scenario/.*
+      - ^octavia_tempest_plugin/tests/spare_pool_scenario/.*  # TODO: remove
 
 - job:
     name: octavia-v2-dsvm-tls-barbican
