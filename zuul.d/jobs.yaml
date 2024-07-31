@@ -599,21 +599,9 @@
     name: octavia-v2-dsvm-scenario
     parent: octavia-v2-dsvm-scenario-base
     branches:
-      regex: ^(stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+      regex: ^(unmaintained/)
       negate: true
     nodeset: octavia-single-node-ubuntu-jammy
-
-- job:
-    name: octavia-v2-dsvm-scenario
-    parent: octavia-v2-dsvm-scenario-base
-    branches: ^(stable/(victoria|wallaby|xena|yoga|zed))
-    nodeset: octavia-single-node-ubuntu-focal
-
-- job:
-    name: octavia-v2-dsvm-scenario
-    parent: octavia-v2-dsvm-scenario-base
-    branches: ^(stable/(train|ussuri))
-    nodeset: octavia-single-node-ubuntu-bionic
 
 - job:
     name: octavia-v2-dsvm-scenario-traffic-ops
@@ -901,27 +889,15 @@
     name: octavia-v2-dsvm-tls-barbican
     parent: octavia-v2-dsvm-tls-barbican-base
     branches:
-      regex: ^(stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+      regex: ^(unmaintained/)
       negate: true
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
-    name: octavia-v2-dsvm-tls-barbican
-    parent: octavia-v2-dsvm-tls-barbican-base
-    branches: ^(stable/(victoria|wallaby|xena|yoga|zed))
-    nodeset: octavia-single-node-ubuntu-focal
-
-- job:
-    name: octavia-v2-dsvm-tls-barbican
-    parent: octavia-v2-dsvm-tls-barbican-base
-    branches: ^(stable/(train|ussuri))
-    nodeset: octavia-single-node-ubuntu-bionic
-    required-projects:
-      - openstack/barbican
-      - openstack/diskimage-builder
-      - openstack/python-barbicanclient
-      - name: openstack/barbican-tempest-plugin
-        override-checkout: 1.6.0
+    name: octavia-v2-dsvm-tls-barbican-stable-2024-1
+    parent: octavia-v2-dsvm-tls-barbican
+    nodeset: octavia-single-node-ubuntu-jammy
+    override-checkout: stable/2024.1
 
 - job:
     name: octavia-v2-dsvm-tls-barbican-stable-2024-1
@@ -940,13 +916,6 @@
     parent: octavia-v2-dsvm-tls-barbican
     nodeset: octavia-single-node-ubuntu-jammy
     override-checkout: stable/2023.1
-
-# Still used by barbican
-- job:
-    name: octavia-v2-dsvm-tls-barbican-stable-train
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: octavia-single-node-ubuntu-bionic
-    override-checkout: stable/train
 
 - job:
     name: octavia-v2-dsvm-spare-pool
@@ -972,12 +941,6 @@
     required-projects:
       - name: openstack/diskimage-builder
         override-checkout: 2.30.0
-
-- job:
-    name: octavia-v2-dsvm-spare-pool-stable-wallaby
-    parent: octavia-v2-dsvm-spare-pool
-    nodeset: octavia-single-node-ubuntu-focal
-    override-checkout: stable/wallaby
 
 - job:
     name: octavia-v2-dsvm-cinder-amphora
@@ -1112,21 +1075,15 @@
     name: octavia-v2-act-stdby-dsvm-scenario
     parent: octavia-v2-act-stdby-dsvm-scenario-base
     branches:
-      regex: ^(stable/(train|ussuri|victoria|wallaby|xena|yoga|zed))
+      regex: ^(unmaintained/)
       negate: true
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
-    name: octavia-v2-act-stdby-dsvm-scenario
-    parent: octavia-v2-act-stdby-dsvm-scenario-base
-    branches: ^(stable/(victoria|wallaby|xena|yoga|zed))
-    nodeset: octavia-single-node-ubuntu-focal
-
-- job:
-    name: octavia-v2-act-stdby-dsvm-scenario
-    parent: octavia-v2-act-stdby-dsvm-scenario-base
-    branches: ^(stable/(train|ussuri))
-    nodeset: octavia-single-node-ubuntu-bionic
+    name: octavia-v2-act-stdby-dsvm-scenario-stable-2024-1
+    parent: octavia-v2-act-stdby-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-jammy
+    override-checkout: stable/2024.1
 
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario-stable-2024-1
