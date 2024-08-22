@@ -12,7 +12,7 @@
         - octavia-v2-dsvm-noop-api-stable-2024-2
         - octavia-v2-dsvm-noop-api-stable-2024-1
         - octavia-v2-dsvm-noop-api-stable-2023-2
-        - octavia-v2-dsvm-noop-api-keystone-default-roles
+        - octavia-v2-dsvm-noop-api-advanced-rbac
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-2
@@ -60,7 +60,7 @@
         - octavia-v2-dsvm-noop-api-stable-2024-2
         - octavia-v2-dsvm-noop-api-stable-2024-1
         - octavia-v2-dsvm-noop-api-stable-2023-2
-        - octavia-v2-dsvm-noop-api-keystone-default-roles
+        - octavia-v2-dsvm-noop-api-advanced-rbac
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-2

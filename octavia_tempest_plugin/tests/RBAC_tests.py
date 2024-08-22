@@ -59,17 +59,10 @@ class RBACTestsMixin(test.BaseTestCase):
             try:
                 cred_obj = getattr(self, cred)
             except AttributeError:
-                # TODO(johnsom) Remove once scoped tokens is the default.
-                if ((cred == 'os_system_admin' or cred == 'os_system_reader')
-                        and not CONF.enforce_scope.octavia):
-                    LOG.info('Skipping %s allowed RBAC test because '
-                             'enforce_scope.octavia is not True', cred)
-                    continue
-                else:
-                    self.fail('Credential {} "expected_allowed" for RBAC '
-                              'testing was not created by tempest '
-                              'credentials setup. This is likely a bug in the '
-                              'test.'.format(cred))
+                self.fail('Credential {} "expected_allowed" for RBAC '
+                          'testing was not created by tempest '
+                          'credentials setup. This is likely a bug in the '
+                          'test.'.format(cred))
             method = self._get_client_method(cred_obj, client_str, method_str)
             try:
                 method(*args, **kwargs)
@@ -155,15 +148,6 @@ class RBACTestsMixin(test.BaseTestCase):
         """
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # The legacy admin behavior changed during the sRBAC development,
-        # os_admin is still a valid admin [0]
-        # [0] https://governance.openstack.org/tc/goals/selected/
-        #       consistent-and-secure-rbac.html
-        #       #legacy-admin-continues-to-work-as-it-is
-        # TODO(gthiemonge) we may have to revisit it in the future if the
-        # legacy admin scope changes.
-        if 'os_system_admin' in expected_allowed:
-            allowed_list.append('os_admin')
 
         # #### Test that disallowed credentials cannot access the API.
         self._check_disallowed(client_str, method_str, allowed_list,
@@ -192,6 +176,8 @@ class RBACTestsMixin(test.BaseTestCase):
                               correct scope for access is denied.
         :returns: None on success
         """
+        if CONF.load_balancer.RBAC_test_type == constants.NONE:
+            return
         self._list_get_RBAC_enforcement(client_str, method_str,
                                         expected_allowed, *args, **kwargs)
 
@@ -214,6 +200,8 @@ class RBACTestsMixin(test.BaseTestCase):
                               correct scope for access is denied.
         :returns: None on success
         """
+        if CONF.load_balancer.RBAC_test_type == constants.NONE:
+            return
         self._list_get_RBAC_enforcement(client_str, method_str,
                                         expected_allowed, *args, **kwargs)
 
@@ -243,15 +231,6 @@ class RBACTestsMixin(test.BaseTestCase):
         """
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # The legacy admin behavior changed during the sRBAC development,
-        # os_admin is still a valid admin [0]
-        # [0] https://governance.openstack.org/tc/goals/selected/
-        #       consistent-and-secure-rbac.html
-        #       #legacy-admin-continues-to-work-as-it-is
-        # TODO(gthiemonge) we may have to revisit it in the future if the
-        # legacy admin scope changes.
-        if 'os_system_admin' in expected_allowed:
-            allowed_list.append('os_admin')
 
         # #### Test that disallowed credentials cannot access the API.
         self._check_disallowed(client_str, method_str, allowed_list,
@@ -281,6 +260,8 @@ class RBACTestsMixin(test.BaseTestCase):
                               correct scope for access is denied.
         :returns: None on success
         """
+        if CONF.load_balancer.RBAC_test_type == constants.NONE:
+            return
         self._CUD_RBAC_enforcement(client_str, method_str, expected_allowed,
                                    status_method, obj_id, *args, **kwargs)
 
@@ -308,6 +289,8 @@ class RBACTestsMixin(test.BaseTestCase):
                               correct scope for access is denied.
         :returns: None on success
         """
+        if CONF.load_balancer.RBAC_test_type == constants.NONE:
+            return
         self._CUD_RBAC_enforcement(client_str, method_str, expected_allowed,
                                    status_method, obj_id, *args, **kwargs)
 
@@ -335,6 +318,8 @@ class RBACTestsMixin(test.BaseTestCase):
                               correct scope for access is denied.
         :returns: None on success
         """
+        if CONF.load_balancer.RBAC_test_type == constants.NONE:
+            return
         self._CUD_RBAC_enforcement(client_str, method_str, expected_allowed,
                                    status_method, obj_id, *args, **kwargs)
 
@@ -367,33 +352,19 @@ class RBACTestsMixin(test.BaseTestCase):
                               correct scope for access is denied.
         :returns: None on success
         """
+        if CONF.load_balancer.RBAC_test_type == constants.NONE:
+            return
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # The legacy admin behavior changed during the sRBAC development,
-        # os_admin is still a valid admin [0]
-        # [0] https://governance.openstack.org/tc/goals/selected/
-        #       consistent-and-secure-rbac.html
-        #       #legacy-admin-continues-to-work-as-it-is
-        # TODO(gthiemonge) we may have to revisit it in the future if the
-        # legacy admin scope changes.
-        if 'os_system_admin' in expected_allowed:
-            allowed_list.append('os_admin')
 
         for cred in allowed_list:
             try:
                 cred_obj = getattr(self, cred)
             except AttributeError:
-                # TODO(johnsom) Remove once scoped tokens is the default.
-                if ((cred == 'os_system_admin' or cred == 'os_system_reader')
-                        and not CONF.enforce_scope.octavia):
-                    LOG.info('Skipping %s allowed RBAC test because '
-                             'enforce_scope.octavia is not True', cred)
-                    continue
-                else:
-                    self.fail('Credential {} "expected_allowed" for RBAC '
-                              'testing was not created by tempest '
-                              'credentials setup. This is likely a bug in the '
-                              'test.'.format(cred))
+                self.fail('Credential {} "expected_allowed" for RBAC '
+                          'testing was not created by tempest '
+                          'credentials setup. This is likely a bug in the '
+                          'test.'.format(cred))
             method = self._get_client_method(cred_obj, client_str, method_str)
             try:
                 result = method(*args, **kwargs)
@@ -434,33 +405,19 @@ class RBACTestsMixin(test.BaseTestCase):
                               correct scope for access is denied.
         :returns: None on success
         """
+        if CONF.load_balancer.RBAC_test_type == constants.NONE:
+            return
 
         allowed_list = copy.deepcopy(expected_allowed)
-        # The legacy admin behavior changed during the sRBAC development,
-        # os_admin is still a valid admin [0]
-        # [0] https://governance.openstack.org/tc/goals/selected/
-        #       consistent-and-secure-rbac.html
-        #       #legacy-admin-continues-to-work-as-it-is
-        # TODO(gthiemonge) we may have to revisit it in the future if the
-        # legacy admin scope changes.
-        if 'os_system_admin' in expected_allowed:
-            allowed_list.append('os_admin')
 
         for cred in allowed_list:
             try:
                 cred_obj = getattr(self, cred)
             except AttributeError:
-                # TODO(johnsom) Remove once scoped tokens is the default.
-                if ((cred == 'os_system_admin' or cred == 'os_system_reader')
-                        and not CONF.enforce_scope.octavia):
-                    LOG.info('Skipping %s allowed RBAC test because '
-                             'enforce_scope.octavia is not True', cred)
-                    continue
-                else:
-                    self.fail('Credential {} "expected_allowed" for RBAC '
-                              'testing was not created by tempest '
-                              'credentials setup. This is likely a bug in the '
-                              'test.'.format(cred))
+                self.fail('Credential {} "expected_allowed" for RBAC '
+                          'testing was not created by tempest '
+                          'credentials setup. This is likely a bug in the '
+                          'test.'.format(cred))
             method = self._get_client_method(cred_obj, client_str, method_str)
             try:
                 result = method(*args, **kwargs)

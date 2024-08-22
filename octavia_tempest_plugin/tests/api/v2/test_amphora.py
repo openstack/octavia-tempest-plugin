@@ -90,16 +90,9 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
                                 CONF.load_balancer.lb_build_timeout)
 
         # Test RBAC for list amphorae
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
-        if expected_allowed:
-            self.check_list_RBAC_enforcement(
-                'AmphoraClient', 'list_amphorae', expected_allowed)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        self.check_list_RBAC_enforcement(
+            'AmphoraClient', 'list_amphorae', expected_allowed)
 
         # Get an actual list of the amphorae
         amphorae = self.lb_admin_amphora_client.list_amphorae()
@@ -178,17 +171,10 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
         amphora_1 = amphorae[0]
 
         # Test RBAC for update an amphora
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
-        if expected_allowed:
-            self.check_update_RBAC_enforcement(
-                'AmphoraClient', 'update_amphora_config', expected_allowed,
-                None, None, amphora_1[const.ID])
+        expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        self.check_update_RBAC_enforcement(
+            'AmphoraClient', 'update_amphora_config', expected_allowed,
+            None, None, amphora_1[const.ID])
 
         self.lb_admin_amphora_client.update_amphora_config(amphora_1[const.ID])
 
@@ -213,17 +199,10 @@ class AmphoraAPITest(test_base.LoadBalancerBaseTest):
         amphora_1 = amphorae[0]
 
         # Test RBAC for failover an amphora
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
-        if expected_allowed:
-            self.check_update_RBAC_enforcement(
-                'AmphoraClient', 'amphora_failover', expected_allowed,
-                None, None, amphora_1[const.ID])
+        expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        self.check_update_RBAC_enforcement(
+            'AmphoraClient', 'amphora_failover', expected_allowed,
+            None, None, amphora_1[const.ID])
 
         self.lb_admin_amphora_client.amphora_failover(amphora_1[const.ID])
 

@@ -277,22 +277,13 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the loadbalancer role cannot
         # create a healthmonitor
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if expected_allowed:
-            self.check_create_RBAC_enforcement(
-                'HealthMonitorClient', 'create_healthmonitor',
-                expected_allowed,
-                status_method=self.mem_lb_client.show_loadbalancer,
-                obj_id=self.lb_id, **hm_kwargs)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                            'os_roles_lb_member']
+        self.check_create_RBAC_enforcement(
+            'HealthMonitorClient', 'create_healthmonitor',
+            expected_allowed,
+            status_method=self.mem_lb_client.show_loadbalancer,
+            obj_id=self.lb_id, **hm_kwargs)
 
         hm = self.mem_healthmonitor_client.create_healthmonitor(**hm_kwargs)
         self.addCleanup(
@@ -741,10 +732,10 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_member']
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_system_reader',
-                                'os_roles_lb_admin', 'os_roles_lb_member',
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member',
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
@@ -765,12 +756,12 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
         #       objects in the "admin" credential's project.
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_observer',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_system_reader',
-                                'os_roles_lb_admin', 'os_roles_lb_observer',
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_observer',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
@@ -1195,10 +1186,9 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
                                 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_member']
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_system_reader',
-                                'os_roles_lb_admin',
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member']
         if expected_allowed:
@@ -1471,21 +1461,12 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user, without the loadbalancer member role, cannot
         # update this healthmonitor.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if expected_allowed:
-            self.check_update_RBAC_enforcement(
-                'HealthMonitorClient', 'update_healthmonitor',
-                expected_allowed, None, None, hm[const.ID],
-                admin_state_up=True)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                            'os_roles_lb_member']
+        self.check_update_RBAC_enforcement(
+            'HealthMonitorClient', 'update_healthmonitor',
+            expected_allowed, None, None, hm[const.ID],
+            admin_state_up=True)
 
         # Assert we didn't go into PENDING_*
         hm_check = self.mem_healthmonitor_client.show_healthmonitor(
@@ -1775,20 +1756,11 @@ class HealthMonitorAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the loadbalancer role cannot delete this
         # healthmonitor.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if expected_allowed:
-            self.check_delete_RBAC_enforcement(
-                'HealthMonitorClient', 'delete_healthmonitor',
-                expected_allowed, None, None, hm[const.ID])
+        expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                            'os_roles_lb_member']
+        self.check_delete_RBAC_enforcement(
+            'HealthMonitorClient', 'delete_healthmonitor',
+            expected_allowed, None, None, hm[const.ID])
 
         self.mem_healthmonitor_client.delete_healthmonitor(hm[const.ID])
 

@@ -79,11 +79,6 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             ['lb_member', CONF.load_balancer.member_role, 'member'],
             ['lb_member2', CONF.load_balancer.member_role, 'member']]
 
-    # If scope enforcement is enabled, add in the system scope credentials.
-    # The project scope is already handled by the above credentials.
-    if CONF.enforce_scope.octavia:
-        credentials.extend(['system_admin', 'system_reader'])
-
     # A tuple of credentials that will be allocated by tempest using the
     # 'credentials' list above. These are used to build RBAC test lists.
     allocated_creds = []
