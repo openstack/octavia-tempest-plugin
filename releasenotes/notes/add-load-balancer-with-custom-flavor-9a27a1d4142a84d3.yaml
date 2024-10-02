@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add a load-balancer scenario test with a custom amphora compute flavor
+    (using Octavia flavor and flavor profile features).

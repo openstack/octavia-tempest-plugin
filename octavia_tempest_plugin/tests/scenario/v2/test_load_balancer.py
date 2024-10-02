@@ -22,6 +22,7 @@ from oslo_serialization import jsonutils
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
+from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
 from octavia_tempest_plugin.tests import test_base
@@ -38,14 +39,17 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
         """Setup resources needed by the tests."""
         super(LoadBalancerScenarioTest, cls).resource_setup()
 
+        cls.flavor_id = cls._flavor_create({
+            const.LOADBALANCER_TOPOLOGY:
+            CONF.load_balancer.loadbalancer_topology})
+
+    @classmethod
+    def _flavor_create(cls, flavor_dict, skip_on_not_implemented=False):
         if cls.lb_admin_flavor_profile_client.is_version_supported(
                 cls.api_version, '2.6'):
-
             # Create a shared flavor profile
             flavor_profile_name = data_utils.rand_name("lb_scenario-setup")
-            flavor_data = {const.LOADBALANCER_TOPOLOGY:
-                           CONF.load_balancer.loadbalancer_topology}
-            flavor_data_json = jsonutils.dumps(flavor_data)
+            flavor_data_json = jsonutils.dumps(flavor_dict)
 
             flavor_profile_kwargs = {
                 const.NAME: flavor_profile_name,
@@ -54,12 +58,12 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
             }
 
             try:
-                cls.flavor_profile = (
+                flavor_profile = (
                     cls.lb_admin_flavor_profile_client.create_flavor_profile(
                         **flavor_profile_kwargs))
                 cls.addClassResourceCleanup(
                     cls.lb_admin_flavor_profile_client.cleanup_flavor_profile,
-                    cls.flavor_profile[const.ID])
+                    flavor_profile[const.ID])
 
                 flavor_name = data_utils.rand_name("lb_scenario-setup")
                 flavor_description = data_utils.arbitrary_string(size=255)
@@ -68,20 +72,21 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
                     const.NAME: flavor_name,
                     const.DESCRIPTION: flavor_description,
                     const.ENABLED: True,
-                    const.FLAVOR_PROFILE_ID: cls.flavor_profile[const.ID]}
+                    const.FLAVOR_PROFILE_ID: flavor_profile[const.ID]}
 
-                cls.flavor = cls.lb_admin_flavor_client.create_flavor(
+                flavor = cls.lb_admin_flavor_client.create_flavor(
                     **flavor_kwargs)
                 cls.addClassResourceCleanup(
                     cls.lb_admin_flavor_client.cleanup_a_flavor,
-                    cls.flavor[const.ID])
-                cls.flavor_id = cls.flavor[const.ID]
-            except testtools.TestCase.skipException:
-                LOG.debug("Provider driver %s doesn't support flavors.",
-                          CONF.load_balancer.provider)
-                cls.flavor_profile = None
-                cls.flavor_id = None
-                cls.flavor = None
+                    flavor[const.ID])
+                return flavor[const.ID]
+            except (testtools.TestCase.skipException,
+                    exceptions.NotImplemented):
+                msg = (f"Provider driver {CONF.load_balancer.provider} "
+                       "doesn't support flavors.")
+                LOG.debug(msg)
+                if skip_on_not_implemented:
+                    raise cls.skipException(msg)
 
     @decorators.idempotent_id('a5e2e120-4f7e-4c8b-8aac-cf09cb56711c')
     def test_load_balancer_ipv4_CRUD(self):
@@ -93,7 +98,20 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
     def test_load_balancer_ipv6_CRUD(self):
         self._test_load_balancer_CRUD(6)
 
-    def _test_load_balancer_CRUD(self, ip_version):
+    @decorators.idempotent_id('c9d8b6dd-ef29-40d8-b329-86d31857df3f')
+    def test_load_balancer_ipv4_CRUD_with_compute_flavor(self):
+        self._test_load_balancer_CRUD(4,
+                                      use_custom_compute_flavor=True)
+
+    @decorators.idempotent_id('2f1c2bdc-0df9-4c1e-be83-910fcd5af8f2')
+    @testtools.skipUnless(CONF.load_balancer.test_with_ipv6,
+                          'IPv6 testing is disabled')
+    def test_load_balancer_ipv6_CRUD_with_compute_flavor(self):
+        self._test_load_balancer_CRUD(6,
+                                      use_custom_compute_flavor=True)
+
+    def _test_load_balancer_CRUD(self, ip_version,
+                                 use_custom_compute_flavor=False):
         """Tests load balancer create, read, update, delete
 
         * Create a fully populated load balancer.
@@ -101,6 +119,33 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
         * Update the load balancer.
         * Delete the load balancer.
         """
+        if use_custom_compute_flavor:
+            if not self.lb_admin_flavor_profile_client.is_version_supported(
+                    self.api_version, '2.6'):
+                raise self.skipException(
+                    'Flavors and flavor profiles are supported in '
+                    'Octavia API version 2.6 or newer.')
+
+            compute_flavor_kwargs = {
+                const.NAME: data_utils.rand_name("lb_scenario_alt_amp_flavor"),
+                const.RAM: 2048,
+                const.VCPUS: 1,
+                const.DISK: 4,
+            }
+
+            compute_flavor = (
+                self.os_admin_compute_flavors_client.create_flavor(
+                    **compute_flavor_kwargs)['flavor'])
+            self.addCleanup(
+                self.os_admin_compute_flavors_client.delete_flavor,
+                compute_flavor[const.ID])
+
+            flavor_id = self._flavor_create({
+                const.COMPUTE_FLAVOR: compute_flavor[const.ID]
+            }, skip_on_not_implemented=True)
+        else:
+            flavor_id = self.flavor_id
+
         lb_name = data_utils.rand_name("lb_member_lb1-CRUD")
         lb_description = data_utils.arbitrary_string(size=255)
 
@@ -110,8 +155,8 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
                      const.NAME: lb_name}
 
         if self.lb_admin_flavor_profile_client.is_version_supported(
-                self.api_version, '2.6') and self.flavor_id:
-            lb_kwargs[const.FLAVOR_ID] = self.flavor_id
+                self.api_version, '2.6') and flavor_id:
+            lb_kwargs[const.FLAVOR_ID] = flavor_id
 
         self._setup_lb_network_kwargs(lb_kwargs, ip_version)
 
@@ -146,6 +191,13 @@ class LoadBalancerScenarioTest(test_base.LoadBalancerBaseTest):
         if lb_kwargs[const.VIP_SUBNET_ID]:
             self.assertEqual(lb_kwargs[const.VIP_SUBNET_ID],
                              lb[const.VIP_SUBNET_ID])
+
+        if use_custom_compute_flavor:
+            amphorae = self.lb_admin_amphora_client.list_amphorae(
+                query_params=f'{const.LOADBALANCER_ID}={lb[const.ID]}')
+            amphora = amphorae[0]
+            self.assertEqual(compute_flavor[const.ID],
+                             amphora[const.COMPUTE_FLAVOR])
 
         # Load balancer update
         new_name = data_utils.rand_name("lb_member_lb1-update")
