@@ -395,16 +395,13 @@
           barbican: false
           dstat: true
           g-api: true
-          g-reg: true
           key: true
           memory_tracker: false
           mysql: true
           n-api: true
           n-api-meta: true
-          n-cauth: true
           n-cond: true
           n-cpu: true
-          n-obj: true
           n-sch: true
           neutron-qos: true
           octavia: true
