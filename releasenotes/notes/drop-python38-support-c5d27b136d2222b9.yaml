@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Support for Python 3.8 has been dropped. Latest release of
+    octavia-tempest-plugin to support python 3.8 is 2.8.0.
+    The minimum version of Python now supported is Python 3.9.
