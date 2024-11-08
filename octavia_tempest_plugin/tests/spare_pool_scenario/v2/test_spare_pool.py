@@ -82,7 +82,7 @@ class SparePoolTest(test_base.LoadBalancerBaseTestWithCompute):
                 floating_network_id=CONF.network.public_network_id,
                 port_id=port_id)
             floating_ip = result['floatingip']
-            LOG.info('lb1_floating_ip: {}'.format(floating_ip))
+            LOG.info('lb1_floating_ip: %s', floating_ip)
             self.addClassResourceCleanup(
                 waiters.wait_for_not_found,
                 self.lb_mem_float_ip_client.delete_floatingip,

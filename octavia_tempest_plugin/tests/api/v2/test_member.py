@@ -29,6 +29,7 @@ from octavia_tempest_plugin.tests import waiters
 
 CONF = config.CONF
 
+
 # Member port numbers need to be unique on the shared pools so generate them
 @misc.singleton
 class MemberPort(object):

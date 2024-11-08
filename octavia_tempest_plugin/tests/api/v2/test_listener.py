@@ -568,8 +568,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 fs = e.resp_body.get('faultstring', '')
                 if ("Invalid input for field/attribute protocol." in fs
                         and "Value should be one of:" in fs):
-                    LOG.info("Skipping unsupported protocol: {}".format(
-                        listener_kwargs[const.PROTOCOL]))
+                    LOG.info("Skipping unsupported protocol: %s",
+                             listener_kwargs[const.PROTOCOL])
                 else:
                     raise e
             else:
@@ -598,8 +598,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 fs = e.resp_body.get('faultstring', '')
                 if ("Invalid input for field/attribute protocol." in fs
                         and "Value should be one of:" in fs):
-                    LOG.info("Skipping unsupported protocol: {}".format(
-                        listener_kwargs[const.PROTOCOL]))
+                    LOG.info("Skipping unsupported protocol: %s",
+                             listener_kwargs[const.PROTOCOL])
                 else:
                     raise e
             else:
@@ -646,8 +646,8 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 fs = e.resp_body.get('faultstring', '')
                 if ("Invalid input for field/attribute protocol." in fs
                         and "Value should be one of:" in fs):
-                    LOG.info("Skipping unsupported protocol: {}".format(
-                        listener_kwargs[const.PROTOCOL]))
+                    LOG.info("Skipping unsupported protocol: %s",
+                             listener_kwargs[const.PROTOCOL])
                 else:
                     raise e
             else:

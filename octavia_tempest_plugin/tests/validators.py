@@ -105,7 +105,7 @@ class ValidatorsMixin(test.BaseTestCase):
                 return response_text
             except requests.exceptions.Timeout:
                 # Don't sleep as we have already waited the interval.
-                LOG.info('Request for {} timed out. Retrying.'.format(URL))
+                LOG.info('Request for %s timed out. Retrying.', URL)
             except (exceptions.InvalidHttpSuccessCode,
                     exceptions.InvalidHTTPResponseBody,
                     requests.exceptions.SSLError):
@@ -113,8 +113,8 @@ class ValidatorsMixin(test.BaseTestCase):
                     session.close()
                 raise
             except Exception as e:
-                LOG.info('Validate URL got exception: {0}. '
-                         'Retrying.'.format(e))
+                LOG.info('Validate URL got exception: %s. '
+                         'Retrying.', e)
                 time.sleep(request_interval)
         if requests_session is None:
             session.close()
@@ -443,8 +443,8 @@ class ValidatorsMixin(test.BaseTestCase):
         retry_number = 0
         received_data = None
         while retry_number < number_of_retries:
-            LOG.info('make_udp_requests_with_retries attempt '
-                     'number:{}'.format(retry_number))
+            LOG.info('make_udp_requests_with_retries attempt number: %s',
+                     retry_number)
             retry_number += 1
             try:
                 received_data = self.make_udp_request(
@@ -452,6 +452,5 @@ class ValidatorsMixin(test.BaseTestCase):
                     source_port=src_port)
                 break
             except Exception as e:
-                LOG.warning('make_udp_request has failed with: '
-                            '{}'.format(e))
+                LOG.warning('make_udp_request has failed with: %s', e)
         return received_data

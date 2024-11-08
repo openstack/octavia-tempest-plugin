@@ -48,8 +48,8 @@ def wait_for_status(show_client, id, status_key, status,
     :returns: The object details from the show client.
     """
     start = int(time.time())
-    LOG.info('Waiting for {name} status to update to {status}'.format(
-        name=show_client.__name__, status=status))
+    LOG.info('Waiting for %s status to update to %s',
+             show_client.__name__, status)
     while True:
         if status == const.DELETED:
             try:
@@ -65,8 +65,8 @@ def wait_for_status(show_client, id, status_key, status,
             object_details = response
 
         if object_details[status_key] == status:
-            LOG.info('{name}\'s status updated to {status}.'.format(
-                name=show_client.__name__, status=status))
+            LOG.info('%s\'s status updated to %s.',
+                     show_client.__name__, status)
             return object_details
         elif object_details[status_key] == 'ERROR' and not error_ok:
             message = ('{name} {field} updated to an invalid state of '
@@ -148,8 +148,8 @@ def wait_for_deleted_status_or_not_found(
     :returns: None
     """
     start = int(time.time())
-    LOG.info('Waiting for {name} status to update to DELETED or be not '
-             'found(404)'.format(name=show_client.__name__))
+    LOG.info('Waiting for %s status to update to DELETED or be not found(404)',
+             show_client.__name__)
     while True:
         try:
             response = show_client(id, **kwargs)
@@ -162,8 +162,8 @@ def wait_for_deleted_status_or_not_found(
             object_details = response
 
         if object_details[status_key] == const.DELETED:
-            LOG.info('{name}\'s status updated to DELETED.'.format(
-                name=show_client.__name__))
+            LOG.info('%s\'s status updated to DELETED.',
+                     show_client.__name__)
             return
         elif int(time.time()) - start >= check_timeout:
             message = (

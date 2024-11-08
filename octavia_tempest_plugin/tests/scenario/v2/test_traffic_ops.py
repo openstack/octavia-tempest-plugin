@@ -79,7 +79,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
                 floating_network_id=CONF.network.public_network_id,
                 port_id=port_id)
             floating_ip = result['floatingip']
-            LOG.info('lb1_floating_ip: {}'.format(floating_ip))
+            LOG.info('lb1_floating_ip: %s', floating_ip)
             cls.addClassResourceCleanup(
                 waiters.wait_for_not_found,
                 cls.lb_mem_float_ip_client.delete_floatingip,
@@ -1351,7 +1351,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         test_url = 'http://{}:{}/request'.format(
             self.lb_vip_address, listener_port)
         data = self.validate_URL_response(test_url)
-        LOG.info('Received payload is: {}'.format(data))
+        LOG.info('Received payload is: %s', data)
 
         # Detect source IP that is used to create TCP socket toward LB_VIP.
         try:
@@ -1398,7 +1398,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
 
         # Initiate HTTP traffic
         data = self.validate_URL_response(test_url)
-        LOG.info('Received payload is: {}'.format(data))
+        LOG.info('Received payload is: %s', data)
         expected_headers = {const.X_FORWARDED_PORT: '{}'.format(
             listener_port), const.X_FORWARDED_PROTO: const.HTTP.lower()}
         received_headers = _data_parser(data, expected_headers)
@@ -1550,7 +1550,7 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
         # For each test case, update HM and validate that members'
         # "Operation Status" is changed to expected value.
         for ff in flip_flop:
-            LOG.info('Tested test case is: {}'.format(ff))
+            LOG.info('Tested test case is: %s', ff)
             self.mem_healthmonitor_client.update_healthmonitor(
                 hm_id, expected_codes=ff['code'], http_method=ff['mthd'],
                 url_path=ff['url_path'])

@@ -73,7 +73,7 @@ class BarbicanClientManager(object):
         p12_secret.name = data_utils.rand_name("lb_member_barbican")
         p12_secret.payload = secret
         secret_ref = p12_secret.store()
-        LOG.debug('Secret {0} has ref {1}'.format(p12_secret.name, secret_ref))
+        LOG.debug('Secret %s has ref %s', p12_secret.name, secret_ref)
         return secret_ref
 
     def delete_secret(self, secret_ref):
@@ -84,5 +84,5 @@ class BarbicanClientManager(object):
                                                users=[user_id],
                                                project_access=True)
         acl_ref = acl_entity.submit()
-        LOG.debug('Secret ACL {0} added user {1}'.format(acl_ref, user_id))
+        LOG.debug('Secret ACL %s added user %s', acl_ref, user_id)
         return acl_ref

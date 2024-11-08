@@ -220,7 +220,7 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                 floating_network_id=CONF.network.public_network_id,
                 port_id=port_id)
             floating_ip = result['floatingip']
-            LOG.info('lb1_floating_ip: {}'.format(floating_ip))
+            LOG.info('lb1_floating_ip: %s', floating_ip)
             cls.addClassResourceCleanup(
                 waiters.wait_for_not_found,
                 cls.lb_mem_float_ip_client.delete_floatingip,
@@ -349,9 +349,9 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                 # Make sure the certificate is the one we generated
                 self.assertEqual(expected_cn, received_cn, message=msg)
             else:
-                LOG.error('Certificate with CN: {0} failed validation with '
-                          'OpenSSL verify errno {1}'.format(
-                              x509.get_subject().commonName, errno))
+                LOG.error('Certificate with CN: %s failed validation with '
+                          'OpenSSL verify errno %s',
+                          x509.get_subject().commonName, errno)
                 return False
             return True
 
@@ -487,9 +487,9 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                 # Make sure the certificate is the one we generated
                 self.assertEqual(expected_cn, received_cn, message=msg)
             else:
-                LOG.error('Certificate with CN: {0} failed validation with '
-                          'OpenSSL verify errno {1}'.format(
-                              x509.get_subject().commonName, errno))
+                LOG.error('Certificate with CN: %s failed validation with '
+                          'OpenSSL verify errno %s',
+                          x509.get_subject().commonName, errno)
                 return False
             return True
 
@@ -660,9 +660,9 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                 # Make sure the certificate is the one we generated
                 self.assertEqual(expected_cn, received_cn, message=msg)
             else:
-                LOG.error('Certificate with CN: {0} failed validation with '
-                          'OpenSSL verify errno {1}'.format(
-                              x509.get_subject().commonName, errno))
+                LOG.error('Certificate with CN: %s failed validation with '
+                          'OpenSSL verify errno %s',
+                          x509.get_subject().commonName, errno)
                 return False
             return True
 

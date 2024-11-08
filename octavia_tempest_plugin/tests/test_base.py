@@ -364,31 +364,31 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
         else:
             cls._create_networks()
 
-        LOG.debug('Octavia Setup: lb_member_vip_net = {}'.format(
-            cls.lb_member_vip_net[const.ID]))
+        LOG.debug('Octavia Setup: lb_member_vip_net = %s',
+                  cls.lb_member_vip_net[const.ID])
         if cls.lb_member_vip_subnet:
-            LOG.debug('Octavia Setup: lb_member_vip_subnet = {}'.format(
-                cls.lb_member_vip_subnet[const.ID]))
-        LOG.debug('Octavia Setup: lb_member_1_net = {}'.format(
-            cls.lb_member_1_net[const.ID]))
+            LOG.debug('Octavia Setup: lb_member_vip_subnet = %s',
+                      cls.lb_member_vip_subnet[const.ID])
+        LOG.debug('Octavia Setup: lb_member_1_net = %s',
+                  cls.lb_member_1_net[const.ID])
         if cls.lb_member_1_subnet:
-            LOG.debug('Octavia Setup: lb_member_1_subnet = {}'.format(
-                cls.lb_member_1_subnet[const.ID]))
-        LOG.debug('Octavia Setup: lb_member_2_net = {}'.format(
-            cls.lb_member_2_net[const.ID]))
+            LOG.debug('Octavia Setup: lb_member_1_subnet = %s',
+                      cls.lb_member_1_subnet[const.ID])
+        LOG.debug('Octavia Setup: lb_member_2_net = %s',
+                  cls.lb_member_2_net[const.ID])
         if cls.lb_member_2_subnet:
-            LOG.debug('Octavia Setup: lb_member_2_subnet = {}'.format(
-                cls.lb_member_2_subnet[const.ID]))
+            LOG.debug('Octavia Setup: lb_member_2_subnet = %s',
+                      cls.lb_member_2_subnet[const.ID])
         if CONF.load_balancer.test_with_ipv6:
             if cls.lb_member_vip_ipv6_subnet:
-                LOG.debug('Octavia Setup: lb_member_vip_ipv6_subnet = '
-                          '{}'.format(cls.lb_member_vip_ipv6_subnet[const.ID]))
+                LOG.debug('Octavia Setup: lb_member_vip_ipv6_subnet = %s',
+                          cls.lb_member_vip_ipv6_subnet[const.ID])
             if cls.lb_member_1_ipv6_subnet:
-                LOG.debug('Octavia Setup: lb_member_1_ipv6_subnet = {}'.format(
-                    cls.lb_member_1_ipv6_subnet[const.ID]))
+                LOG.debug('Octavia Setup: lb_member_1_ipv6_subnet = %s',
+                          cls.lb_member_1_ipv6_subnet[const.ID])
             if cls.lb_member_2_ipv6_subnet:
-                LOG.debug('Octavia Setup: lb_member_2_ipv6_subnet = {}'.format(
-                    cls.lb_member_2_ipv6_subnet[const.ID]))
+                LOG.debug('Octavia Setup: lb_member_2_ipv6_subnet = %s',
+                          cls.lb_member_2_ipv6_subnet[const.ID])
 
     @classmethod
     # Neutron can be slow to clean up ports from the subnets/networks.
@@ -403,8 +403,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
         try:
             cls.lb_mem_net_client.delete_network(net_id)
         except Exception:
-            LOG.error('Unable to delete network {}. Active ports:'.format(
-                net_id))
+            LOG.error('Unable to delete network %s. Active ports:', net_id)
             LOG.error(cls.lb_mem_ports_client.list_ports())
             raise
 
@@ -421,8 +420,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
         try:
             cls.lb_mem_subnet_client.delete_subnet(subnet_id)
         except Exception:
-            LOG.error('Unable to delete subnet {}. Active ports:'.format(
-                subnet_id))
+            LOG.error('Unable to delete subnet %s. Active ports:', subnet_id)
             LOG.error(cls.lb_mem_ports_client.list_ports())
             raise
 
@@ -450,7 +448,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             network_kwargs['port_security_enabled'] = True
         result = cls.lb_mem_net_client.create_network(**network_kwargs)
         cls.lb_member_vip_net = result['network']
-        LOG.info('lb_member_vip_net: {}'.format(cls.lb_member_vip_net))
+        LOG.info('lb_member_vip_net: %s', cls.lb_member_vip_net)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls._logging_delete_network,
@@ -465,7 +463,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             'ip_version': 4}
         result = cls.lb_mem_subnet_client.create_subnet(**subnet_kwargs)
         cls.lb_member_vip_subnet = result['subnet']
-        LOG.info('lb_member_vip_subnet: {}'.format(cls.lb_member_vip_subnet))
+        LOG.info('lb_member_vip_subnet: %s', cls.lb_member_vip_subnet)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls._logging_delete_subnet,
@@ -507,8 +505,8 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
                 cls.lb_mem_subnet_client.show_subnet,
                 cls.lb_member_vip_ipv6_subnet['id'])
 
-            LOG.info('lb_member_vip_ipv6_subnet: {}'.format(
-                cls.lb_member_vip_ipv6_subnet))
+            LOG.info('lb_member_vip_ipv6_subnet: %s',
+                     cls.lb_member_vip_ipv6_subnet)
 
         # Create tenant member 1 network
         network_kwargs = {
@@ -520,7 +518,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
                 network_kwargs['port_security_enabled'] = False
         result = cls.lb_mem_net_client.create_network(**network_kwargs)
         cls.lb_member_1_net = result['network']
-        LOG.info('lb_member_1_net: {}'.format(cls.lb_member_1_net))
+        LOG.info('lb_member_1_net: %s', cls.lb_member_1_net)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls._logging_delete_network,
@@ -535,7 +533,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             'ip_version': 4}
         result = cls.lb_mem_subnet_client.create_subnet(**subnet_kwargs)
         cls.lb_member_1_subnet = result['subnet']
-        LOG.info('lb_member_1_subnet: {}'.format(cls.lb_member_1_subnet))
+        LOG.info('lb_member_1_subnet: %s', cls.lb_member_1_subnet)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls._logging_delete_subnet,
@@ -553,10 +551,10 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             cls.lb_member_1_subnet_prefix = (
                 CONF.load_balancer.member_1_ipv6_subnet_cidr.rpartition('/')[2]
                 )
-            assert(cls.lb_member_1_subnet_prefix.isdigit())
+            assert (cls.lb_member_1_subnet_prefix.isdigit())
             cls.lb_member_1_ipv6_subnet = result['subnet']
-            LOG.info('lb_member_1_ipv6_subnet: {}'.format(
-                cls.lb_member_1_ipv6_subnet))
+            LOG.info('lb_member_1_ipv6_subnet: %s',
+                     cls.lb_member_1_ipv6_subnet)
             cls.addClassResourceCleanup(
                 waiters.wait_for_not_found,
                 cls._logging_delete_subnet,
@@ -573,7 +571,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
                 network_kwargs['port_security_enabled'] = False
         result = cls.lb_mem_net_client.create_network(**network_kwargs)
         cls.lb_member_2_net = result['network']
-        LOG.info('lb_member_2_net: {}'.format(cls.lb_member_2_net))
+        LOG.info('lb_member_2_net: %s', cls.lb_member_2_net)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls._logging_delete_network,
@@ -588,7 +586,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             'ip_version': 4}
         result = cls.lb_mem_subnet_client.create_subnet(**subnet_kwargs)
         cls.lb_member_2_subnet = result['subnet']
-        LOG.info('lb_member_2_subnet: {}'.format(cls.lb_member_2_subnet))
+        LOG.info('lb_member_2_subnet: %s', cls.lb_member_2_subnet)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls._logging_delete_subnet,
@@ -606,10 +604,10 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
             cls.lb_member_2_subnet_prefix = (
                 CONF.load_balancer.member_2_ipv6_subnet_cidr.rpartition('/')[2]
                 )
-            assert(cls.lb_member_2_subnet_prefix.isdigit())
+            assert (cls.lb_member_2_subnet_prefix.isdigit())
             cls.lb_member_2_ipv6_subnet = result['subnet']
-            LOG.info('lb_member_2_ipv6_subnet: {}'.format(
-                cls.lb_member_2_ipv6_subnet))
+            LOG.info('lb_member_2_ipv6_subnet: %s',
+                     cls.lb_member_2_ipv6_subnet)
             cls.addClassResourceCleanup(
                 waiters.wait_for_not_found,
                 cls._logging_delete_subnet,
@@ -696,7 +694,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         result = cls.lb_mem_keypairs_client.create_keypair(
             name=keypair_name)
         cls.lb_member_keypair = result['keypair']
-        LOG.info('lb_member_keypair: {}'.format(cls.lb_member_keypair))
+        LOG.info('lb_member_keypair: %s', cls.lb_member_keypair)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls.lb_mem_keypairs_client.delete_keypair,
@@ -866,7 +864,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                     cls.lb_mem_SGr_client.show_security_group_rule,
                     SGr['id'])
 
-            LOG.info('lb_member_sec_group: {}'.format(cls.lb_member_sec_group))
+            LOG.info('lb_member_sec_group: %s', cls.lb_member_sec_group)
 
         # Setup backend member reencryption PKI
         cls._create_backend_reencryption_pki()
@@ -880,14 +878,12 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         cls.webserver1_ipv6 = server_details.get('ipv6_address')
         cls.webserver1_public_ip = server_details['public_ipv4_address']
 
-        LOG.debug('Octavia Setup: lb_member_webserver1 = {}'.format(
-            cls.lb_member_webserver1[const.ID]))
-        LOG.debug('Octavia Setup: webserver1_ip = {}'.format(
-            cls.webserver1_ip))
-        LOG.debug('Octavia Setup: webserver1_ipv6 = {}'.format(
-            cls.webserver1_ipv6))
-        LOG.debug('Octavia Setup: webserver1_public_ip = {}'.format(
-            cls.webserver1_public_ip))
+        LOG.debug('Octavia Setup: lb_member_webserver1 = %s',
+                  cls.lb_member_webserver1[const.ID])
+        LOG.debug('Octavia Setup: webserver1_ip = %s', cls.webserver1_ip)
+        LOG.debug('Octavia Setup: webserver1_ipv6 = %s', cls.webserver1_ipv6)
+        LOG.debug('Octavia Setup: webserver1_public_ip = %s',
+                  cls.webserver1_public_ip)
 
         # Create webserver 2 instance
         server_details = cls._create_webserver('lb_member_webserver2',
@@ -898,14 +894,12 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         cls.webserver2_ipv6 = server_details.get('ipv6_address')
         cls.webserver2_public_ip = server_details['public_ipv4_address']
 
-        LOG.debug('Octavia Setup: lb_member_webserver2 = {}'.format(
-            cls.lb_member_webserver2[const.ID]))
-        LOG.debug('Octavia Setup: webserver2_ip = {}'.format(
-            cls.webserver2_ip))
-        LOG.debug('Octavia Setup: webserver2_ipv6 = {}'.format(
-            cls.webserver2_ipv6))
-        LOG.debug('Octavia Setup: webserver2_public_ip = {}'.format(
-            cls.webserver2_public_ip))
+        LOG.debug('Octavia Setup: lb_member_webserver2 = %s',
+                  cls.lb_member_webserver2[const.ID])
+        LOG.debug('Octavia Setup: webserver2_ip = %s', cls.webserver2_ip)
+        LOG.debug('Octavia Setup: webserver2_ipv6 = %s', cls.webserver2_ipv6)
+        LOG.debug('Octavia Setup: webserver2_public_ip = %s',
+                  cls.webserver2_public_ip)
 
         if CONF.load_balancer.test_with_ipv6:
             # Enable the IPv6 nic in webserver 1
@@ -954,7 +948,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             external_gateway_info=dict(
                 network_id=CONF.network.public_network_id))
         cls.lb_member_router = result['router']
-        LOG.info('lb_member_router: {}'.format(cls.lb_member_router))
+        LOG.info('lb_member_router: %s', cls.lb_member_router)
         cls.addClassResourceCleanup(
             waiters.wait_for_not_found,
             cls.lb_mem_routers_client.delete_router,
@@ -1069,7 +1063,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
             CONF.load_balancer.build_timeout,
             root_tag='server')
         webserver_details = {'server': server}
-        LOG.info('Created server: {}'.format(server))
+        LOG.info('Created server: %s', server)
 
         addresses = server['addresses']
         if CONF.load_balancer.disable_boot_network:
@@ -1091,7 +1085,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
                 floating_network_id=CONF.network.public_network_id,
                 port_id=port_id)
             floating_ip = result['floatingip']
-            LOG.info('webserver1_floating_ip: {}'.format(floating_ip))
+            LOG.info('webserver1_floating_ip: %s', floating_ip)
             cls.addClassResourceCleanup(
                 waiters.wait_for_not_found,
                 cls.lb_mem_float_ip_client.delete_floatingip,
@@ -1126,7 +1120,7 @@ class LoadBalancerBaseTestWithCompute(LoadBalancerBaseTest):
         # the new default (SFTP protocol) doesn't work with
         # cirros VMs.
         ssh_version = cls._get_openssh_version()
-        LOG.debug("ssh_version = {}".format(ssh_version))
+        LOG.debug("ssh_version = %s", ssh_version)
         return (ssh_version[0] > 8 or
                 (ssh_version[0] == 8 and ssh_version[1] >= 7))
 
