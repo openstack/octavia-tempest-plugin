@@ -19,8 +19,6 @@ Octavia Tempest Plugin Configuration Options
 .. contents:: Table of Contents
     :depth: 2
 
-.. note:: Not all of these options are used by the Octavia tempest tests.
-
 .. show-options::
 
-    tempest.config
+    octavia-tempest-plugin

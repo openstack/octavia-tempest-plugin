@@ -3,8 +3,7 @@
 - project:
     templates:
       - check-requirements
-      # TODO(tkajinam): Re-enable this
-      #- publish-openstack-docs-pti
+      - publish-openstack-docs-pti
       # TODO(gthiemonge): Re-enable this, pep8 is currently broken
       #- tempest-plugin-jobs
       - release-notes-jobs-python3
