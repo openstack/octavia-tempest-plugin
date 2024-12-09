@@ -1256,24 +1256,18 @@ class TLSWithBarbicanTest(test_base.LoadBalancerBaseTestWithCompute):
                                 const.ACTIVE,
                                 CONF.load_balancer.build_interval,
                                 CONF.load_balancer.build_timeout)
-        # TODO(johnsom) - Remove this once eventlet is removed from OpenStack
-        # NOTE(pas-ha): depending on what other tempest plugins are installed
-        # the eventlet might've been imported by that time, and, since
-        # dnspython 2.2.0, importing eventlet or any part of it effectively
-        # instantiates a dummy httpx.Client instance, thus pinning the ssl
-        # implementation in httpx to the eventlet's one.
-        # This leads to error in the Client() call below, as the ssl lib in
-        # this module is different from ssl lib in httpx._config,
-        # which fails isinstance check for ssl.SSLContext.
-        # Use the ssl module that is actually used by httpx to instantiate
-        # the SSL context to be used with httpx.
-        ssl = httpx._config.ssl
         context = ssl.create_default_context(cadata=self.ca_cert.public_bytes(
             serialization.Encoding.PEM).decode('utf-8'))
         context.check_hostname = False
 
         url = 'https://%s:%s' % (self.lb_vip_address, 443)
-        client = httpx.Client(http2=(http_version == 'HTTP/2'), verify=context)
+        client_kwargs = {
+            'verify': context
+        }
+        if http_version == 'HTTP/2':
+            client_kwargs['http1'] = False
+            client_kwargs['http2'] = True
+        client = httpx.Client(**client_kwargs)
         r = client.get(url)
         self.assertEqual(http_version, r.http_version)
         if hsts:
