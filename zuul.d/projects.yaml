@@ -4,8 +4,7 @@
     templates:
       - check-requirements
       - publish-openstack-docs-pti
-      # TODO(gthiemonge): Re-enable this, pep8 is currently broken
-      #- tempest-plugin-jobs
+      - tempest-plugin-jobs
       - release-notes-jobs-python3
     check:
       jobs:
