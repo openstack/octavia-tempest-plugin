@@ -29,6 +29,16 @@
           - controller
 
 - nodeset:
+    name: octavia-single-node-ubuntu-noble
+    nodes:
+      - name: controller
+        label: nested-virt-ubuntu-noble
+    groups:
+      - name: tempest
+        nodes:
+          - controller
+
+- nodeset:
     name: octavia-single-node-centos-8
     nodes:
       - name: controller
@@ -72,9 +82,9 @@
     name: octavia-two-node
     nodes:
       - name: controller
-        label: nested-virt-ubuntu-jammy
+        label: nested-virt-ubuntu-noble
       - name: controller2
-        label: nested-virt-ubuntu-jammy
+        label: nested-virt-ubuntu-noble
     groups:
       - name: controller
         nodes:
@@ -219,7 +229,7 @@
 - job:
     name: octavia-dsvm-live-base
     parent: octavia-dsvm-base
-    nodeset: octavia-single-node-ubuntu-jammy
+    nodeset: octavia-single-node-ubuntu-noble
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -255,7 +265,7 @@
 - job:
     name: octavia-dsvm-live-base-ipv6-only
     parent: octavia-dsvm-base-ipv6-only
-    nodeset: octavia-single-node-ubuntu-jammy
+    nodeset: octavia-single-node-ubuntu-noble
     timeout: 9000
     required-projects:
       - openstack/diskimage-builder
@@ -592,8 +602,14 @@
     name: octavia-v2-dsvm-scenario
     parent: octavia-v2-dsvm-scenario-base
     branches:
-      regex: ^(unmaintained/)
+      regex: ^(unmaintained/|stable/(2023.2|2024.1|2024.2))
       negate: true
+    nodeset: octavia-single-node-ubuntu-noble
+
+- job:
+    name: octavia-v2-dsvm-scenario
+    parent: octavia-v2-dsvm-scenario-base
+    branches: ^(stable/(2023.2|2024.1|2024.2))
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
@@ -844,6 +860,7 @@
 - job:
     name: octavia-v2-dsvm-scenario-ubuntu-jammy
     parent: octavia-v2-dsvm-scenario
+    nodeset: octavia-single-node-ubuntu-jammy
     vars:
       devstack_localrc:
         OCTAVIA_AMP_BASE_OS: ubuntu
@@ -881,8 +898,14 @@
     name: octavia-v2-dsvm-tls-barbican
     parent: octavia-v2-dsvm-tls-barbican-base
     branches:
-      regex: ^(unmaintained/)
+      regex: ^(unmaintained/|stable/(2023.2|2024.1|2024.2))
       negate: true
+    nodeset: octavia-single-node-ubuntu-noble
+
+- job:
+    name: octavia-v2-dsvm-tls-barbican
+    parent: octavia-v2-dsvm-tls-barbican-base
+    branches: ^(stable/(2023.2|2024.1|2024.2))
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
@@ -1040,8 +1063,14 @@
     name: octavia-v2-act-stdby-dsvm-scenario
     parent: octavia-v2-act-stdby-dsvm-scenario-base
     branches:
-      regex: ^(unmaintained/)
+      regex: ^(unmaintained/|stable/(2023.2|2024.1|2024.2))
       negate: true
+    nodeset: octavia-single-node-ubuntu-noble
+
+- job:
+    name: octavia-v2-act-stdby-dsvm-scenario
+    parent: octavia-v2-act-stdby-dsvm-scenario-base
+    branches: ^(stable/(2023.2|2024.1|2024.2))
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
