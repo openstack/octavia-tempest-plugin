@@ -211,7 +211,7 @@ class LoadBalancerBaseTest(validators.ValidatorsMixin,
                 user_name = cred
                 cred_obj = getattr(cls, 'os_' + cred)
             params = {'user.id': cred_obj.credentials.user_id,
-                      'project.id': cred_obj.credentials.project_id}
+                      'scope.project.id': cred_obj.credentials.project_id}
             roles = cls.os_admin.role_assignments_client.list_role_assignments(
                 **params)['role_assignments']
             for role in roles:
