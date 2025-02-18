@@ -105,17 +105,10 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer admin role cannot
         # create an availability zone.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
-        if expected_allowed:
-            self.check_create_RBAC_enforcement(
-                'AvailabilityZoneClient', 'create_availability_zone',
-                expected_allowed, **availability_zone_kwargs)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        self.check_create_RBAC_enforcement(
+            'AvailabilityZoneClient', 'create_availability_zone',
+            expected_allowed, **availability_zone_kwargs)
 
         # Happy path
         availability_zone = (
@@ -233,12 +226,12 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_observer',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
             expected_allowed = [
-                'os_system_admin', 'os_system_reader', 'os_roles_lb_admin',
+                'os_admin', 'os_roles_lb_admin',
                 'os_roles_lb_observer', 'os_roles_lb_global_observer',
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
@@ -386,12 +379,12 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_observer',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
             expected_allowed = [
-                'os_system_admin', 'os_system_reader', 'os_roles_lb_admin',
+                'os_admin', 'os_roles_lb_admin',
                 'os_roles_lb_observer', 'os_roles_lb_global_observer',
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
@@ -454,18 +447,11 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer role cannot
         # update availability zone details.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
-        if expected_allowed:
-            self.check_update_RBAC_enforcement(
-                'AvailabilityZoneClient', 'update_availability_zone',
-                expected_allowed, None, None, availability_zone[const.NAME],
-                **availability_zone_updated_kwargs)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        self.check_update_RBAC_enforcement(
+            'AvailabilityZoneClient', 'update_availability_zone',
+            expected_allowed, None, None, availability_zone[const.NAME],
+            **availability_zone_updated_kwargs)
 
         updated_availability_zone = (
             self.lb_admin_availability_zone_client.update_availability_zone(
@@ -531,17 +517,10 @@ class AvailabilityZoneAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer admin role cannot
         # delete an availability zone.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
-        if expected_allowed:
-            self.check_delete_RBAC_enforcement(
-                'AvailabilityZoneClient', 'delete_availability_zone',
-                expected_allowed, None, None, availability_zone[const.NAME])
+        expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        self.check_delete_RBAC_enforcement(
+            'AvailabilityZoneClient', 'delete_availability_zone',
+            expected_allowed, None, None, availability_zone[const.NAME])
 
         # Happy path
         self.lb_admin_availability_zone_client.delete_availability_zone(

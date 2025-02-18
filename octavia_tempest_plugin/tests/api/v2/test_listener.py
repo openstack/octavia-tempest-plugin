@@ -362,22 +362,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the loadbalancer role cannot
         # create a listener.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if expected_allowed:
-            self.check_create_RBAC_enforcement(
-                'ListenerClient', 'create_listener',
-                expected_allowed,
-                status_method=self.mem_lb_client.show_loadbalancer,
-                obj_id=self.lb_id, **listener_kwargs)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                            'os_roles_lb_member']
+        self.check_create_RBAC_enforcement(
+            'ListenerClient', 'create_listener',
+            expected_allowed,
+            status_method=self.mem_lb_client.show_loadbalancer,
+            obj_id=self.lb_id, **listener_kwargs)
 
         listener = self.mem_listener_client.create_listener(**listener_kwargs)
 
@@ -938,10 +929,10 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             expected_allowed = ['os_admin', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_member']
+                                'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_system_reader',
-                                'os_roles_lb_admin', 'os_roles_lb_member',
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member',
                                 'os_roles_lb_global_observer']
         if expected_allowed:
             self.check_list_IDs_RBAC_enforcement(
@@ -963,12 +954,12 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         #       objects in the "admin" credential's project.
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_observer',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_system_reader',
-                                'os_roles_lb_admin', 'os_roles_lb_observer',
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_observer',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if expected_allowed:
@@ -1293,22 +1284,16 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that the appropriate users can see or not see the listener
         # based on the API RBAC.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_member']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_system_reader',
-                                'os_roles_lb_admin',
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member']
-        if expected_allowed:
-            self.check_show_RBAC_enforcement(
-                'ListenerClient', 'show_listener',
-                expected_allowed, listener[const.ID])
+        else:
+            expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                                'os_roles_lb_member']
+        self.check_show_RBAC_enforcement(
+            'ListenerClient', 'show_listener',
+            expected_allowed, listener[const.ID])
 
     @decorators.idempotent_id('aaae0298-5778-4c7e-a27a-01549a71b319')
     def test_http_listener_update(self):
@@ -1479,23 +1464,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the loadbalancer role cannot
         # update a listener.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if expected_allowed:
-            self.check_update_RBAC_enforcement(
-                'ListenerClient', 'update_listener',
-                expected_allowed,
-                status_method=self.mem_listener_client.show_listener,
-                obj_id=listener[const.ID], listener_id=listener[const.ID],
-                admin_state_up=True)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                            'os_roles_lb_member']
+        self.check_update_RBAC_enforcement(
+            'ListenerClient', 'update_listener',
+            expected_allowed,
+            status_method=self.mem_listener_client.show_listener,
+            obj_id=listener[const.ID], listener_id=listener[const.ID],
+            admin_state_up=True)
 
         new_name = data_utils.rand_name("lb_member_listener1-UPDATED")
         new_description = data_utils.arbitrary_string(size=255,
@@ -1713,22 +1689,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the loadbalancer role cannot
         # delete a listener.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin',
-                                'os_roles_lb_member']
-        if expected_allowed:
-            self.check_update_RBAC_enforcement(
-                'ListenerClient', 'delete_listener',
-                expected_allowed,
-                status_method=self.mem_listener_client.show_listener,
-                obj_id=listener[const.ID], listener_id=listener[const.ID])
+        expected_allowed = ['os_admin', 'os_roles_lb_admin',
+                            'os_roles_lb_member']
+        self.check_update_RBAC_enforcement(
+            'ListenerClient', 'delete_listener',
+            expected_allowed,
+            status_method=self.mem_listener_client.show_listener,
+            obj_id=listener[const.ID], listener_id=listener[const.ID])
 
         self.mem_listener_client.delete_listener(listener[const.ID])
 

@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The default tempest tests will now expect the keystone default roles RBAC
+    enabled. The legacy behavior can be enabled by setting
+    "RBAC_test_type: advanced" in the [load_balancer] section of your
+    tempest.conf. This change also removes the ability to test system scoped
+    tokens with Octavia.

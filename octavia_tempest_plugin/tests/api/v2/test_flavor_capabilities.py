@@ -42,18 +42,11 @@ class FlavorCapabilitiesAPITest(test_base.LoadBalancerBaseTest):
 
         # Test that a user without the load balancer admin role cannot
         # list provider flavor capabilities.
-        expected_allowed = []
-        if CONF.load_balancer.RBAC_test_type == const.OWNERADMIN:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
-            expected_allowed = ['os_admin', 'os_roles_lb_admin']
-        if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
-            expected_allowed = ['os_system_admin', 'os_roles_lb_admin']
-        if expected_allowed:
-            self.check_list_RBAC_enforcement(
-                'FlavorCapabilitiesClient',
-                'list_flavor_capabilities', expected_allowed,
-                CONF.load_balancer.provider)
+        expected_allowed = ['os_admin', 'os_roles_lb_admin']
+        self.check_list_RBAC_enforcement(
+            'FlavorCapabilitiesClient',
+            'list_flavor_capabilities', expected_allowed,
+            CONF.load_balancer.provider)
 
         # Check for an expected flavor capability for the configured provider
         admin_capabilities_client = self.lb_admin_flavor_capabilities_client

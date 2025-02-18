@@ -50,14 +50,15 @@ class ProviderAPITest(test_base.LoadBalancerBaseTest):
                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.KEYSTONE_DEFAULT_ROLES:
             expected_allowed = ['os_admin', 'os_primary', 'os_roles_lb_admin',
-                                'os_system_reader', 'os_roles_lb_observer',
+                                'os_roles_lb_observer',
                                 'os_roles_lb_global_observer',
                                 'os_roles_lb_member', 'os_roles_lb_member2']
         if CONF.load_balancer.RBAC_test_type == const.ADVANCED:
             expected_allowed = [
-                'os_system_admin', 'os_system_reader', 'os_roles_lb_observer',
-                'os_roles_lb_global_observer', 'os_roles_lb_admin',
-                'os_roles_lb_member', 'os_roles_lb_member2']
+                'os_admin', 'os_roles_lb_observer',
+                'os_roles_lb_global_observer',
+                'os_roles_lb_admin', 'os_roles_lb_member',
+                'os_roles_lb_member2']
         if expected_allowed:
             self.check_list_RBAC_enforcement(
                 'ProviderClient', 'list_providers', expected_allowed)

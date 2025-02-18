@@ -105,7 +105,7 @@ OctaviaGroup = [
     cfg.StrOpt('provider',
                default='octavia',
                help='The provider driver to use for the tests.'),
-    cfg.StrOpt('RBAC_test_type', default=const.ADVANCED,
+    cfg.StrOpt('RBAC_test_type', default=const.KEYSTONE_DEFAULT_ROLES,
                choices=[const.ADVANCED, const.KEYSTONE_DEFAULT_ROLES,
                         const.OWNERADMIN, const.NONE],
                help='Type of RBAC tests to run. "advanced" runs the octavia '
