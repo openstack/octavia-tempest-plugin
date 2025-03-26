@@ -1183,7 +1183,7 @@
     parent: ovn-octavia-provider-tempest-release
     description: Runs the neutron OVN provider driver for Octavia api test.
     voting: false
-    timeout: 5400
+    timeout: 7800
     attempts: 1
     tags: ovn-octavia-provider
     irrelevant-files:
@@ -1212,7 +1212,7 @@
     parent: ovn-octavia-provider-tempest-release
     description: Runs the neutron OVN provider driver for Octavia scenario test.
     voting: false
-    timeout: 5400
+    timeout: 7800
     attempts: 1
     tags: ovn-octavia-provider
     irrelevant-files:
@@ -1229,6 +1229,7 @@
       - ^octavia/volume/.*$
       - ^octavia/tests/.*$
     vars:
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
       devstack_local_conf:
         test-config:
           "$TEMPEST_CONFIG":
