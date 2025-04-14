@@ -9,12 +9,15 @@
     check:
       jobs:
         - octavia-v2-dsvm-noop-api
+        - octavia-v2-dsvm-noop-api-stable-2025-1
         - octavia-v2-dsvm-noop-api-stable-2024-2
         - octavia-v2-dsvm-noop-api-stable-2024-1
         - octavia-v2-dsvm-noop-api-stable-2023-2
         - octavia-v2-dsvm-noop-api-advanced-rbac
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-2025-1
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2025-1
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-2
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2024-2
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-1
@@ -22,6 +25,7 @@
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2023-2
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2023-2
         - octavia-v2-dsvm-tls-barbican
+        - octavia-v2-dsvm-tls-barbican-stable-2025-1
         - octavia-v2-dsvm-tls-barbican-stable-2024-2
         - octavia-v2-dsvm-tls-barbican-stable-2024-1
         - octavia-v2-dsvm-tls-barbican-stable-2023-2
@@ -38,6 +42,8 @@
         - octavia-v2-act-stdby-dsvm-scenario-two-node:
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario:
+            voting: false
+        - octavia-v2-act-stdby-dsvm-scenario-stable-2025-1:
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario-stable-2024-2:
             voting: false
@@ -57,12 +63,15 @@
       fail-fast: true
       jobs:
         - octavia-v2-dsvm-noop-api
+        - octavia-v2-dsvm-noop-api-stable-2025-1
         - octavia-v2-dsvm-noop-api-stable-2024-2
         - octavia-v2-dsvm-noop-api-stable-2024-1
         - octavia-v2-dsvm-noop-api-stable-2023-2
         - octavia-v2-dsvm-noop-api-advanced-rbac
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
+        - octavia-v2-dsvm-scenario-traffic-ops-stable-2025-1
+        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2025-1
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-2
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2024-2
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-1
@@ -70,6 +79,7 @@
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2023-2
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2023-2
         - octavia-v2-dsvm-tls-barbican
+        - octavia-v2-dsvm-tls-barbican-stable-2025-1
         - octavia-v2-dsvm-tls-barbican-stable-2024-2
         - octavia-v2-dsvm-tls-barbican-stable-2024-1
         - octavia-v2-dsvm-tls-barbican-stable-2023-2
