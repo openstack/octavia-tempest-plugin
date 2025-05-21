@@ -27,6 +27,7 @@ from tempest.lib import decorators
 from tempest.lib import exceptions
 
 from octavia_tempest_plugin.common import constants as const
+from octavia_tempest_plugin.common.decorators import retry_on_port_in_use
 from octavia_tempest_plugin.tests import test_base
 from octavia_tempest_plugin.tests import waiters
 
@@ -912,17 +913,18 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('a446585b-5651-40ce-a4db-cb2ab4d37c03')
-    def test_source_ip_port_http_traffic(self):
+    @retry_on_port_in_use(start_port=60091)
+    def test_source_ip_port_http_traffic(self, port):
         # This is a special case as the reference driver does not support
         # this test. Since it runs with not_implemented_is_error, we must
         # handle this test case special.
         try:
             pool_id = self._listener_pool_create(
-                const.HTTP, 60091,
+                const.HTTP, port,
                 pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)[1]
             self._test_basic_traffic(
-                const.HTTP, 60091, pool_id,
-                traffic_member_count=1, persistent=False, source_port=60091)
+                const.HTTP, port, pool_id,
+                traffic_member_count=1, persistent=False, source_port=port)
         except exceptions.NotImplemented as e:
             message = ("The configured provider driver '{driver}' "
                        "does not support a feature required for this "
@@ -934,19 +936,20 @@ class TrafficOperationsScenarioTest(test_base.LoadBalancerBaseTestWithCompute):
     @testtools.skipIf(CONF.load_balancer.test_with_noop,
                       'Traffic tests will not work in noop mode.')
     @decorators.idempotent_id('60108f30-d870-487c-ab96-8d8a9b587b94')
-    def test_source_ip_port_tcp_traffic(self):
+    @retry_on_port_in_use(start_port=60092)
+    def test_source_ip_port_tcp_traffic(self, port):
         # This is a special case as the reference driver does not support
         # this test. Since it runs with not_implemented_is_error, we must
         # handle this test case special.
         try:
             listener_id, pool_id = self._listener_pool_create(
-                const.TCP, 60092,
+                const.TCP, port,
                 pool_algorithm=const.LB_ALGORITHM_SOURCE_IP_PORT)
             # Without a delay this can trigger a "Cannot assign requested
             # address" warning setting the source port, leading to failure
             self._test_basic_traffic(
-                const.TCP, 60092, pool_id, traffic_member_count=1,
-                persistent=False, source_port=60092, delay=0.2)
+                const.TCP, port, pool_id, traffic_member_count=1,
+                persistent=False, source_port=port, delay=0.2)
         except exceptions.NotImplemented as e:
             message = ("The configured provider driver '{driver}' "
                        "does not support a feature required for this "

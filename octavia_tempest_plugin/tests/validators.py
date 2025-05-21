@@ -113,6 +113,8 @@ class ValidatorsMixin(test.BaseTestCase):
                     session.close()
                 raise
             except Exception as e:
+                if "[Errno 98] Address already in use" in str(e):
+                    raise e
                 LOG.info('Validate URL got exception: %s. '
                          'Retrying.', e)
                 time.sleep(request_interval)
@@ -410,8 +412,10 @@ class ValidatorsMixin(test.BaseTestCase):
                               response_counts)
                     time.sleep(1)
                     return
-            except Exception:
+            except Exception as e:
                 LOG.warning('Server is not passing initial traffic. Waiting.')
+                if "[Errno 98] Address already in use" in str(e):
+                    raise e
             time.sleep(request_interval)
 
         LOG.debug('Loadbalancer wait for load balancer response totals: %s',
