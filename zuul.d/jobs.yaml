@@ -967,6 +967,7 @@
           $OCTAVIA_CONF:
             controller_worker:
               volume_driver: volume_cinder_driver
+              loadbalancer_topology: ACTIVE_STANDBY
             cinder:
               volume_size: 2
       devstack_services:
@@ -993,6 +994,7 @@
         s-object: false
         s-proxy: false
         tempest: true
+      tempest_test_regex: ^octavia_tempest_plugin.tests.act_stdby_scenario.v2.test_active_standby\.
 
 # Temporary transitional aliases for gates used in other repos
 # Remove once octavia has transitioned job names
