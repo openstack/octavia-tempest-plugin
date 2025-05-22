@@ -11,7 +11,6 @@
         - octavia-v2-dsvm-noop-api
         - octavia-v2-dsvm-noop-api-stable-2024-2
         - octavia-v2-dsvm-noop-api-stable-2024-1
-        - octavia-v2-dsvm-noop-api-stable-2023-2
         - octavia-v2-dsvm-noop-api-advanced-rbac
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
@@ -19,12 +18,9 @@
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2024-2
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-1
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2024-1
-        - octavia-v2-dsvm-scenario-traffic-ops-stable-2023-2
-        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2023-2
         - octavia-v2-dsvm-tls-barbican
         - octavia-v2-dsvm-tls-barbican-stable-2024-2
         - octavia-v2-dsvm-tls-barbican-stable-2024-1
-        - octavia-v2-dsvm-tls-barbican-stable-2023-2
         - octavia-v2-dsvm-scenario-ipv6-only:
             voting: false
         - octavia-v2-dsvm-scenario-centos-9-stream-traffic-ops:
@@ -43,8 +39,6 @@
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario-stable-2024-1:
             voting: false
-        - octavia-v2-act-stdby-dsvm-scenario-stable-2023-2:
-            voting: false
         - octavia-v2-dsvm-cinder-amphora:
             voting: false
         # Third party provider jobs
@@ -59,7 +53,6 @@
         - octavia-v2-dsvm-noop-api
         - octavia-v2-dsvm-noop-api-stable-2024-2
         - octavia-v2-dsvm-noop-api-stable-2024-1
-        - octavia-v2-dsvm-noop-api-stable-2023-2
         - octavia-v2-dsvm-noop-api-advanced-rbac
         - octavia-v2-dsvm-scenario-traffic-ops
         - octavia-v2-dsvm-scenario-non-traffic-ops
@@ -67,9 +60,6 @@
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2024-2
         - octavia-v2-dsvm-scenario-traffic-ops-stable-2024-1
         - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2024-1
-        - octavia-v2-dsvm-scenario-traffic-ops-stable-2023-2
-        - octavia-v2-dsvm-scenario-non-traffic-ops-stable-2023-2
         - octavia-v2-dsvm-tls-barbican
         - octavia-v2-dsvm-tls-barbican-stable-2024-2
         - octavia-v2-dsvm-tls-barbican-stable-2024-1
-        - octavia-v2-dsvm-tls-barbican-stable-2023-2
