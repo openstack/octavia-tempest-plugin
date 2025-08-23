@@ -1,14 +1,4 @@
 - nodeset:
-    name: octavia-single-node-ubuntu-bionic
-    nodes:
-      - name: controller
-        label: nested-virt-ubuntu-bionic
-    groups:
-      - name: tempest
-        nodes:
-          - controller
-
-- nodeset:
     name: octavia-single-node-ubuntu-focal
     nodes:
       - name: controller
@@ -33,26 +23,6 @@
     nodes:
       - name: controller
         label: nested-virt-ubuntu-noble
-    groups:
-      - name: tempest
-        nodes:
-          - controller
-
-- nodeset:
-    name: octavia-single-node-centos-8
-    nodes:
-      - name: controller
-        label: nested-virt-centos-8
-    groups:
-      - name: tempest
-        nodes:
-          - controller
-
-- nodeset:
-    name: octavia-single-node-centos-8-stream
-    nodes:
-      - name: controller
-        label: nested-virt-centos-8-stream
     groups:
       - name: tempest
         nodes:
@@ -768,26 +738,6 @@
                 enable_anti_affinity: True
               controller_worker:
                 loadbalancer_topology: ACTIVE_STANDBY
-
-- job:
-    name: octavia-v2-dsvm-scenario-centos-8
-    parent: octavia-v2-dsvm-scenario
-    nodeset: octavia-single-node-centos-8
-    vars:
-      devstack_localrc:
-        OCTAVIA_AMP_BASE_OS: centos
-        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 8
-        OCTAVIA_AMP_IMAGE_SIZE: 3
-
-- job:
-    name: octavia-v2-dsvm-scenario-centos-8-stream
-    parent: octavia-v2-dsvm-scenario
-    nodeset: octavia-single-node-centos-8-stream
-    vars:
-      devstack_localrc:
-        OCTAVIA_AMP_BASE_OS: centos
-        OCTAVIA_AMP_DISTRIBUTION_RELEASE_ID: 8-stream
-        OCTAVIA_AMP_IMAGE_SIZE: 3
 
 - job:
     name: octavia-v2-dsvm-scenario-centos-9-stream
