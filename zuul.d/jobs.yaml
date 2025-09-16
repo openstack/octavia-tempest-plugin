@@ -1,14 +1,4 @@
 - nodeset:
-    name: octavia-single-node-ubuntu-bionic
-    nodes:
-      - name: controller
-        label: nested-virt-ubuntu-bionic
-    groups:
-      - name: tempest
-        nodes:
-          - controller
-
-- nodeset:
     name: octavia-single-node-ubuntu-focal
     nodes:
       - name: controller
