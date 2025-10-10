@@ -27,13 +27,13 @@
         - octavia-v2-dsvm-tls-barbican-stable-2024-1
         - octavia-v2-dsvm-scenario-ipv6-only:
             voting: false
-        - octavia-v2-dsvm-scenario-centos-9-stream-traffic-ops:
+        - octavia-v2-dsvm-scenario-centos-10-stream-traffic-ops:
             voting: false
-        - octavia-v2-dsvm-scenario-centos-9-stream-non-traffic-ops:
+        - octavia-v2-dsvm-scenario-centos-10-stream-non-traffic-ops:
             voting: false
-        - octavia-v2-dsvm-scenario-rockylinux-9-traffic-ops:
+        - octavia-v2-dsvm-scenario-rockylinux-10-traffic-ops:
             voting: false
-        - octavia-v2-dsvm-scenario-rockylinux-9-non-traffic-ops:
+        - octavia-v2-dsvm-scenario-rockylinux-10-non-traffic-ops:
             voting: false
         - octavia-v2-act-stdby-dsvm-scenario-two-node:
             voting: false
