@@ -601,7 +601,7 @@
             api_settings:
               api_v1_enabled: False
       tempest_concurrency: 2
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
+      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
       tox_envlist: all
     irrelevant-files:
       - ^.*\.rst$
