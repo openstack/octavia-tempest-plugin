@@ -728,30 +728,22 @@
       - ^octavia_tempest_plugin/tests/spare_pool_scenario/.*  # TODO: remove
 
 - job:
-    name: octavia-v2-dsvm-py2-scenario-two-node
+    name: octavia-v2-dsvm-scenario-two-node-traffic-ops
     parent: octavia-v2-dsvm-scenario-two-node
-    host-vars:
-      controller:
-        devstack_localrc:
-          USE_PYTHON3: False
-          LIBVIRT_TYPE: kvm
-          LIBVIRT_CPU_MODE: host-passthrough
-      controller2:
-        devstack_localrc:
-          USE_PYTHON3: False
-          LIBVIRT_TYPE: kvm
-          LIBVIRT_CPU_MODE: host-passthrough
-    required-projects:
-      - name: openstack/diskimage-builder
-        override-checkout: 2.30.0
+    vars:
+      tempest_test_regex: "\
+          ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops.*\
+          (test_healthmonitor_|test_.*_ipv6_vip_ipv6_members)"
 
 - job:
-    name: octavia-v2-act-stdby-dsvm-scenario-two-node
-    parent: octavia-dsvm-live-two-node-base
+    name: octavia-v2-act-stdby-dsvm-scenario-two-node-traffic-ops
+    parent: octavia-v2-dsvm-scenario-two-node
     group-vars:
       controller:
         tempest_concurrency: 2
-        tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2
+        tempest_test_regex: "\
+            ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops.*\
+            (test_healthmonitor_|test_.*_ipv6_vip_ipv6_members)"
         tox_envlist: all
         devstack_local_conf:
           post-config:
