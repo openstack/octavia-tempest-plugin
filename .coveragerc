@@ -1,6 +1,0 @@
-[run]
-branch = True
-source = octavia_tempest_plugin
-
-[report]
-ignore_errors = True
