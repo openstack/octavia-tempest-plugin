@@ -25,7 +25,7 @@ https://docs.openstack.org/tempest/latest/plugin.html
 * Free software: Apache license
 * Documentation: https://docs.openstack.org/octavia-tempest-plugin/latest/
 * Source: https://opendev.org/openstack/octavia-tempest-plugin
-* Bugs: https://storyboard.openstack.org/#!/project/openstack/octavia-tempest-plugin
+* Bugs: https://bugs.launchpad.net/octavia
 
 Installing
 ----------
