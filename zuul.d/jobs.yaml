@@ -1064,6 +1064,29 @@
             load_balancer:
               RBAC_test_type: keystone_default_roles
 
+- job:
+    name: publish-openstack-octavia-tempest-plugin-test-server
+    parent: publish-openstack-artifacts
+    description: |
+      Publish octavia-test-plugin test_server.bin application to tarballs.o.o.
+    run: playbooks/test-server-build/run.yaml
+    post-run: playbooks/test-server-build/post.yaml
+    required-projects:
+      - openstack/octavia-tempest-plugin
+    vars:
+      test_server_arch: x86_64
+
+- job:
+    name: octavia-test-server-build
+    parent: base
+    description: |
+      Builds octavia-test-plugin test_server.bin application.
+    run: playbooks/test-server-build/run.yaml
+    required-projects:
+      - openstack/octavia-tempest-plugin
+    vars:
+      test_server_arch: x86_64
+
 ######### Third party jobs ##########
 
 - job:
