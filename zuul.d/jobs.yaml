@@ -569,7 +569,7 @@
 - job:
     name: octavia-v2-dsvm-scenario
     parent: octavia-v2-dsvm-scenario-base
-    branches: ^(stable/(2024.1|2024.2))
+    branches: ^(unmaintained/|stable/(2024.1|2024.2))
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
@@ -857,7 +857,7 @@
 - job:
     name: octavia-v2-dsvm-tls-barbican
     parent: octavia-v2-dsvm-tls-barbican-base
-    branches: ^(stable/(2024.1|2024.2))
+    branches: ^(unmaintained/|stable/(2024.1|2024.2))
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
@@ -1005,7 +1005,7 @@
 - job:
     name: octavia-v2-act-stdby-dsvm-scenario
     parent: octavia-v2-act-stdby-dsvm-scenario-base
-    branches: ^(stable/(2024.1|2024.2))
+    branches: ^(unmaintained/|stable/(2024.1|2024.2))
     nodeset: octavia-single-node-ubuntu-jammy
 
 - job:
