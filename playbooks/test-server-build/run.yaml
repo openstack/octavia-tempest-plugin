@@ -1,0 +1,20 @@
+- hosts: all
+  tasks:
+    - name: Install dependencies
+      package:
+        name:
+          - golang
+        state: present
+      become: yes
+    - name: Ensure artifacts directory exists
+      file:
+        name: "{{ ansible_user_dir }}/test-server"
+        state: directory
+    - name: Build test_server.bin
+      shell: |
+        source_dir={{ ansible_user_dir }}/src/opendev.org/openstack/octavia-tempest-plugin
+        dest_dir={{ ansible_user_dir }}/test-server
+        CGO_ENABLED=0 GOOS=linux go build \
+            -a -ldflags '-s -w -extldflags -static' \
+            -o ${dest_dir}/test_server-{{ test_server_arch }}.{{ zuul.branch }}.bin \
+            ${source_dir}/octavia_tempest_plugin/contrib/test_server/test_server.go

@@ -72,3 +72,6 @@
         - octavia-v2-dsvm-tls-barbican-stable-2025-2
         - octavia-v2-dsvm-tls-barbican-stable-2025-1
         - octavia-v2-dsvm-tls-barbican-stable-2024-2
+    periodic:
+      jobs:
+        - publish-openstack-octavia-tempest-plugin-test-server
