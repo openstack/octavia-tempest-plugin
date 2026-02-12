@@ -62,7 +62,8 @@ modindex_common_prefix = ['octavia_tempest_plugin.']
 
 openstackdocs_repo_name = 'openstack/octavia-tempest-plugin'
 openstackdocs_pdf_link = True
-openstackdocs_use_storyboard = True
+openstackdocs_bug_project = 'octavia'
+openstackdocs_bug_tag = 'docs'
 
 apidoc_output_dir = '_build/modules'
 apidoc_module_dir = '../../octavia_tempest_plugin'
