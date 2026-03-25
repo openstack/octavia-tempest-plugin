@@ -2,16 +2,10 @@
 Octavia Tempest Plugin
 ======================
 
-Team and repository tags
-========================
-
 .. image:: https://governance.openstack.org/tc/badges/octavia-tempest-plugin.svg
-    :target: https://governance.openstack.org/tc/reference/tags/index.html
-
-.. Change things from this point on
 
 Tempest integration of Octavia
-==============================
+------------------------------
 
 This project contains the Tempest plugin for the Octavia project for
 OpenStack Load Balancing.
