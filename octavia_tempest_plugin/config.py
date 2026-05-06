@@ -21,9 +21,6 @@ from octavia_tempest_plugin.common import constants as const
 
 LOG = logging.getLogger(__name__)
 
-service_available_group = cfg.OptGroup(name='service_available',
-                                       title='Available OpenStack Services')
-
 ServiceAvailableGroup = [
     cfg.BoolOpt('load_balancer',
                 default=True,
@@ -296,10 +293,6 @@ LBFeatureEnabledGroup = [
                 help="Whether the PROMETHEUS listener tests will run."),
 ]
 
-# Extending this enforce_scope group defined in tempest
-enforce_scope_group = cfg.OptGroup(name="enforce_scope",
-                                   title="OpenStack Services with "
-                                         "enforce scope")
 EnforceScopeGroup = [
     cfg.BoolOpt('octavia',
                 default=False,

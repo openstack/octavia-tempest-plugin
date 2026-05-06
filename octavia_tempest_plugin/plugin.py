@@ -32,20 +32,22 @@ class OctaviaTempestPlugin(plugins.TempestPlugin):
         return full_test_dir, base_path
 
     def register_opts(self, conf):
-        config.register_opt_group(conf, project_config.service_available_group,
+        config.register_opt_group(conf, config.service_available_group,
                                   project_config.ServiceAvailableGroup)
+        config.register_opt_group(conf, config.enforce_scope_group,
+                                  project_config.EnforceScopeGroup)
         config.register_opt_group(conf, project_config.octavia_group,
                                   project_config.OctaviaGroup)
         config.register_opt_group(conf,
                                   project_config.lb_feature_enabled_group,
                                   project_config.LBFeatureEnabledGroup)
-        config.register_opt_group(conf, project_config.enforce_scope_group,
-                                  project_config.EnforceScopeGroup)
 
     def get_opt_lists(self):
         return [
-            (project_config.service_available_group.name,
+            (config.service_available_group.name,
              project_config.ServiceAvailableGroup),
+            (config.enforce_scope_group.name,
+             project_config.EnforceScopeGroup),
             (project_config.octavia_group.name,
              project_config.OctaviaGroup),
             (project_config.lb_feature_enabled_group.name,
