@@ -21,6 +21,7 @@ from cryptography.hazmat.primitives.serialization import NoEncryption
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography import x509
 from cryptography.x509.oid import NameOID
+from oslo_utils import timeutils
 
 
 def generate_ca_cert_and_key():
@@ -50,9 +51,9 @@ def generate_ca_cert_and_key():
     ).serial_number(
         x509.random_serial_number()
     ).not_valid_before(
-        datetime.datetime.utcnow()
+        timeutils.utcnow()
     ).not_valid_after(
-        datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        timeutils.utcnow() + datetime.timedelta(days=10)
     ).add_extension(
         x509.SubjectAlternativeName([x509.DNSName(u"ca_cert.example.com")]),
         critical=False,
@@ -102,9 +103,9 @@ def generate_server_cert_and_key(ca_cert, ca_key, server_uuid):
     ).serial_number(
         x509.random_serial_number()
     ).not_valid_before(
-        datetime.datetime.utcnow()
+        timeutils.utcnow()
     ).not_valid_after(
-        datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        timeutils.utcnow() + datetime.timedelta(days=10)
     ).add_extension(
         x509.SubjectAlternativeName(
             [x509.DNSName(u"{}.example.com".format(server_uuid))]),
@@ -154,9 +155,9 @@ def generate_client_cert_and_key(ca_cert, ca_key, client_uuid):
     ).serial_number(
         x509.random_serial_number()
     ).not_valid_before(
-        datetime.datetime.utcnow()
+        timeutils.utcnow()
     ).not_valid_after(
-        datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        timeutils.utcnow() + datetime.timedelta(days=10)
     ).add_extension(
         x509.BasicConstraints(ca=False, path_length=None),
         critical=True,
@@ -195,14 +196,14 @@ def generate_certificate_revocation_list(ca_cert, ca_key, cert_to_revoke):
     """
     crl_builder = x509.CertificateRevocationListBuilder()
     crl_builder = crl_builder.issuer_name(ca_cert.subject)
-    crl_builder = crl_builder.last_update(datetime.datetime.utcnow())
-    crl_builder = crl_builder.next_update(datetime.datetime.utcnow() +
+    crl_builder = crl_builder.last_update(timeutils.utcnow())
+    crl_builder = crl_builder.next_update(timeutils.utcnow() +
                                           datetime.timedelta(1, 0, 0))
 
     revoked_cert = x509.RevokedCertificateBuilder().serial_number(
         cert_to_revoke.serial_number
     ).revocation_date(
-        datetime.datetime.utcnow()
+        timeutils.utcnow()
     ).build(default_backend())
 
     crl_builder = crl_builder.add_revoked_certificate(revoked_cert)
