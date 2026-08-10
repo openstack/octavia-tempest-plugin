@@ -43,6 +43,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         client_crl_container_ref=Unset, allowed_cidrs=Unset,
                         alpn_protocols=Unset, hsts_max_age=Unset,
                         hsts_include_subdomains=Unset, hsts_preload=Unset,
+                        tls_ciphers=Unset, tls_versions=Unset,
                         return_object_only=True):
         """Create a listener.
 
@@ -99,6 +100,11 @@ class ListenerClient(base_client.BaseLBaaSClient):
             and sets the `max_age` directive to given value
         :param hsts_preload: Defines whether the `hsts_preload` directive
             is used for HSTS or not
+        :param tls_ciphers: A colon separated list of OpenSSL ciphers the
+                            listener accepts for TLSv1.2 and older TLS
+                            protocol versions.
+        :param tls_versions: A list of the TLS protocol versions the
+                             listener accepts, e.g. ['TLSv1.2', 'TLSv1.3'].
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.
@@ -227,6 +233,7 @@ class ListenerClient(base_client.BaseLBaaSClient):
                         client_crl_container_ref=Unset, allowed_cidrs=Unset,
                         alpn_protocols=Unset, hsts_max_age=Unset,
                         hsts_include_subdomains=Unset, hsts_preload=Unset,
+                        tls_ciphers=Unset, tls_versions=Unset,
                         return_object_only=True):
         """Update a listener.
 
@@ -281,6 +288,11 @@ class ListenerClient(base_client.BaseLBaaSClient):
             and sets the `max_age` directive to given value
         :param hsts_preload: Defines whether the `hsts_preload` directive
             is used for HSTS or not
+        :param tls_ciphers: A colon separated list of OpenSSL ciphers the
+                            listener accepts for TLSv1.2 and older TLS
+                            protocol versions.
+        :param tls_versions: A list of the TLS protocol versions the
+                             listener accepts, e.g. ['TLSv1.2', 'TLSv1.3'].
         :param return_object_only: If True, the response returns the object
                                    inside the root tag. False returns the full
                                    response from the API.

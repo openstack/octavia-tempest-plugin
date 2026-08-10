@@ -34,7 +34,9 @@ class PoolClient(base_client.BaseLBaaSClient):
                     admin_state_up=Unset, session_persistence=Unset,
                     ca_tls_container_ref=Unset, crl_container_ref=Unset,
                     tls_enabled=Unset, tls_container_ref=Unset,
-                    alpn_protocols=Unset, return_object_only=True):
+                    alpn_protocols=Unset,
+                    tls_ciphers=Unset, tls_versions=Unset,
+                    return_object_only=True):
         """Create a pool.
 
         :param protocol: The protocol for the resource.
@@ -182,6 +184,7 @@ class PoolClient(base_client.BaseLBaaSClient):
                     session_persistence=Unset, ca_tls_container_ref=Unset,
                     crl_container_ref=Unset, tls_enabled=Unset,
                     tls_container_ref=Unset, alpn_protocols=Unset,
+                    tls_ciphers=Unset, tls_versions=Unset,
                     return_object_only=True):
         """Update a pool.
 

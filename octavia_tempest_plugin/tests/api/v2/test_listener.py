@@ -298,7 +298,38 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             raise self.skipException(
                 f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
                 ' require the either the barbican service,or running in noop.')
-        self._test_listener_create(const.TERMINATED_HTTPS, 8095)
+        for i, tls_version in enumerate(const.TLS_VERSION_CIPHERS):
+            self._test_listener_create(const.TERMINATED_HTTPS, 8095 + i,
+                                       tls_version=tls_version)
+
+    @decorators.idempotent_id('908d0447-ba91-4ef1-8de8-c895571cf6e5')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    # Skipping until Octavia API validates tls_versions/tls_ciphers mismatch
+    # (https://bugs.launchpad.net/octavia/+bug/2162888)
+    @decorators.skip_because(
+        bug='2162888',
+        bug_type='launchpad',
+    )
+    def test_terminated_https_listener_create_tls_mismatch(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.17'):
+            raise self.skipException('tls_versions requires API v2.17+')
+        self.assertRaises(
+            exceptions.BadRequest,
+            self.mem_listener_client.create_listener,
+            protocol=const.TERMINATED_HTTPS,
+            protocol_port=8097,
+            loadbalancer_id=self.lb_id,
+            default_tls_container_ref=self.server_secret_ref,
+            tls_versions=["TLSv1.3"],
+            tls_ciphers=const.TLS_VERSION_CIPHERS["TLSv1.2"])
 
     @decorators.idempotent_id('3f91e0f6-e223-48ad-8c6a-b5a608cc8bb3')
     @testtools.skipUnless(
@@ -330,7 +361,7 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_create(const.SCTP, 8104, use_allowed_cidrs=False)
 
     def _test_listener_create(self, protocol, protocol_port,
-                              use_allowed_cidrs=True):
+                              use_allowed_cidrs=True, tls_version=None):
         """Tests listener create and basic show APIs.
 
         * Tests that users without the loadbalancer member role cannot
@@ -401,6 +432,15 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 **listener_kwargs)
             listener_kwargs.update({const.ALLOWED_CIDRS: self.allowed_cidrs})
 
+        # Add tls_ciphers and tls_versions (API v2.17)
+        if self.should_apply_terminated_https(protocol=protocol):
+            if tls_version and self.mem_listener_client.is_version_supported(
+                    self.api_version, "2.17"):
+                listener_kwargs[const.TLS_VERSIONS] = [tls_version]
+                listener_kwargs[
+                    const.TLS_CIPHERS] = const.TLS_VERSION_CIPHERS[
+                        tls_version]
+
         if hsts_supported:
             listener_kwargs[const.HSTS_PRELOAD] = True
             listener_kwargs[const.HSTS_MAX_AGE] = 10000
@@ -458,6 +498,13 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             equal_items.append(const.HSTS_PRELOAD)
             equal_items.append(const.HSTS_MAX_AGE)
             equal_items.append(const.HSTS_INCLUDE_SUBDOMAINS)
+
+        if tls_version and self.mem_listener_client.is_version_supported(
+                self.api_version, "2.17"):
+            equal_items.append(const.TLS_CIPHERS)
+            self.assertEqual(
+                sorted(listener_kwargs[const.TLS_VERSIONS]),
+                sorted(listener[const.TLS_VERSIONS]))
 
         for item in equal_items:
             self.assertEqual(listener_kwargs[item], listener[item])
@@ -1521,6 +1568,188 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
         self._test_listener_update(const.TERMINATED_HTTPS, 8165,
                                    use_allowed_cidrs=False)
 
+    @decorators.idempotent_id('595c6d91-4721-411d-80a3-3d07aee2a551')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    # Skipping until Octavia API validates tls_ciphers strings
+    # (https://bugs.launchpad.net/octavia/+bug/2162888)
+    @decorators.skip_because(
+        bug='2162888',
+        bug_type='launchpad',
+    )
+    def test_terminated_https_listener_create_invalid_tls_ciphers(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.15'):
+            raise self.skipException('tls_ciphers requires API v2.15+')
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        self.assertRaises(
+            exceptions.BadRequest,
+            self.mem_listener_client.create_listener,
+            protocol=const.TERMINATED_HTTPS,
+            protocol_port=9010,
+            loadbalancer_id=self.lb_id,
+            default_tls_container_ref=self.server_secret_ref,
+            tls_ciphers='BOGUS-CIPHER-STRING')
+
+    @decorators.idempotent_id('30a5d857-d16f-4963-8975-69e8af0c34a4')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    # Skipping until Octavia API validates tls_versions/tls_ciphers mismatch
+    # (https://bugs.launchpad.net/octavia/+bug/2162888)
+    @decorators.skip_because(
+        bug='2162888',
+        bug_type='launchpad',
+    )
+    def test_terminated_https_listener_update_tls_mismatch(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.17'):
+            raise self.skipException('tls_versions requires API v2.17+')
+        listener = self.mem_listener_client.create_listener(
+            protocol=const.TERMINATED_HTTPS,
+            protocol_port=8098,
+            loadbalancer_id=self.lb_id,
+            default_tls_container_ref=self.server_secret_ref,
+            tls_versions=["TLSv1.2"],
+            tls_ciphers=const.TLS_VERSION_CIPHERS["TLSv1.2"])
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        self.assertRaises(
+            exceptions.BadRequest,
+            self.mem_listener_client.update_listener,
+            listener[const.ID],
+            tls_versions=["TLSv1.3"],
+            tls_ciphers=const.TLS_VERSION_CIPHERS["TLSv1.2"])
+
+    @decorators.idempotent_id('925321ee-f1f6-4f6d-a60f-abfbe2f20c42')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_create_invalid_tls_versions(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.17'):
+            raise self.skipException('tls_versions requires API v2.17+')
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        self.assertRaises(
+            exceptions.BadRequest,
+            self.mem_listener_client.create_listener,
+            protocol=const.TERMINATED_HTTPS,
+            protocol_port=9011,
+            loadbalancer_id=self.lb_id,
+            default_tls_container_ref=self.server_secret_ref,
+            tls_versions=['TLSv9.9'])
+
+    @decorators.idempotent_id('0a4e7ff5-af0f-4d2c-8ad0-24f3926333e1')
+    @testtools.skipUnless(
+        CONF.loadbalancer_feature_enabled.terminated_tls_enabled,
+        '[loadbalancer-feature-enabled] "terminated_tls_enabled" is '
+        'False in the tempest configuration. TLS tests will be skipped.')
+    def test_terminated_https_listener_unset_tls_ciphers_and_versions(self):
+        if not self.should_apply_terminated_https():
+            raise self.skipException(
+                f'Listener API tests with {const.TERMINATED_HTTPS} protocol'
+                ' require the either the barbican service,or running in noop.')
+        if not self.mem_listener_client.is_version_supported(
+                self.api_version, '2.15'):
+            raise self.skipException('tls_ciphers requires API v2.15+')
+
+        custom_cipher = const.TLS_VERSION_CIPHERS["TLSv1.2"]
+        listener_kwargs = {
+            const.PROTOCOL: const.TERMINATED_HTTPS,
+            const.PROTOCOL_PORT: 9012,
+            const.LOADBALANCER_ID: self.lb_id,
+            'default_tls_container_ref': self.server_secret_ref,
+            const.TLS_CIPHERS: custom_cipher,
+        }
+        custom_versions = None
+        if self.mem_listener_client.is_version_supported(
+                self.api_version, '2.17'):
+            custom_versions = ['TLSv1.2']
+            listener_kwargs[const.TLS_VERSIONS] = custom_versions
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        listener = self.mem_listener_client.create_listener(**listener_kwargs)
+        self.addCleanup(
+            self.mem_listener_client.cleanup_listener,
+            listener[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        listener = waiters.wait_for_status(
+            self.mem_listener_client.show_listener,
+            listener[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        self.assertEqual(custom_cipher, listener[const.TLS_CIPHERS])
+        if custom_versions:
+            self.assertEqual(custom_versions, listener[const.TLS_VERSIONS])
+
+        unset_kwargs = {const.TLS_CIPHERS: None}
+        if custom_versions:
+            unset_kwargs[const.TLS_VERSIONS] = None
+        self.mem_listener_client.update_listener(
+            listener[const.ID], **unset_kwargs)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        listener = waiters.wait_for_status(
+            self.mem_listener_client.show_listener,
+            listener[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        self.assertNotEqual(custom_cipher,
+                            listener.get(const.TLS_CIPHERS))
+        if custom_versions:
+            self.assertNotEqual(custom_versions,
+                                listener.get(const.TLS_VERSIONS))
+
     def _test_listener_update(self, protocol, protocol_port,
                               use_allowed_cidrs=True):
         """Tests listener update and show APIs.
@@ -1712,6 +1941,14 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
                 new_cidrs = ['2001:db8::/64']
             listener_update_kwargs.update({const.ALLOWED_CIDRS: new_cidrs})
 
+        if self.should_apply_terminated_https(protocol=protocol):
+            if self.mem_listener_client.is_version_supported(
+                    self.api_version, "2.17"):
+                # Positive: update both to TLSv1.3 with matching ciphers
+                listener_update_kwargs[const.TLS_VERSIONS] = ["TLSv1.3"]
+                listener_update_kwargs[const.TLS_CIPHERS] = (
+                    const.TLS_VERSION_CIPHERS["TLSv1.3"])
+
         if hsts_supported:
             listener_update_kwargs[const.HSTS_PRELOAD] = False
             listener_update_kwargs[const.HSTS_MAX_AGE] = 0
@@ -1763,6 +2000,17 @@ class ListenerAPITest(test_base.LoadBalancerBaseTest):
             self.assertEqual(sorted([self.SNI1_secret_ref,
                                      self.server_secret_ref]),
                              sorted(listener[const.SNI_CONTAINER_REFS]))
+
+        if self.should_apply_terminated_https(protocol=protocol):
+            if self.mem_listener_client.is_version_supported(
+                    self.api_version, "2.17"):
+                self.assertEqual(
+                    const.TLS_VERSION_CIPHERS["TLSv1.3"],
+                    listener[const.TLS_CIPHERS])
+                self.assertEqual(
+                    ["TLSv1.3"],
+                    sorted(listener[const.TLS_VERSIONS]))
+
         if self.mem_listener_client.is_version_supported(
                 self.api_version, '2.1'):
             self.assertEqual(2000, listener[const.TIMEOUT_CLIENT_DATA])

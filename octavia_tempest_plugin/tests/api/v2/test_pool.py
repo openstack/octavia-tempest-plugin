@@ -406,6 +406,19 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         else:
             pool_kwargs[const.LOADBALANCER_ID] = self.lb_id
 
+        # tls_enabled (and tls_ciphers/tls_versions) are not compatible with
+        # the UDP and SCTP pool protocols, so only exercise them with the
+        # other protocols.
+        if (self.mem_pool_client.is_version_supported(
+                self.api_version, '2.15') and
+                pool_protocol not in (const.UDP, const.SCTP)):
+            pool_kwargs[const.TLS_ENABLED] = True
+            pool_kwargs[const.TLS_CIPHERS] = (
+                const.TLS_VERSION_CIPHERS["TLSv1.2"])
+            if self.mem_pool_client.is_version_supported(
+                    self.api_version, '2.17'):
+                pool_kwargs[const.TLS_VERSIONS] = ['TLSv1.2', 'TLSv1.3']
+
         # Test that a user without the loadbalancer role cannot
         # create a pool.
         expected_allowed = ['os_admin', 'os_roles_lb_admin',
@@ -502,6 +515,17 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
             self.assertCountEqual(pool_kwargs[const.TAGS],
                                   pool[const.TAGS])
+
+        if (self.mem_pool_client.is_version_supported(
+                self.api_version, '2.15') and
+                pool_protocol not in (const.UDP, const.SCTP)):
+            self.assertEqual(pool_kwargs[const.TLS_CIPHERS],
+                             pool[const.TLS_CIPHERS])
+            if self.mem_pool_client.is_version_supported(
+                    self.api_version, '2.17'):
+                self.assertEqual(
+                    sorted(pool_kwargs[const.TLS_VERSIONS]),
+                    sorted(pool[const.TLS_VERSIONS]))
 
     @decorators.idempotent_id('4b4c8021-f4dd-4826-b825-7e3dc0beaba4')
     def test_HTTP_LC_pool_list(self):
@@ -1242,6 +1266,122 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             const.UDP, const.LB_ALGORITHM_ROUND_ROBIN,
             session_persistence=const.SESSION_PERSISTENCE_SOURCE_IP)
 
+    @decorators.idempotent_id('358cd0a9-7e74-4de3-ac98-2ebee7250e09')
+    # Skipping until Octavia API validates tls_ciphers strings
+    # (https://bugs.launchpad.net/octavia/+bug/2162888)
+    @decorators.skip_because(
+        bug='2162888',
+        bug_type='launchpad',
+    )
+    def test_pool_create_invalid_tls_ciphers(self):
+        if not self.mem_pool_client.is_version_supported(
+                self.api_version, '2.15'):
+            raise self.skipException('tls_ciphers requires API v2.15+')
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        self.assertRaises(
+            exceptions.BadRequest,
+            self.mem_pool_client.create_pool,
+            protocol=const.HTTP,
+            lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN,
+            loadbalancer_id=self.lb_id,
+            tls_enabled=True,
+            tls_ciphers='BOGUS-CIPHER-STRING')
+
+    @decorators.idempotent_id('848f881f-cbb7-4b80-8d84-84efcfaa7962')
+    def test_pool_create_invalid_tls_versions(self):
+        if not self.mem_pool_client.is_version_supported(
+                self.api_version, '2.17'):
+            raise self.skipException('tls_versions requires API v2.17+')
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        self.assertRaises(
+            exceptions.BadRequest,
+            self.mem_pool_client.create_pool,
+            protocol=const.HTTP,
+            lb_algorithm=const.LB_ALGORITHM_ROUND_ROBIN,
+            loadbalancer_id=self.lb_id,
+            tls_enabled=True,
+            tls_versions=['TLSv9.9'])
+
+    @decorators.idempotent_id('41970b41-530c-4926-ab2a-31767f8413e8')
+    def test_pool_unset_tls_ciphers_and_versions(self):
+        if not self.mem_pool_client.is_version_supported(
+                self.api_version, '2.15'):
+            raise self.skipException('tls_ciphers requires API v2.15+')
+
+        custom_cipher = 'ECDHE-RSA-AES256-GCM-SHA384'
+        create_kwargs = {
+            const.PROTOCOL: const.HTTP,
+            const.LB_ALGORITHM: const.LB_ALGORITHM_ROUND_ROBIN,
+            const.LOADBALANCER_ID: self.lb_id,
+            const.TLS_ENABLED: True,
+            const.TLS_CIPHERS: custom_cipher,
+        }
+        custom_versions = None
+        if self.mem_pool_client.is_version_supported(
+                self.api_version, '2.17'):
+            custom_versions = ['TLSv1.2']
+            create_kwargs[const.TLS_VERSIONS] = custom_versions
+
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+
+        pool = self.mem_pool_client.create_pool(**create_kwargs)
+        self.addCleanup(
+            self.mem_pool_client.cleanup_pool,
+            pool[const.ID],
+            lb_client=self.mem_lb_client, lb_id=self.lb_id)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        pool = waiters.wait_for_status(
+            self.mem_pool_client.show_pool,
+            pool[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        self.assertEqual(custom_cipher, pool[const.TLS_CIPHERS])
+        if custom_versions:
+            self.assertEqual(custom_versions, pool[const.TLS_VERSIONS])
+
+        unset_kwargs = {const.TLS_CIPHERS: None}
+        if custom_versions:
+            unset_kwargs[const.TLS_VERSIONS] = None
+        self.mem_pool_client.update_pool(
+            pool[const.ID], **unset_kwargs)
+        waiters.wait_for_status(
+            self.mem_lb_client.show_loadbalancer, self.lb_id,
+            const.PROVISIONING_STATUS, const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        pool = waiters.wait_for_status(
+            self.mem_pool_client.show_pool,
+            pool[const.ID], const.PROVISIONING_STATUS,
+            const.ACTIVE,
+            CONF.load_balancer.build_interval,
+            CONF.load_balancer.build_timeout)
+        self.assertNotEqual(custom_cipher,
+                            pool.get(const.TLS_CIPHERS))
+        if custom_versions:
+            self.assertNotEqual(custom_versions,
+                                pool.get(const.TLS_VERSIONS))
+
     def _test_pool_update(self, pool_protocol, algorithm,
                           session_persistence=None):
         """Tests pool update and show APIs.
@@ -1292,6 +1432,19 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
             pool_kwargs[const.SESSION_PERSISTENCE] = {
                 const.TYPE: const.SESSION_PERSISTENCE_SOURCE_IP
             }
+
+        # tls_enabled (and tls_ciphers/tls_versions) are not compatible with
+        # the UDP and SCTP pool protocols, so only exercise them with the
+        # other protocols.
+        if (self.mem_pool_client.is_version_supported(
+                self.api_version, '2.15') and
+                pool_protocol not in (const.UDP, const.SCTP)):
+            pool_kwargs[const.TLS_ENABLED] = True
+            pool_kwargs[const.TLS_CIPHERS] = (
+                const.TLS_VERSION_CIPHERS["TLSv1.2"])
+            if self.mem_pool_client.is_version_supported(
+                    self.api_version, '2.17'):
+                pool_kwargs[const.TLS_VERSIONS] = ['TLSv1.2', 'TLSv1.3']
 
         # This is a special case as the reference driver does not support
         # SOURCE-IP-PORT. Since it runs with not_implemented_is_error, we must
@@ -1409,6 +1562,15 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
                 const.TYPE: const.SESSION_PERSISTENCE_SOURCE_IP
             }
 
+        if (self.mem_pool_client.is_version_supported(
+                self.api_version, '2.15') and
+                pool_protocol not in (const.UDP, const.SCTP)):
+            pool_update_kwargs[const.TLS_CIPHERS] = (
+                const.TLS_VERSION_CIPHERS["TLSv1.3"])
+            if self.mem_pool_client.is_version_supported(
+                    self.api_version, '2.17'):
+                pool_update_kwargs[const.TLS_VERSIONS] = ['TLSv1.3']
+
         pool = self.mem_pool_client.update_pool(
             pool[const.ID], **pool_update_kwargs)
 
@@ -1452,6 +1614,17 @@ class PoolAPITest(test_base.LoadBalancerBaseTest):
         if self.mem_lb_client.is_version_supported(self.api_version, '2.5'):
             self.assertCountEqual(pool_update_kwargs[const.TAGS],
                                   pool[const.TAGS])
+
+        if (self.mem_pool_client.is_version_supported(
+                self.api_version, '2.15') and
+                pool_protocol not in (const.UDP, const.SCTP)):
+            self.assertEqual(pool_update_kwargs[const.TLS_CIPHERS],
+                             pool[const.TLS_CIPHERS])
+            if self.mem_pool_client.is_version_supported(
+                    self.api_version, '2.17'):
+                self.assertEqual(
+                    sorted(pool_update_kwargs[const.TLS_VERSIONS]),
+                    sorted(pool[const.TLS_VERSIONS]))
 
         # Also test removing a Session Persistence
         if session_persistence is not None:

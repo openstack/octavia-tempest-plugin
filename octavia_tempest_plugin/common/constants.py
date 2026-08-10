@@ -75,6 +75,20 @@ ALPN_PROTOCOLS = 'alpn_protocols'
 HSTS_MAX_AGE = 'hsts_max_age'
 HSTS_INCLUDE_SUBDOMAINS = 'hsts_include_subdomains'
 HSTS_PRELOAD = 'hsts_preload'
+TLS_CIPHERS = 'tls_ciphers'
+TLS_VERSIONS = 'tls_versions'
+TLS_1_3_CIPHERS = (
+    "TLS_AES_128_GCM_SHA256:"
+    "TLS_AES_256_GCM_SHA384:"
+    "TLS_CHACHA20_POLY1305_SHA256:"
+    "TLS_AES_128_CCM_SHA256:"
+    "TLS_AES_128_CCM_8_SHA256")
+TLS_VERSION_CIPHERS = {
+    "TLSv1.2": (
+        "ECDHE-RSA-AES256-GCM-SHA384:"
+        "ECDHE-RSA-AES128-GCM-SHA256"),
+    "TLSv1.3": TLS_1_3_CIPHERS,
+}
 
 LB_ALGORITHM = 'lb_algorithm'
 LB_ALGORITHM_ROUND_ROBIN = 'ROUND_ROBIN'
