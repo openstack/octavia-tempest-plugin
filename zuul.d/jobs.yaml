@@ -430,7 +430,7 @@
           q-dhcp: false
           q-l3: false
           q-meta: false
-          q-ovn-metadata-agent: true
+          q-ovn-agent: true
 
 - job:
     name: octavia-dsvm-noop-base
