@@ -111,7 +111,6 @@
     vars:
       configure_swap_size: 8192
       devstack_localrc:
-        USE_PYTHON3: true
         LIBVIRT_TYPE: kvm
         LIBVIRT_CPU_MODE: host-passthrough
       devstack_local_conf:
@@ -162,7 +161,6 @@
       - ^releasenotes/.*$
     vars:
       devstack_localrc:
-        USE_PYTHON3: true
         LIBVIRT_TYPE: kvm
         LIBVIRT_CPU_MODE: host-passthrough
       devstack_local_conf:
@@ -301,7 +299,6 @@
           MULTI_HOST: 1
           SERVICE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           HOST_IP: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
-          USE_PYTHON3: true
           LIBVIRT_TYPE: kvm
           LIBVIRT_CPU_MODE: host-passthrough
           # Octavia specific settings
@@ -343,7 +340,6 @@
           DATABASE_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           RABBIT_HOST: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}"
           GLANCE_HOSTPORT: "{{ hostvars['controller']['nodepool']['private_ipv4'] }}:9292"
-          USE_PYTHON3: true
           LIBVIRT_TYPE: kvm
           LIBVIRT_CPU_MODE: host-passthrough
           # Octavia specific settings
