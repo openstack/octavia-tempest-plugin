@@ -523,18 +523,6 @@
     override-checkout: stable/2025.1
 
 - job:
-    name: octavia-v2-dsvm-noop-api-stable-2024-2
-    parent: octavia-v2-dsvm-noop-api
-    nodeset: octavia-single-node-ubuntu-jammy
-    override-checkout: stable/2024.2
-    vars:
-      devstack_local_conf:
-        test-config:
-          "$TEMPEST_CONFIG":
-            load_balancer:
-              RBAC_test_type: advanced
-
-- job:
     name: octavia-v2-dsvm-scenario-base
     parent: octavia-dsvm-live-base
     vars:
@@ -672,30 +660,6 @@
 - job:
     name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-2025-1
     parent: octavia-v2-dsvm-scenario-stable-2025-1
-    vars:
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
-
-- job:
-    name: octavia-v2-dsvm-scenario-stable-2024-2
-    parent: octavia-v2-dsvm-scenario
-    nodeset: octavia-single-node-ubuntu-jammy
-    override-checkout: stable/2024.2
-    vars:
-      devstack_local_conf:
-        test-config:
-          "$TEMPEST_CONFIG":
-            load_balancer:
-              RBAC_test_type: advanced
-
-- job:
-    name: octavia-v2-dsvm-scenario-traffic-ops-stable-2024-2
-    parent: octavia-v2-dsvm-scenario-stable-2024-2
-    vars:
-      tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.*traffic_ops
-
-- job:
-    name: octavia-v2-dsvm-scenario-non-traffic-ops-stable-2024-2
-    parent: octavia-v2-dsvm-scenario-stable-2024-2
     vars:
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
 
@@ -847,6 +811,7 @@
     vars:
       tempest_test_regex: ^octavia_tempest_plugin.tests.scenario.v2.(?!.*traffic_ops)
 
+# Still in-use in octavia stable/2025.1
 - job:
     name: octavia-v2-dsvm-scenario-ubuntu-jammy
     parent: octavia-v2-dsvm-scenario
@@ -922,18 +887,6 @@
     parent: octavia-v2-dsvm-tls-barbican
     nodeset: octavia-single-node-ubuntu-noble
     override-checkout: stable/2025.1
-
-- job:
-    name: octavia-v2-dsvm-tls-barbican-stable-2024-2
-    parent: octavia-v2-dsvm-tls-barbican
-    nodeset: octavia-single-node-ubuntu-jammy
-    override-checkout: stable/2024.2
-    vars:
-      devstack_local_conf:
-        test-config:
-          "$TEMPEST_CONFIG":
-            load_balancer:
-              RBAC_test_type: advanced
 
 - job:
     name: octavia-v2-dsvm-spare-pool
@@ -1066,18 +1019,6 @@
     parent: octavia-v2-act-stdby-dsvm-scenario
     nodeset: octavia-single-node-ubuntu-noble
     override-checkout: stable/2025.1
-
-- job:
-    name: octavia-v2-act-stdby-dsvm-scenario-stable-2024-2
-    parent: octavia-v2-act-stdby-dsvm-scenario
-    nodeset: octavia-single-node-ubuntu-jammy
-    override-checkout: stable/2024.2
-    vars:
-      devstack_local_conf:
-        test-config:
-          "$TEMPEST_CONFIG":
-            load_balancer:
-              RBAC_test_type: advanced
 
 # Temporary job, remove once it is no longer used in octavia gates
 - job:
